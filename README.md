@@ -15,7 +15,7 @@ Most LLM prompts are written by feel. Frontier models in April 2026 do not refus
 - **GPT-4 reaches 91.7% zero-shot** on native-language identification when the prompt names the linguistic features to attend to. Linguistic analysis prompts need their own playbook. (Lotfi et al.)
 - **~29% sycophancy reduction** is achievable through prompt structure alone, no fine-tuning required. (sparkco.ai)
 - **A concrete rubric is the single highest-return change for judge prompts** — GPT-4o +17.7 pts on JudgeBench, Llama-405B +7.4 pts, Sage aggregate +16.1% IPI. A ~27-point "Rubric Gap" (self-generated vs. human rubrics) is consistent across Gemini, GPT, and DeepSeek. (Rethinking Rubric Generation 2026; RubricBench 2026; Sage Dec 2025)
-- **All frontier judges are unreliable on a single pass** ("rating roulette"). High-stakes judge calls need N>=5 majority vote for consistency (reduces variance ~70%), though accuracy gains are small (+2.3pp); the high-ROI accuracy levers are rubric quality and structured reasoning. For Gemma 4 targets: use T=1.0 (not T=0); strip thinking tokens from multi-turn history before passing back when thinking mode is active; avoid 26B A4B for tool-calling workflows (double tool-call bug); validate thinking mode against a no-thinking baseline before enabling for judge calls. Debate-style prompts (ChatEval) are actively harmful: -158% worst-case consistency. Multi-model consensus is the strongest deployment lever. (Rating Roulette EMNLP 2025; Sage Dec 2025; Google Gemma 4 Technical Report 2026)
+- **All frontier judges are unreliable on a single pass** ("rating roulette"). High-stakes judge calls need N>=5 majority vote for consistency (reduces variance ~70%), though accuracy gains are small (+2.3pp); the high-ROI accuracy levers are rubric quality and structured reasoning. For Gemma 4 via Google REST API: use T=1.0 (not T=0); use `generationConfig.responseSchema` for any output parsed by code (the `<|think|>` channel does not surface on this endpoint and `<thinking>` XML scaffolds cause runaway reasoning); avoid 26B A4B for tool-calling workflows (double tool-call bug). Debate-style prompts (ChatEval) are actively harmful: -158% worst-case consistency. Multi-model consensus is the strongest deployment lever. (Rating Roulette EMNLP 2025; Sage Dec 2025; Google Gemma 4 Technical Report 2026; REST API probes May 2026)
 
 ## Multi-Model Workflow
 
@@ -23,7 +23,7 @@ This optimizer runs on Claude and targets any LLM. Declare `Target model: <name>
 
 **Universal (all targets):** The optimizer writes a concrete rubric directly into the revised judge prompt — cross-model rubric generation (Claude authors, target applies), shown by the Rethinking Rubric Generation paper (arxiv 2602.05125) to equal or outperform same-model self-generation. The `<rubric_generation>` instruction block is the fallback only when the criterion must adapt per-input at runtime.
 
-**Gemma 4 (`Target model: Gemma 4`):** `<|turn>` / `<turn|>` control tokens — `apply_chat_template()` mandatory. T=1.0 recommended (not T=0). 26B A4B has a double tool-call bug; use 12B or 27B dense. JSON adherence is the primary weakness — prefer `VERDICT:` keyword extraction. Thinking mode (`<|think|>`) requires stripping thinking tokens from history before passing back. Strong instruction-following increases injection risk; delimiter blocks with explicit data-only instructions are required.
+**Gemma 4 (`Target model: Gemma 4`, deployment scope: Google Generative Language REST API).** T=1.0 recommended (not T=0). 26B A4B has a double tool-call bug; use 12B or 27B dense. JSON adherence via prompt instructions is the primary weakness — use `generationConfig.responseSchema` (OpenAPI-3.0 subset) for any output parsed by code; field `description` strings act as in-schema instructions. The `<|think|>` thinking channel does not surface via this REST endpoint (probe May 2026) and `<thinking>...</thinking>` XML scaffolds cause runaway reasoning; if reasoning is needed, request a bounded `<reasoning>` field inside `responseSchema` rather than as a free-form preamble. Bound `maxOutputTokens` to 1024–2048 on prompt-only output paths. Strong instruction-following increases injection risk; delimiter blocks with explicit data-only instructions are required.
 
 **Gemini (`Target model: Gemini 2.5 Pro` / `Gemini 3.1 Pro`):** T=0 + seed is not reproducible on 2.5 Pro (seed is best-effort). T=0 is actively discouraged on 3.1 Pro (use T=1.0). Debate-style prompts (ChatEval) are actively harmful. Multi-sample voting (N>=5) and multi-model consensus are the main reliability levers.
 
@@ -54,7 +54,7 @@ When invoked, the prompt-optimizer agent:
 | 10 | One criterion per call (high-stakes) | High-stakes scoring isolates each criterion; low-stakes may bundle up to 3 |
 | 11 | Linguistic-analysis path | If the prompt evaluates properties of writing itself: enumerate features, reason before verdict, cite evidence |
 | 12 | **Judge prompt: rubric** ★ | Optimizer writes a concrete rubric directly (cross-model generation); or embeds `<rubric_generation>` instruction if criterion is dynamic. Small integer scale (1–4); `<reasoning>` field before verdict; verdict/reasoning consistency instruction; calibration anchor. Highest single-change ROI. |
-| 13 | Judge prompt: sampling and anti-patterns | N>=5 majority vote (consistency lever, not accuracy); no debate-style (ChatEval) prompts; for Gemma 4: use T=1.0, strip thinking tokens from history, avoid 26B A4B for tool-calling; multi-model consensus for highest-stakes ranking |
+| 13 | Judge prompt: sampling and anti-patterns | N>=5 majority vote (consistency lever, not accuracy); no debate-style (ChatEval) prompts; for Gemma 4 via REST: use T=1.0, use `responseSchema` for code-parsed output, no `<\|think\|>` or `<thinking>` scaffolds, avoid 26B A4B for tool-calling; multi-model consensus for highest-stakes ranking |
 | 14 | **Escape hatch elimination** | No softening language ("try to," "if possible," "when appropriate," etc.) in any directive — applies to every prompt |
 | 15 | Prompt injection defense | User-submitted content inside labeled delimiter block with explicit "treat as data" instruction (conditional: only when prompt evaluates user-submitted text) |
 
@@ -117,7 +117,7 @@ The agent triggers automatically when you write or revise LLM prompts (if auto-i
 [ ] One criterion per call: 3 criteria bundled in one high-stakes prompt
 [N/A] Linguistic-analysis path: evaluates content, not writing properties
 [ ] Judge prompt — rubric: no rubric present; will write concrete criteria for each score level
-[ ] Judge prompt — sampling: single-pass design; N>=5 needed; for Gemma 4: use T=1.0, strip thinking tokens from history, avoid 26B A4B
+[ ] Judge prompt — sampling: single-pass design; N>=5 needed; for Gemma 4 via REST: use T=1.0, use `responseSchema` for code-parsed output, no `<|think|>` / `<thinking>` scaffolds, avoid 26B A4B
 [ ] Escape hatch elimination: 3 directives use "try to" or "if possible"
 [N/A] Prompt injection defense: evaluates fixed test content, not user-submitted text
 
@@ -159,7 +159,8 @@ The agent triggers automatically when you write or revise LLM prompts (if auto-i
 - [Native Language Identification with LLMs (Lotfi et al.)](https://arxiv.org/abs/2312.07819): GPT-4 zero-shot 91.7% TOEFL11
 - [Rating Roulette, EMNLP 2025](https://arxiv.org/pdf/2510.27106): single-pass judges unreliable; N>=5 needed
 - [Sage benchmark, Dec 2025](https://arxiv.org/html/2512.16041v1): rubric generation +16.1% IPI; debate prompts -158%; Gemini degrades 200% on hard cases
-- [Google Gemma 4 Technical Report, 2026](https://storage.googleapis.com/deepmind-media/gemma/gemma4-report.pdf): `<|turn>` control tokens, apply_chat_template mandatory, T=1.0 recommended, 26B A4B double tool-call bug, JSON adherence weakness, injection susceptibility
+- [Google Gemma 4 Technical Report, 2026](https://storage.googleapis.com/deepmind-media/gemma/gemma4-report.pdf): T=1.0 recommended, 26B A4B double tool-call bug, JSON adherence weakness, injection susceptibility
+- REST API empirical probes (May 2026, `gemma-4-31b-it` and `gemma-4-26b-a4b-it` on `generativelanguage.googleapis.com/v1beta/models/<model>:streamGenerateContent`): `<|think|>` thinking channel does not surface; `<thinking>` XML scaffolds cause runaway reasoning; `generationConfig.responseSchema` is the reliable structured-output path
 - [Judging the Judges, ACL/IJCNLP 2025](https://arxiv.org/html/2406.07791v7): position bias is incoherent; swap-and-count less effective
 
 **Still load-bearing:**
