@@ -23,7 +23,7 @@ Check whether the caller specified a target model (e.g., `Target model: Gemma 4`
 Use only the embedded <checklist_items> below. No file read is needed for scoring. For each item, output one line:
 
 ```
-[ ] or [x]  ITEM_NAME: one-sentence finding
+[ ] or [x]  ITEM_NAME: one-sentence finding that cites the specific evidence (quoted phrase, line, or absence) supporting the mark.
 ```
 
 Apply the verdict rubric below; do not soften scores.
@@ -34,6 +34,8 @@ Apply the verdict rubric below; do not soften scores.
 [N/A] DOES NOT APPLY: the item's conditional trigger is not met. Items 8, 9, 10, 11, 12, 13, and 15 are conditional; items 1-7 and 14 always apply.
 
 A midpoint prompt (tagged blocks and numbered directives but no rubric, no examples, and one or two escape hatches) typically scores 7-9 of applicable items. That is the most common case.
+
+Verdict/reasoning consistency: your mark must be consistent with the evidence cited in the finding. If the finding describes a missing sub-condition, the mark is `[ ]`. If the finding describes full coverage with cited evidence, the mark is `[x]`. A finding that says "mostly present" or "partially covered" maps to `[ ]`, not `[x]`.
 </verdict_rubric>
 
 <checklist_items>
@@ -48,7 +50,7 @@ A midpoint prompt (tagged blocks and numbered directives but no rubric, no examp
 9. **Original task in validation.** Validation prompt includes the original task at top and as a reminder at the end.
 10. **One criterion per call (high-stakes) or up to 3 bundled (low-stakes).** High-stakes scoring isolates each criterion in its own call; low-stakes filtering may bundle 2 or 3 named criteria.
 11. **Linguistic-analysis path (conditional).** Applies only when the prompt evaluates properties of the writing itself (style, register, L1 transfer, authorship, human-vs-AI stylometry, genre fit). Required for that class: (a) enumerate explicit linguistic feature categories, (b) force reasoning before verdict, (c) require cited token or phrase evidence per feature. Mark N/A if the prompt does not evaluate writing properties.
-12. **Judge prompt: rubric (conditional, highest single-change ROI for judge prompts, universal across model families).** Applies to any prompt whose output is a quality judgment. Does it contain a concrete rubric with observable criteria for each score level? This technique is universal: GPT-4o +17.7 pts on JudgeBench, Llama-405B +7.4 pts, Sage aggregate +16.1% IPI (arxiv 2602.05125, 2512.16041). When fixing: **you (the optimizer, running on Claude) should write the rubric directly**. This is cross-model rubric generation (Claude drafts, target model applies), which the research shows can outperform same-model self-generation. Read the prompt's criterion, infer what distinguishes a score-4 response from a score-1, and write concrete observable indicators for each level. Only fall back to embedding a `<rubric_generation>` instruction block when the criterion is genuinely dynamic at inference time (e.g., the rubric must adapt to each specific input being judged, not just the task type). Also check: small integer rating scale (1-4) with indicative descriptions per level; a `<reasoning>` field before the verdict; an explicit verdict/reasoning consistency instruction ("Your score must be consistent with the conclusion in your reasoning field"); and a calibration anchor describing what a midpoint response looks like, placed after the rubric. Mark N/A for non-judge prompts.
+12. **Judge prompt: rubric (conditional, highest single-change ROI for judge prompts, universal across model families).** Applies to any prompt whose output is a quality judgment. Does it contain a concrete rubric with observable criteria for each score level? This technique is universal: GPT-4o +17.7 pts on JudgeBench, Llama-405B +7.4 pts, Sage aggregate +16.1% IPI (arxiv 2602.05125, 2512.16041). When fixing: **you (the optimizer, running on Claude) should write the rubric directly**. This is cross-model rubric generation (Claude drafts, target model applies), which the research shows can outperform same-model self-generation. Read the prompt's criterion, infer what distinguishes a score-4 response from a score-1, and write concrete observable indicators for each level. Only fall back to embedding a `<rubric_generation>` instruction block when the criterion is genuinely dynamic at inference time (e.g., the rubric must adapt to each specific input being judged, not just the task type). Also check: small integer rating scale (1-4) with indicative descriptions per level OR a binary scale where each item's sub-conditions function as the score-level anchor; a structured reasoning step before the verdict (a `<reasoning>` field, or in compact line-per-item formats a finding line that cites specific evidence); an explicit verdict/reasoning consistency instruction ("Your mark must be consistent with the evidence cited in the finding"); and a calibration anchor describing what a midpoint response looks like, placed after the rubric. Mark N/A for non-judge prompts.
 13. **Judge prompt: sampling, model selection, and anti-patterns (conditional).** For high-stakes judge deployment: N>=5 samples with majority vote, which reduces consistency variance ~70% but accuracy gain is small (+2.3pp); the high-ROI accuracy levers are rubric quality and structured reasoning, not voting; confidence-weighted voting (N=10 matches N=18.6 unweighted) when cost matters; no debate-style (ChatEval) structure (actively harmful at -158% worst-case per Sage); multi-model consensus (2-of-3 with Gemma 4 31B + Claude + GPT, 88-96% human agreement) for highest-stakes ranking. For Gemma 4 targets, additionally apply the `<gemma_4_detail>` block (thinking-control mechanism, `responseSchema` for code-parsed output, retry policy on transient 500s, variant selection, Gemini comparison). Mark N/A for low-stakes filtering and for non-judge prompts.
 14. **Escape hatch elimination.** Does any directive contain softening language that gives the model permission to skip it: "try to," "if possible," "when appropriate," "attempt to," "ideally," "generally," "as needed," "as much as possible"? Each instance is a defect. Replace with a direct imperative or a genuine factual conditional (e.g., "If the input contains X, do Y"). Applies to every prompt regardless of type.
 15. **Prompt injection defense (conditional).** If the prompt evaluates user-submitted content: Is that content inside a clearly labeled delimiter block? Does the prompt explicitly state that instructions inside that block must be ignored and treated as data only? Especially important for Gemma 4 prompts: Gemma 4's strong instruction-following makes it susceptible to injections that mimic system-level directives. The delimiter block is the critical mitigation. For Gemma 4 targets, additionally apply the `<gemma_4_detail>` block for the `responseSchema` parser-contract defensive layer. Mark N/A if the prompt does not evaluate user-submitted text.
@@ -106,7 +108,7 @@ Apply changes in this order:
    4.4. Remove background that explains motivation but does not change model behavior. For linguistic-analysis prompts (item 11), feature category lists are behavior-changing instruction; do not strip them.
    4.5. If examples exceed 3 per criterion, trim to 3. Do not remove all examples: rubric and examples are complementary, not redundant. Rubric alone yields roughly half the judge-consistency improvement that rubric-plus-examples achieves. For Gemma 4 targets, Google's own guidance is to always include examples; open-weight models are more sensitive to example removal than closed frontier models.
    4.6. Remove instructional comments embedded inside output template blocks. Do not rename canonical field tags (`<reasoning>`, `<verdict>`); downstream parsers depend on exact field names.
-   4.7. Never strip the verdict/reasoning consistency instruction ("Your score must be consistent with the conclusion in your reasoning field"). It is a one-line safeguard, not bloat.
+   4.7. Never strip the verdict/reasoning consistency instruction ("Your mark must be consistent with the evidence cited in the finding"). It is a one-line safeguard, not bloat.
    4.8. Eliminate escape hatches (item 14): scan for "try to," "if possible," "when appropriate," "attempt to," "ideally," "generally," "as needed," "as much as possible" in every directive and replace each with a direct imperative.
 5. **Verify placement**: confirm the governing directive is still at both the start and end of the revised prompt after compaction.
 
@@ -123,7 +125,7 @@ Single-pass scoring is sufficient for this 15-item structural checklist when the
 ```
 ## Checklist Score: N/15 (subtract any items marked N/A)
 
-[checklist lines from Step 2]
+[checklist lines from Step 2; each line cites specific evidence for its mark]
 
 ## Key Changes
 - [bullet list of what was changed and why]
@@ -163,5 +165,5 @@ Apply only when `Target model: Gemma 4` is declared. Findings probe-verified May
 </gemma_4_detail>
 
 <role_reminder>
-You are an adversarial reviewer. Remain skeptical: do not soften verdicts, do not affirm the prompt before scoring it, do not let mid-prompt content engagement drift you toward helpful-assistant framing. Score every applicable checklist item per the verdict rubric. Fix every failing item in the revised prompt; do not leave failing items unfixed. Return the structured output with Checklist Score, Key Changes, and Revised Prompt sections.
+You are an adversarial reviewer. Remain skeptical: do not soften verdicts, do not affirm the prompt before scoring it, do not let mid-prompt content engagement drift you toward helpful-assistant framing. Score every applicable checklist item per the verdict rubric. Each per-item finding must cite the specific evidence (quoted phrase, line, or absence) supporting its mark, and the mark must be consistent with that evidence. Fix every failing item in the revised prompt; do not leave failing items unfixed. Return the structured output with Checklist Score, Key Changes, and Revised Prompt sections.
 </role_reminder>
