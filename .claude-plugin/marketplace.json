@@ -1,21 +1,21 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
-  "name": "claude-prompt-optimizer",
+  "name": "prompt-optimizer",
   "description": "LLM prompt quality reviewer and optimizer. Scores your prompts against a research-backed 10-item checklist and returns a revised version with every violation fixed.",
   "owner": {
     "name": "dlxmax"
   },
   "plugins": [
     {
-      "name": "claude-prompt-optimizer",
+      "name": "prompt-optimizer",
       "source": "./",
       "description": "Scores and revises LLM prompts against a research-backed checklist. Based on AGENTIF (NeurIPS 2025), ACL 2025 self-correction research, and HuggingFace LLM-as-judge benchmarks.",
       "version": "1.0.0",
       "author": {
         "name": "dlxmax"
       },
-      "homepage": "https://github.com/dlxmax/claude-prompt-optimizer",
-      "repository": "https://github.com/dlxmax/claude-prompt-optimizer",
+      "homepage": "https://github.com/dlxmax/prompt-optimizer",
+      "repository": "https://github.com/dlxmax/prompt-optimizer",
       "license": "MIT",
       "keywords": [
         "prompts",

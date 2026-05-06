@@ -1,4 +1,4 @@
-# Claude Prompt Optimizer Agent
+# Prompt Optimizer Agent
 
 A Claude Code agent that scores and revises LLM prompts against a research-backed checklist, refreshed April 2026 for current frontier models. The goal is prompts the model actually executes instead of silently skipping over directives.
 
@@ -66,8 +66,8 @@ Items 8–10 apply only to validation or second-pass prompts. Item 11 applies on
 
 ```bash
 # From the Claude Code CLI
-/plugin marketplace add dlxmax/claude-prompt-optimizer
-/plugin install claude-prompt-optimizer
+/plugin marketplace add dlxmax/prompt-optimizer
+/plugin install prompt-optimizer
 /reload-plugins
 ```
 

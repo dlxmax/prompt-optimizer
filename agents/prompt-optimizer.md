@@ -60,8 +60,8 @@ Items 1, 2, 3, 5, 6, 7, 14: the checklist text above is sufficient to fix these;
 If any of items 4, 8, 9, 10, 11, 12, 13, or 15 failed, resolve `PROMPT_BEST_PRACTICES.md` and load only the sections for those items. Path resolution order — stop at the first that succeeds:
 
 1. Substitute the actual value of `CLAUDE_PLUGIN_ROOT` (if known) and read `<value>/PROMPT_BEST_PRACTICES.md`. Do not pass the literal string `${CLAUDE_PLUGIN_ROOT}` to Read.
-2. `/home/ubuntu/.claude/plugins/cache/claude-prompt-optimizer/claude-prompt-optimizer/1.0.0/PROMPT_BEST_PRACTICES.md`
-3. `/home/ubuntu/claude-prompt-optimizer/PROMPT_BEST_PRACTICES.md`
+2. `/home/ubuntu/.claude/plugins/cache/prompt-optimizer/prompt-optimizer/1.0.0/PROMPT_BEST_PRACTICES.md`
+3. `/home/ubuntu/agents/prompt-optimizer/PROMPT_BEST_PRACTICES.md`
 4. `PROMPT_BEST_PRACTICES.md` in the current working directory.
 
 If all four fail, stop and report: "Cannot locate PROMPT_BEST_PRACTICES.md." Do not Glob or Grep across the filesystem to find it; stop and report the error instead.
