@@ -1,6 +1,6 @@
 {
   "name": "prompt-optimizer",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "LLM prompt quality reviewer and optimizer. Scores prompts against a research-backed 10-item checklist (AGENTIF NeurIPS 2025, ACL 2025, HuggingFace LLM-as-judge) and returns a revised version with every violation fixed.",
   "author": {
     "name": "dlxmax",

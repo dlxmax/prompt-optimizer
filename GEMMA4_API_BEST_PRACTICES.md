@@ -56,7 +56,44 @@ STRINGs, INTEGER, and BOOLEAN are unaffected.
 
 Temperature step-down does not break this loop; the fix is structural.
 
-## 3. Parse with `json.JSONDecoder().raw_decode()`, not `json.loads()`
+## 3. Property order in `responseSchema` controls generation order
+
+The order in which fields appear inside an OBJECT's `properties` dict
+determines the order Gemma 4 emits them in the response. Place any
+`reasoning` STRING field BEFORE the `verdict` enum it justifies, and
+the model fills `reasoning` first, then commits to `verdict`, then (if
+present) writes a short `reason` tag. This makes the verdict an output
+of the reasoning rather than a post-hoc justification, and materially
+shrinks per-item output length: observed ~1.8k chars per item dropping
+to ~250 chars under this change alone on a warmup validator.
+
+The corresponding anti-pattern is `verdict, reasoning`: the model locks
+the verdict on the first token of the field, then inflates the
+following STRING to justify it. Schema-level length caps in the field
+`description` ("max 10 words") are not strongly enforced once the
+verdict has committed.
+
+**Application:**
+- For judge or audit schemas, order properties as
+  `index, reasoning, verdict, reason` (or the equivalent for your
+  decision field). Define the reasoning STRING first.
+- Keep `verdict` as a tight `enum` (e.g., `KEEP`/`DROP`) so it parses
+  cleanly once committed.
+- Keep `reasoning` and `reason` separate when both an audit trail and a
+  short downstream tag are needed; otherwise collapse into a single
+  length-capped `reasoning` field.
+- This also interacts with rule 2 on `26b-a4b`: each OBJECT still gets
+  at most one unbounded STRING. A `reasoning` STRING placed first
+  consumes that one slot, so any sibling `reason` should be enum-bounded
+  or length-capped via a stop-example.
+
+**Caveat:** Property-order honouring is empirical, not documented.
+Defensive practice is belt-and-braces: order the `properties` dict in
+the desired generation order **and** add an explicit prompt instruction
+("fill `reasoning` first, then commit `verdict`"). If a future Gemma 4
+update weakens the order behavior, the prompt instruction still holds.
+
+## 4. Parse with `json.JSONDecoder().raw_decode()`, not `json.loads()`
 
 Even with `responseSchema`, Gemma 4 occasionally emits valid JSON
 followed by trailing text (~1 in 12 calls observed). Strict `json.loads`
@@ -66,13 +103,13 @@ raises; `raw_decode` parses the first valid object and ignores the rest.
 parsed, _ = json.JSONDecoder().raw_decode(raw_text)
 ```
 
-## 4. Do not set `thinkingConfig.thinkingBudget` on Gemma 4
+## 5. Do not set `thinkingConfig.thinkingBudget` on Gemma 4
 
 Returns HTTP 400 `"Thinking budget is not supported for this model."`
 This parameter works on Gemini 2.5 Flash, not on Gemma 4. Cross-family
 code must branch on model name.
 
-## 5. `maxOutputTokens` is a safety ceiling, not a thinking cap
+## 6. `maxOutputTokens` is a safety ceiling, not a thinking cap
 
 Gemma 4 thinking expands to fill whatever budget is set (256 cap → ~300
 thinking tokens; 1024 cap → ~1150 overflowing the cap; 2048 cap → more).
@@ -82,7 +119,7 @@ failure mode, but it does not raise success rate. The actual
 thinking-suppression lever is `responseSchema` (rule 1). Set
 `maxOutputTokens` generously when `responseSchema` is in use.
 
-## 6. Classify retries by failure signature
+## 7. Classify retries by failure signature
 
 Do not share one retry policy across these classes:
 
@@ -95,7 +132,7 @@ Do not share one retry policy across these classes:
 - **`MAX_TOKENS` with degenerate output on 26b-a4b** → structural fix
   per rule 2, not a retry. Repeating the call wastes budget.
 
-## 7. Schema-shape patterns for batch JSON output
+## 8. Schema-shape patterns for batch JSON output
 
 When the prompt produces a fixed JSON schema and code parses the result,
 two structural patterns matter beyond `responseSchema`:
@@ -114,12 +151,12 @@ echo or "do not restart the object" guard at the end is fine; full
 re-specification is what backfires. This is a Gemma 4-specific exception
 to the universal start-and-end repetition rule.
 
-## 8. Use T=1.0; do not use T=0
+## 9. Use T=1.0; do not use T=0
 
 T=0 is not recommended on Gemma 4. The May 12 benchmark used T=1.0
 throughout.
 
-## 9. Probe before recommending
+## 10. Probe before recommending
 
 Google's documentation does not always reflect Gemma 4 behavior
 (`thinkingBudget` is documented for the Gemini 2.5 family but returns
@@ -131,19 +168,19 @@ this model" and is free. If a recommendation depends on an API feature
 that has not been probed against the target variant, note that in the
 call site's deployment checklist.
 
-## 10. Tool-calling: avoid 26b-a4b
+## 11. Tool-calling: avoid 26b-a4b
 
 Known double tool-call bug on 26b-a4b. Both variants behave identically
 for thinking control and for single-STRING `responseSchema` mechanics,
 but they diverge on tool-calling and on multi-STRING schemas (rule 2).
 
-## 11. Do not place `<|think|>` in `systemInstruction`
+## 12. Do not place `<|think|>` in `systemInstruction`
 
 It is a no-op and elevates the transient 500 rate. Similarly,
 `<thinking>...</thinking>` XML scaffolds add prompt tokens with no
 behavior change. Remove them from optimized prompts.
 
-## 12. Thinking surfaces structurally, not as text markers
+## 13. Thinking surfaces structurally, not as text markers
 
 Gemma 4 thinking returns as `parts[].thought = true`, not as
 `<|channel>` text markers. Code parsers must filter `parts[].thought`
