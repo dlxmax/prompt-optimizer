@@ -455,7 +455,7 @@ All guidance in this section is scoped to **Google's Generative Language REST AP
 
 - T=0 is not recommended for Gemma 4. Use **T=1.0** as the default.
 - For judge calls, T=1.0 + N>=5 majority vote is the correct production configuration, not T=0 + seed.
-- Set `maxOutputTokens` aggressively low for any prompt-only output path (1024–2048) so the always-on thinking is bounded by the token cap rather than dominating the budget.
+- Treat `maxOutputTokens` as a safety ceiling, not a thinking-budget cap. May 12, 2026 follow-up probes confirm Gemma 4 expands thinking to fill whatever budget is set (256 cap → ~310 thinking tokens, 1024 cap → ~1150 tokens overflowing the cap, 2048 → more). Lowering the cap converts MALFORMED_RESPONSE (long socket timeout, empty visible output) into MAX_TOKENS (fast fail), which is a cheaper failure mode, but it does NOT increase success rate. The lever that actually suppresses thinking is `responseSchema` (see Section 5.8); set `maxOutputTokens` generously when `responseSchema` is in use.
 
 #### Thinking Is Always On and Surfaces as `parts[].thought`
 
@@ -488,7 +488,7 @@ The `<|channel>thought>` text-marker mechanism is a HuggingFace Transformers cha
 - Do not place `<|think|>` in `systemInstruction` — it does nothing useful and elevates the transient 500 rate.
 - `<thinking>` XML scaffolds add tokens with no benefit; remove them but do not panic if a legacy prompt still has one.
 - If the reasoning part is desired (logging, transparency), capture the first `thought: true` part; otherwise skip it.
-- Bound `maxOutputTokens` to 1024–2048 on prompt-only paths to cap the always-on thinking.
+- Set `maxOutputTokens` generously as a safety ceiling, not as a thinking cap. May 12, 2026 probes confirm Gemma 4 expands thinking to fill whatever budget is set; lowering the cap converts MALFORMED_RESPONSE timeouts into MAX_TOKENS fast-fails (cheaper failure mode) but does NOT increase success rate. Use `responseSchema` (next subsection) for actual thinking control.
 
 #### Cannot Disable Thinking on Gemma 4 via REST
 
@@ -511,7 +511,11 @@ Google's `generationConfig.responseMimeType = "application/json"` combined with 
 Probe verification (`gemma-4-31b-it`, May 6, 2026):
 
 - Without schema: multi-part response with `thought: true` reasoning + `thought: null` freeform answer; `usageMetadata.thoughtsTokenCount` populated.
-- With schema: response collapses to a single part with `thought: null`, text is clean JSON matching the schema parseable on first try, and `thoughtsTokenCount` is **absent** from `usageMetadata` — i.e., the schema both enforces structure AND suppresses thought emission entirely.
+- With schema: response collapses to a single part with `thought: null`, text is clean JSON matching the schema parseable on first try, and `thoughtsTokenCount` is **absent** from `usageMetadata`. The schema both enforces structure AND suppresses thought emission entirely.
+
+Benchmark quantification (May 12, 2026; 72-call burst-rewrite test against `gemma-4-31b-it`): shipping `responseSchema` reduced per-call wall-clock from ~67s/call median to ~1 to 2s/call (~37x speedup), drove the MALFORMED_RESPONSE rate from baseline to 0%, and lifted success to 100%. Ship `responseSchema` as the primary deployment lever for any code-parsed path, not as a Tier 2 probe.
+
+**Parser tolerance.** Even with `responseSchema`, Gemma 4 occasionally emits valid JSON followed by trailing text (observed ~1 in 12 calls in the May 12 benchmark, with the same input succeeding on retry). Strict `json.loads()` raises `JSONDecodeError: Extra data` on the trailing content; use `json.JSONDecoder().raw_decode()` instead to parse the first valid JSON object and ignore the rest. This converts an intermittent caller-side failure into a clean parse on the same response.
 
 ```json
 "parts": [{"thought": null, "text": "{\"reasoning\":\"...\",\"score\":2}"}]
@@ -537,7 +541,7 @@ Probe finding (May 6, 2026): 1 of 5 simple, well-formed bare calls returned `500
 
 #### JSON Adherence Weakness (Prompt-Only Output Paths)
 
-JSON adherence is Gemma 4's primary documented weakness when format is requested via prompt instructions alone. The fix is `responseSchema` (above), not heavier prompting. For legacy line-based parsers (`VERDICT N: PASS`, `DROP WARMUP`, `TOP-3 for N:`) that cannot move to `responseSchema` without rewriting the parser, keep the prompt under 800 tokens including data, front-load an OUTPUT CONTRACT block stating the literal first token of the response, repeat that token in a one-line final reminder immediately before the closing tag, and bound `maxOutputTokens` aggressively. Migrate to `responseSchema` on the next prompt-optimizer pass.
+JSON adherence is Gemma 4's primary documented weakness when format is requested via prompt instructions alone. The fix is `responseSchema` (above), not heavier prompting. The May 12, 2026 burst-rewrite benchmark quantified the impact: shipping `responseSchema` dropped wall-clock from ~67s/call median to ~1 to 2s/call (~37x speedup), drove the MALFORMED_RESPONSE rate from baseline to 0%, and lifted success to 100%. For legacy line-based parsers (`VERDICT N: PASS`, `DROP WARMUP`, `TOP-3 for N:`) that cannot move to `responseSchema` without rewriting the parser, keep the prompt under 800 tokens including data, front-load an OUTPUT CONTRACT block stating the literal first token of the response, repeat that token in a one-line final reminder immediately before the closing tag, and set `maxOutputTokens` generously (it is a safety ceiling, not a thinking cap; see Temperature and Sampling above). Migrate to `responseSchema` on the next prompt-optimizer pass.
 
 #### 26B A4B Double Tool-Call Bug
 
