@@ -10,7 +10,7 @@
       "name": "prompt-optimizer",
       "source": "./",
       "description": "Scores and revises LLM prompts against a research-backed checklist. Based on AGENTIF (NeurIPS 2025), ACL 2025 self-correction research, and HuggingFace LLM-as-judge benchmarks.",
-      "version": "1.0.2",
+      "version": "1.0.3",
       "author": {
         "name": "dlxmax"
       },
