@@ -174,6 +174,16 @@ Do not share one retry policy across these classes:
 
 - **HTTP 5xx (500/503 INTERNAL)** → fast exponential backoff, same
   parameters, max 4 attempts. Baseline transient rate ~20%.
+- **HTTP 429 RATE_LIMIT_EXCEEDED** → read the response body before
+  routing. Substring-check `error.details[].violations[].quotaId` for
+  `"PerDay"`: present means RPD (hard exhaustion) and the chain should
+  advance to the next model permanently; absent means RPM (transient,
+  ~60s window) and the retry stays on the same model with backoff.
+  Status code alone does not distinguish the two. Free Gemma 4 31b is
+  15 RPM, so a naive "429 means exhausted, advance the chain" handler
+  will permanently knock the model out after a 60s burst; the standard
+  1s + 10s + 30s overload schedule reaches the RPM clear window
+  naturally.
 - **`MALFORMED_RESPONSE`** (empty visible output with large
   `thought_chars`) → parameter changes (temperature step-down
   1.0 → 0.85 → 0.75, or enable `responseSchema` if not already on),

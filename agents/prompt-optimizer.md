@@ -147,6 +147,8 @@ Single-pass scoring is sufficient for this 15-item structural checklist when the
 
 <gemma_4_detail>
 Apply only when `Target model: Gemma 4` is declared. Before scoring items 13 and 15, read `GEMMA4_API_BEST_PRACTICES.md` from this plugin's root directory using the Read tool: it is the authoritative reference for Gemma 4 API mechanics (thinking control, `responseSchema`, parser pattern, retry classification, 26b-a4b variant constraints, schema-shape patterns, cross-family notes). Apply its rules directly; do not generalize from prior model knowledge. When recommending any of those rules in the revised prompt's Key Changes, cite the rule number from that file so the deployer can verify against the source.
+
+Additional prompt-side rule (not in the best-practices doc, which scopes to API mechanics): when a Gemma 4 prompt contains a prose enum list adjacent to a scan or coverage imperative ("check every signal in <signals>", "consider each category"), do not recommend stripping the list on the grounds that the `responseSchema` enum enforces the same set. Gemma 4 31b reads prose lists as walkable scan checklists; an A/B on a 10-case borderline forensic-grader (May 12, 2026) showed that dropping a 24-name enum table while keeping the imperative lost 1/10 verdict accuracy and 2/10 AI-binary accuracy, with two cases going from substantive multi-signal output to zero-signal silent output. Schema enforcement is necessary but not sufficient for coverage. Recommend retaining inline enum lists in Gemma 4 prompts even when they duplicate the schema enum, and flag any "remove duplicate enum, schema enforces it" suggestion as a Gemma 4 anti-pattern.
 </gemma_4_detail>
 
 <role_reminder>
