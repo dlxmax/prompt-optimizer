@@ -1,7 +1,7 @@
 {
   "name": "prompt-optimizer",
-  "version": "1.0.6",
-  "description": "LLM prompt quality reviewer and optimizer. Scores prompts against a research-backed 10-item checklist (AGENTIF NeurIPS 2025, ACL 2025, HuggingFace LLM-as-judge) and returns a revised version with every violation fixed.",
+  "version": "1.0.7",
+  "description": "Scores and revises LLM prompts against a research-backed checklist. Primary focus is mitigating known failure modes on Gemma 4 31b via the Google Generative Language REST API; also targets Gemini and Claude.",
   "author": {
     "name": "dlxmax",
     "url": "https://github.com/dlxmax"

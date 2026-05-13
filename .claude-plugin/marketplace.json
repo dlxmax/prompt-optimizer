@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "prompt-optimizer",
-  "description": "LLM prompt quality reviewer and optimizer. Scores your prompts against a research-backed 10-item checklist and returns a revised version with every violation fixed.",
+  "description": "Scores and revises LLM prompts against a research-backed checklist. Primary focus is mitigating known failure modes on Gemma 4 31b via the Google Generative Language REST API; also targets Gemini and Claude.",
   "owner": {
     "name": "dlxmax"
   },
@@ -9,8 +9,8 @@
     {
       "name": "prompt-optimizer",
       "source": "./",
-      "description": "Scores and revises LLM prompts against a research-backed checklist. Based on AGENTIF (NeurIPS 2025), ACL 2025 self-correction research, and HuggingFace LLM-as-judge benchmarks.",
-      "version": "1.0.6",
+      "description": "Scores and revises LLM prompts against a research-backed checklist. Primary focus is mitigating known failure modes on Gemma 4 31b via the Google Generative Language REST API; also targets Gemini and Claude.",
+      "version": "1.0.7",
       "author": {
         "name": "dlxmax"
       },
