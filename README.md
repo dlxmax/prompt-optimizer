@@ -2,6 +2,8 @@
 
 A Claude Code agent that scores and revises LLM prompts against a research-backed checklist.
 
+**Topics:** `gemma-4` · `gemma` · `gemini` · `claude` · `response-schema` · `structured-output` · `rubric` · `llm-judge` · `prompt-engineering` · `prompts` · `agents` · `sycophancy` · `validation` · `compliance` · `best-practices`
+
 **Primary focus: mitigating known failure modes on `gemma-4-31b-it` via the Google Generative Language REST API.** The 15-item checklist itself is model-agnostic and the optimizer also targets Gemini and Claude, but the empirical work behind the current rules, 100+ probe calls against `gemma-4-31b-it` and `gemma-4-26b-a4b-it` between May 6 and May 13, 2026, is what drove the design. The reference for those rules is [`GEMMA4_API_BEST_PRACTICES.md`](GEMMA4_API_BEST_PRACTICES.md).
 
 The two goals are: prompts the model actually executes instead of silently skipping over directives, and call mechanics that do not waste retry budget on failures the schema or parser already explains.
