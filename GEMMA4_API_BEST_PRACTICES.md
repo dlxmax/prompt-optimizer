@@ -86,6 +86,10 @@ verdict has committed.
   at most one unbounded STRING. A `reasoning` STRING placed first
   consumes that one slot, so any sibling `reason` should be enum-bounded
   or length-capped via a stop-example.
+- **Narrow schemas only.** Rule 4 overrides this pattern when the schema
+  already has >=4 mandatory nested OBJECTs: on `31b`, the reasoning
+  STRING crashes the request entirely. Move the reasoning surface to
+  prompt-level prose or Python-side checks when the schema is wide.
 
 **Caveat:** Property-order honouring is empirical, not documented.
 Defensive practice is belt-and-braces: order the `properties` dict in
@@ -93,7 +97,52 @@ the desired generation order **and** add an explicit prompt instruction
 ("fill `reasoning` first, then commit `verdict`"). If a future Gemma 4
 update weakens the order behavior, the prompt instruction still holds.
 
-## 4. Parse with `json.JSONDecoder().raw_decode()`, not `json.loads()`
+## 4. Wide schemas reject a top-level reasoning STRING on 31b
+
+`gemma-4-31b-it` reliably crashes (alternating HTTP 400 INVALID_ARGUMENT
+and 500 INTERNAL, 0/4 success) when a `responseSchema` combines a
+top-level free-text `reasoning` STRING with many mandatory nested
+OBJECTs. Empirical bisect May 13, 2026 on a forensic signal schema at
+T=0.5: removing the reasoning STRING brought success to 4/4 on the same
+schema; removing the evidence OBJECTs while keeping the reasoning
+STRING left success at 2/4 (general backend baseline). The crash is
+schema-specific, not backend flake.
+
+The mechanism appears to be response-budget overload: each mandatory
+evidence OBJECT must be emitted with default values even when its
+matching signal does not trigger, and a prose-populated STRING on top
+pushes the response past an internal Gemma 4 limit, producing malformed
+output that the upstream validator rejects.
+
+**Threshold:** observed crash at 5 mandatory evidence OBJECTs plus 1
+reasoning STRING. Prudent safety margin: do not add a top-level
+reasoning STRING when the schema already has >=4 mandatory nested
+OBJECTs with multiple inner properties each. Schemas with <=3 nested
+OBJECTs (e.g., 3 `ARRAY[OBJECT]`s plus 1 nullable OBJECT) have carried
+a single bounded reasoning STRING without issue in production.
+
+**Workarounds when reasoning is wanted on a wide schema:**
+- Move reasoning to prompt-level prose instructions ahead of the JSON
+  output (the model can still self-audit; the audit just does not
+  appear in the parsed payload).
+- Move reasoning to Python-side deterministic checks after parsing.
+- Split into two calls: a narrow reasoning call that returns the
+  reasoning STRING, then a wide structured-output call that returns
+  the evidence OBJECTs.
+
+**Bisect, do not retry.** When a schema-bearing call returns alternating
+400/500, the prior probability splits ~50/50 between backend flake and
+schema rejection. Four schema variants x four attempts each (16 calls,
+~5 minutes) make the answer obvious. Concluding "API instability"
+without the comparative test wastes the same retry budget over and
+over.
+
+**Interaction with rule 3:** rule 3's reason-before-commit pattern
+requires a reasoning STRING in the schema. That pattern only applies
+to narrow schemas (<4 mandatory nested OBJECTs); for wide schemas use
+the workarounds above.
+
+## 5. Parse with `json.JSONDecoder().raw_decode()`, not `json.loads()`
 
 Even with `responseSchema`, Gemma 4 occasionally emits valid JSON
 followed by trailing text (~1 in 12 calls observed). Strict `json.loads`
@@ -103,13 +152,13 @@ raises; `raw_decode` parses the first valid object and ignores the rest.
 parsed, _ = json.JSONDecoder().raw_decode(raw_text)
 ```
 
-## 5. Do not set `thinkingConfig.thinkingBudget` on Gemma 4
+## 6. Do not set `thinkingConfig.thinkingBudget` on Gemma 4
 
 Returns HTTP 400 `"Thinking budget is not supported for this model."`
 This parameter works on Gemini 2.5 Flash, not on Gemma 4. Cross-family
 code must branch on model name.
 
-## 6. `maxOutputTokens` is a safety ceiling, not a thinking cap
+## 7. `maxOutputTokens` is a safety ceiling, not a thinking cap
 
 Gemma 4 thinking expands to fill whatever budget is set (256 cap → ~300
 thinking tokens; 1024 cap → ~1150 overflowing the cap; 2048 cap → more).
@@ -119,7 +168,7 @@ failure mode, but it does not raise success rate. The actual
 thinking-suppression lever is `responseSchema` (rule 1). Set
 `maxOutputTokens` generously when `responseSchema` is in use.
 
-## 7. Classify retries by failure signature
+## 8. Classify retries by failure signature
 
 Do not share one retry policy across these classes:
 
@@ -131,8 +180,11 @@ Do not share one retry policy across these classes:
   max 3 attempts. Same call repeated will fail the same way.
 - **`MAX_TOKENS` with degenerate output on 26b-a4b** → structural fix
   per rule 2, not a retry. Repeating the call wastes budget.
+- **Alternating 400/500 on a schema-bearing call** → suspect rule 4
+  (wide-schema reasoning STRING overload on 31b). Bisect the schema
+  before exhausting retries.
 
-## 8. Schema-shape patterns for batch JSON output
+## 9. Schema-shape patterns for batch JSON output
 
 When the prompt produces a fixed JSON schema and code parses the result,
 two structural patterns matter beyond `responseSchema`:
@@ -151,12 +203,12 @@ echo or "do not restart the object" guard at the end is fine; full
 re-specification is what backfires. This is a Gemma 4-specific exception
 to the universal start-and-end repetition rule.
 
-## 9. Use T=1.0; do not use T=0
+## 10. Use T=1.0; do not use T=0
 
 T=0 is not recommended on Gemma 4. The May 12 benchmark used T=1.0
 throughout.
 
-## 10. Probe before recommending
+## 11. Probe before recommending
 
 Google's documentation does not always reflect Gemma 4 behavior
 (`thinkingBudget` is documented for the Gemini 2.5 family but returns
@@ -168,19 +220,19 @@ this model" and is free. If a recommendation depends on an API feature
 that has not been probed against the target variant, note that in the
 call site's deployment checklist.
 
-## 11. Tool-calling: avoid 26b-a4b
+## 12. Tool-calling: avoid 26b-a4b
 
 Known double tool-call bug on 26b-a4b. Both variants behave identically
 for thinking control and for single-STRING `responseSchema` mechanics,
 but they diverge on tool-calling and on multi-STRING schemas (rule 2).
 
-## 12. Do not place `<|think|>` in `systemInstruction`
+## 13. Do not place `<|think|>` in `systemInstruction`
 
 It is a no-op and elevates the transient 500 rate. Similarly,
 `<thinking>...</thinking>` XML scaffolds add prompt tokens with no
 behavior change. Remove them from optimized prompts.
 
-## 13. Thinking surfaces structurally, not as text markers
+## 14. Thinking surfaces structurally, not as text markers
 
 Gemma 4 thinking returns as `parts[].thought = true`, not as
 `<|channel>` text markers. Code parsers must filter `parts[].thought`
@@ -204,4 +256,5 @@ Sample N=12 calls per code path. Expect: `finishReason=STOP`,
 `thoughtsTokenCount=0` (or absent), median wall <5s, 100% schema-valid
 JSON via `raw_decode`. Non-zero `MALFORMED_RESPONSE` or thinking-token
 leak means rule 1 did not land. `MAX_TOKENS` with degenerate output on
-26b-a4b means rule 2 did not land.
+26b-a4b means rule 2 did not land. Alternating 400/500 on a
+schema-bearing call means rule 4 needs a bisect.
