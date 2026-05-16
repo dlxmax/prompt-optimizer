@@ -342,6 +342,42 @@ Key findings:
 
 **Order of operations when a prompt is heavy:** focus (strip non-load-bearing context), compress (LLMLingua-2 or summarization), decompose (chain calls). In that order.
 
+### Compaction Tooling Survey (May 2026 refresh)
+
+Locally installable tools for the manual-then-automated compaction pipeline, ranked by fit with a structural-checklist optimizer:
+
+| Tool | Install | Mechanism | Notes |
+|------|---------|-----------|-------|
+| LLMLingua-2 (Microsoft) | `pip install llmlingua` | BERT-encoder token classification, task-agnostic | `compress_prompt(prompt, rate=0.33, force_tokens=['\n','?'])`. The `force_tokens` parameter protects structural markers; extend it to include `<reasoning>`, `<verdict>`, `<rubric>` for judge prompts. |
+| token-reducer (PyPI) | `pip install token-reducer[all]` | Three explicit levels: light (5-15%), moderate (20-40%), aggressive (50-75%) with semantic-similarity validation (>0.85 cosine threshold) | Includes AST-based Python minification (73% reduction) and log/transcript pattern-collapse (74%/27% reduction). Best for prompts embedding long context blocks. |
+| 500xCompressor (ACL 2025) | `github.com/ZongqianLi/500xCompressor` | Compresses natural-language context to as few as 1 special token; 6x to 480x ratio, +0.3% params, no fine-tuning needed on target LLM | Soft-prompt compression; downstream model must accept the special tokens. Not applicable to plain-text prompts shipped to a hosted API. |
+| LongLLMLingua | included in `llmlingua` package | Question-aware compression; mitigates lost-in-the-middle by re-ranking and dropping low-perplexity tokens | RAG performance +21.4% at 1/4 tokens. Use when the prompt contains retrieved context, not for hand-authored judge prompts. |
+| Context Mode MCP (`mksglu/context-mode`, 14.9k stars) | `/plugin marketplace add mksglu/context-mode` | MCP server compressing **tool outputs** before they enter Claude Code context. SQLite FTS5 storage, no telemetry. Elastic License 2.0 | Compresses Playwright snapshots 56KB→299B, GitHub issues 58.9KB→1.1KB, repo research 986KB→62KB. Out of scope for authored-prompt compaction but extends optimizer session lifetime. |
+| ClaudSkills `prompt-compression` SKILL.md | `curl -L https://claudskills.com/skills/prompt-compression/SKILL.md` | Skill that wraps LLMLingua + summary compression + context pruning under a Claude Code skill | Useful as a reference SKILL to diff against this agent's checklist; rules overlap with items 4.1-4.8. |
+| Kong AI Prompt Compressor plugin | Kong gateway plugin | Compresses retrieved RAG chunks pre-LLM via LLMLingua-2 | Infrastructure-tier, irrelevant for a checklist agent. Included for completeness. |
+| compress-gpt (PyPI) | `pip install compress-gpt` | Self-extracting GPT prompts, ~70% token savings | Self-extracting prompts depend on the target model reliably "decompressing" at inference time; brittle on Gemma 4. |
+
+**Recommended install for this repo:** `pip install llmlingua token-reducer`. The two are complementary: token-reducer's `level="moderate"` setting handles structural prose stripping safely, then LLMLingua-2 at `rate=0.5` handles residual token-level compression with `force_tokens` protecting the agent's canonical field tags.
+
+**Anti-recommendation:** do not chain automated compressors into the agent's execution path. Automated compression after manual structural editing carries non-zero risk of stripping a load-bearing token (rubric anchor, count-vs-universal qualifier, verdict/reasoning consistency line). Keep the automated stage human-in-the-loop, gated by the 3K-token threshold from Topic 6.
+
+### Compaction Directive Candidates Beyond LLMLingua-2
+
+The agent's current Step 4 covers eight sub-rules (4.1-4.8). The following extend coverage based on the survey and on patterns LLMLingua-2 drops first; each is mechanical and citable:
+
+1. **Strip filler connectives.** Remove "Furthermore", "In addition", "Moreover", "Additionally", "It is important to note that", "It should be mentioned that". LLMLingua-2 drops these in the first compression pass (NAACL 2025). Manual capture is near-equivalent at zero infra cost.
+2. **Inline-collapse short sequences.** For bullet lists with fewer than 4 items and items ≤ 6 words, fold into a comma-separated sentence. Bullets cost ~3 structural tokens per item.
+3. **Threshold-prose to numeric notation.** "Scores below three" → "≤2"; "more than five examples" → ">5"; "between 20 and 40 percent" → "20-40%". Numeric notation is more directive-stable on Gemma 4 (per GEMMA4_API_BEST_PRACTICES.md) and saves 4-8 tokens per occurrence.
+4. **Acronym substitution after first use.** Define on first mention, use acronym thereafter.
+5. **Hedging/courtesy removal (distinct from item 4.8 escape hatches).** Strip "kindly", "please", "feel free to", "as you see fit", "we'd appreciate if". Imperatives outperform polite imperatives on IFBench 2026 and AGENTIF (2505.16944). Distinct from escape hatches: courtesy markers don't soften directive force, they only add tokens.
+6. **Scenario-padding example removal.** Strip prose lead-ins like "Imagine a user submits...", "Consider the case where...", "Let's say someone...". The example body is the load-bearing content; the framing is not.
+7. **Token-count gate after compaction.** Estimate tokens via `len(text)/4`. If still above 3,000 after the full 4.x pass, decomposition (Step 3) becomes required, not optional. Promote the decomposition note in the Key Changes section.
+8. **Preserve-list (codify what compaction must NOT touch).** Consolidate into one explicit list: (a) the start-and-end repetition of governing directives (item 3), (b) the rubric numeric scale and level anchors (item 12), (c) canonical field tag names (`<reasoning>`, `<verdict>`, `<criterion>`), and (d) the verdict/reasoning consistency line (current 4.7). The current 4.x rules mention these inline across 4.3, 4.5, 4.6, 4.7; one consolidated list is harder for the compactor to drift past.
+9. **Floor on examples and rubric anchors.** Compaction must not reduce examples below 1 PASS+FAIL pair per criterion. Item 4 cap of 1-3 is a ceiling, not a target. Removing the last example to save 30 tokens loses roughly the same correlation gain the rubric provided (HuggingFace LLM-as-judge cookbook: rubric+examples 0.843 vs rubric-only 0.567).
+10. **Re-run count-vs-universal post-check after compaction.** Rule 6 in the agent already covers count-vs-universal contradictions, but its placement should be made explicit in Step 4: compaction frequently surfaces these contradictions when verbose qualifiers are stripped. Re-run the check on the post-compaction draft, not the pre-compaction draft.
+
+Effectiveness ordering (highest expected ROI first, based on LLMLingua-2's compression-priority list and the existing agent's known failure modes): item 7 (token-count gate, formalises the 3K threshold) > item 8 (preserve-list, prevents over-compaction regressions) > item 10 (post-compaction rule 6 re-check) > items 1 and 5 (filler/courtesy stripping, pure token savings with no risk) > items 3 and 4 (numeric/acronym substitution) > items 2 and 6 (inline-collapse and scenario padding, cosmetic at this point) > item 9 (floor, defensive only).
+
 ---
 
 ## Topic 7: Prompts for Linguistic Analysis
