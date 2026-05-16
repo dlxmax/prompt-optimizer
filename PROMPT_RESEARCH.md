@@ -359,6 +359,24 @@ Locally installable tools for the manual-then-automated compaction pipeline, ran
 
 **Recommended install for this repo:** `pip install llmlingua token-reducer`. The two are complementary: token-reducer's `level="moderate"` setting handles structural prose stripping safely, then LLMLingua-2 at `rate=0.5` handles residual token-level compression with `force_tokens` protecting the agent's canonical field tags.
 
+#### LLMLingua-2 2026 status check (May 2026 verification)
+
+Independent research conducted May 16, 2026 to verify the LLMLingua-2 recommendation has not been superseded:
+
+- **Maintenance status: dormant core, active research program.** The `microsoft/LLMLingua` GitHub repo has had no new PyPI releases for 12+ months (Snyk classifies as "Inactive," not "Vulnerable"). Microsoft Research has shifted to specialized long-context tools (LongLLMLingua, RetrievalAttention, MInference, SCBench) rather than continued general-compression iteration. No LLMLingua-3 has been announced.
+- **2026 benchmark standing: stable but plateaued.** Performance numbers are unchanged from the 2025 paper: 3-6x speedup at 10-15x compression with 1-2 point accuracy drops at typical rates. No frontier-model benchmarks published yet for GPT-5, Claude 4.x, or Gemini 3. Production cost-savings claims ($42K → $2.1K monthly) are credible only for long-context (>5K token) RAG workloads.
+- **Competitors and successors.** LongLLMLingua (ACL 2024) outperforms task-agnostic LLMLingua-2 on retrieval-heavy workloads (+21.4% RAG accuracy at 1/4 tokens) when task-specific labels are available. CompactPrompt and LLM-DCP (2025-2026 arxiv) lack production footprint. Compresr (YC startup, EMNLP 2025) is closed-source. Frontier models now include native compression (Gemma 4 TurboQuant, March 2026, audio encoder; GPT-5 and Claude 4.x likely internalized token-level optimization), which reduces third-party tool necessity for cost-sensitive deployments.
+- **Production adoption: stable.** LangChain, LlamaIndex, and Haystack continue shipping LLMLingua-2 integrations in 2026. LangChain's 2026 State of Agent Engineering survey (1,300+ respondents) confirms prompt compression as a standard RAG pipeline component.
+- **No regressions reported** on judge prompts, multilingual input, or structured output classes in 2026.
+- **Gemma 4 specifically: no published benchmarks.** No 2026 paper compares LLMLingua-2 against Gemma 4 native compression. Empirical testing required before any production rollout on Gemma 4 targets.
+
+**Verdict:** continue recommending LLMLingua-2 as the task-agnostic baseline for the prompt-optimizer's manual-then-automated compaction pipeline. Add the following caveats inline:
+1. **Prefer LongLLMLingua for retrieval/RAG content** when the prompt embeds long retrieved chunks with task-specific scoring labels.
+2. **Evaluate native compression first** on Gemma 4, GPT-5, Claude 4.x deployments before adding a third-party compression layer; the frontier-native path may now dominate for cost-sensitive workloads.
+3. **Treat the package as feature-complete, not actively maintained.** Pin to a known version; do not assume security patches are forthcoming.
+
+Sources (May 2026): `github.com/microsoft/LLMLingua` (release activity), `tokenmix.ai/blog/llmlingua-prompt-compression-2026` (production metrics), arxiv 2410.12388 (NAACL 2025 Oral compression survey), arxiv 2604.02985 (2026 "Prompt Compression in the Wild"), `langchain.com/state-of-agent-engineering` (2026 RAG component survey), `snyk.io/advisor/python/llmlingua` (package health classification).
+
 **Anti-recommendation:** do not chain automated compressors into the agent's execution path. Automated compression after manual structural editing carries non-zero risk of stripping a load-bearing token (rubric anchor, count-vs-universal qualifier, verdict/reasoning consistency line). Keep the automated stage human-in-the-loop, gated by the 3K-token threshold from Topic 6.
 
 ### Compaction Directive Candidates Beyond LLMLingua-2
