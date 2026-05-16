@@ -396,6 +396,20 @@ The agent's current Step 4 covers eight sub-rules (4.1-4.8). The following exten
 
 Effectiveness ordering (highest expected ROI first, based on LLMLingua-2's compression-priority list and the existing agent's known failure modes): item 7 (token-count gate, formalises the 3K threshold) > item 8 (preserve-list, prevents over-compaction regressions) > item 10 (post-compaction rule 6 re-check) > items 1 and 5 (filler/courtesy stripping, pure token savings with no risk) > items 3 and 4 (numeric/acronym substitution) > items 2 and 6 (inline-collapse and scenario padding, cosmetic at this point) > item 9 (floor, defensive only).
 
+#### Field test: forensic_signals.md (May 17, 2026)
+
+First production application of the v1.0.15 4.x rule set, against `~/tabot/grader/directives/forensic_signals.md` (24-signal AI-detection directive for Gemma 4 31b, Korean EFL essays).
+
+- **Original:** 290 lines, 6,463 words, ~8,617 tokens (rough words×4/3).
+- **Optimized:** 279 lines, 4,421 words, ~5,894 tokens. Wrote sibling at `forensic_signals.optimized.md`.
+- **Reduction: 31.6% by token count, 31.6% by word count.** Below the 43% ceiling the agent estimated pre-run; the difference comes from the example floor protecting more content than expected (signals with 2-3 FAIL examples that would have trimmed actually had each FAIL covering a distinct exclusion case, so the floor was already at 1 per case).
+- **Rules that fired:** 4.1 (preamble strip on `<role>`), 4.2 (verbose phrasing across ~10 sites), 4.4 (motivation-only background, the single largest contributor at ~1,800 tokens), 4.5 (surplus FAIL examples trimmed on 4 signals), 4.8 (courtesy markers, minimal), 4.9 (filler connectives, minimal), 4.10 (numeric notation, minimal). Plus item 12 fix (added 2-line calibration anchor + consistency instruction).
+- **Rules that did NOT fire** (preserve-list, rule 6): Tier A and Tier B AI vocabulary tables (45 markers, Gemma 4 enum-coverage), full L1 marker enumeration in 5.2(c), 24-signal name table, per-signal evidence-shape routing, all 5 conditions of the absent-L1 + uniform-synthetic gate (5.2), both Surface 1 and Surface 2 of reference-ability gap, emdash_count exclusions.
+- **3K target: not achievable.** Honest finding: with the Gemma 4 enum-coverage rule + example floor + two deterministic combination gates intact, ~5.9K is the practical floor for this directive. The agent surfaced the right next move: split into chained calls (one pass for SUBSTANTIVE signals, one for the two second-pass reviews) rather than degrade coverage. This is the first concrete data point validating that the 3K threshold from Topic 6 is informative, not always actionable; large multi-signal forensic directives may require decomposition rather than compaction.
+- **Item 13 deployment-side gap.** The forensic directive was missing N=5 majority vote / T=1.0 / retry-class spec / 26B-A4B avoidance. These belong in a deployment doc the directive references, not in the prompt body. Recorded here as an additional class of finding the optimizer surfaces: deployment-contract gaps in production directives.
+
+**Takeaway for the 4.x rule set:** the rules behave as designed; the practical floor under Gemma 4 constraints is ~30-35% reduction for multi-signal forensic directives. Future field tests on different directive shapes (rubric grading, narrative grading, exam authoring) may show different reduction floors.
+
 ---
 
 ## Topic 7: Prompts for Linguistic Analysis
