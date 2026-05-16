@@ -143,6 +143,7 @@ Single-pass scoring is sufficient for this 15-item structural checklist when the
 3. If the prompt is already strong (12+ out of applicable items), say so and only suggest minor improvements.
 4. If the prompt is split across multiple files or assembled at runtime, note what you can and cannot evaluate from a single file.
 5. Never use em dashes in the revised prompt text. Use commas, colons, or restructure.
+6. Count-versus-universal consistency. If a revised directive contains a count constraint ("exactly N", "N to M", "at most K") AND a universal quantifier ("every", "all", "each", "must") that targets the same population, the universal silently overrides the count and the rule self-contradicts. Before emitting the revised prompt, scan every directive for this pattern. Fix by one of: (a) scope the universal to the qualifying subset only ("Each question that carries a Step 1 item carries exactly one and uses a distinct item"), (b) drop the universal and rely on the count, or (c) name the complement explicitly ("The remaining questions carry no Step 1 item"). Soft-target originals ("aim for 3 to 4 of the N items") trigger this defect most often because the instinct to convert "aim for" into "every X must Y" elides the existing count. The check applies after compaction (Step 4) and before the final output (Step 6); do not skip it.
 </rules>
 
 <gemma_4_detail>
