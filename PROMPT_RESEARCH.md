@@ -410,6 +410,54 @@ First production application of the v1.0.15 4.x rule set, against `~/tabot/grade
 
 **Takeaway for the 4.x rule set:** the rules behave as designed; the practical floor under Gemma 4 constraints is ~30-35% reduction for multi-signal forensic directives. Future field tests on different directive shapes (rubric grading, narrative grading, exam authoring) may show different reduction floors.
 
+#### Follow-up A/B: v1 → v2 over-restoration, then selective add-back (May 17, 2026 later)
+
+After the initial 31.6% compression in v1, a regression A/B on the borderline-10 31b-only benchmark (Gemma 4 31b-it, no 26b-a4b fallback to avoid RPM contention) surfaced the limits of one-axis compaction.
+
+**Empirical anchor (borderline-10, 31b-only):**
+
+| Prompt | Lines | Bytes | Verdict-exact | AI-binary |
+|---|---|---|---|---|
+| production `forensic_signals.md` | 290 | 45,153 | 6/10 | 9/10 |
+| v1 `forensic_signals.optimized.md` (compress) | 279 | 31,657 (-30%) | not measured 31b-only | 8/10 (chain) |
+| v2 `forensic_signals.optimized.v2.md` (restore all 4 scaffolds) | 287 | 47,741 (+6%) | 5/10 | 9/10 |
+
+v2 grew larger than production AND lost a verdict point. The four constructs restored were not equally load-bearing.
+
+**The four Gemma 4 recall-sensitive scan constructs (extension of the preserve-list for this task class):**
+
+1. **"Rationale:" clauses on every signal definition.** Without the rationale, Gemma at T=1.0 reads the signal name and moves on without scanning. Strip them and `findings[]` goes empty on cases where the production prompt finds 3-4 signals.
+2. **PASS-by-example density (per signal).** PASS examples are the worked-out enum of what to find on a closed-set positive scan. Cutting from 2-3 to 1 directly suppresses recall. Same pattern as the broader enum-coverage rule, one level deeper.
+3. **Process-instruction preambles before second-pass review steps.** A sentence like "the patchwork signature requires looking across two sections AFTER L1 evidence has accumulated" is a re-scan directive, not commentary. Flatten it to a conditional and the second pass collapses back into the first.
+4. **Explicit recall-posture override.** Closing with "when borderline-supported, emit it; downstream calls aggregate" overrides Gemma's skeptical-default emit-nothing-when-uncertain on borderline cases.
+
+**But: not all four scaffolds are load-bearing on every case.** v2 restored all four and introduced two false positives:
+- Kwon Yuchan (instructor clean) drifted to polished — the recall-posture override (#4) over-fires on truly-clean writing.
+- Yujin Kim (instructor polished) drifted to patchwork — the Rationale clause (#1) on the patchwork-signature definition activates patchwork-search on polished cases.
+
+**Selective add-back strategy (treat scaffolds as a menu, not a package):**
+
+1. Start from the compressed v1 base, not from v2 and not from production.
+2. Restore **only PASS-by-example density** on the 2-3 signals that fired empty in v1. Keep density at 1 on signals that recalled fine.
+3. **Do NOT** restore the recall-posture-override closing sentence (over-calls on clean writing).
+4. **Do NOT** restore the Rationale clause on patchwork-signature definitions (FPs polished cases). Restore Rationale only on signals v1 was silent on.
+5. **Do** restore the second-pass process-instruction preamble (cheap, one sentence, no observed FP).
+
+Target weight: ~33-36KB. Validation gate: equal or beat production on 31b-only borderline-10 — verdict 6/10 AND AI-binary 9/10 — with at least 25% byte savings vs production.
+
+**Brief template when invoking the optimizer on recall-sensitive Gemma 4 prompts** (the optimizer's natural drift is one-axis maximization; a multi-axis brief lets it balance):
+
+1. **Byte target with floor and ceiling.** "Land between 33-36KB" beats "make it smaller."
+2. **Empirical A/B data on the prior version.** Concrete numbers, not theoretical claims: "production 6/10 verdict 9/10 AI-binary at 45.1KB; v2 5/10 verdict 9/10 AI-binary at 47.7KB."
+3. **Anti-patterns by name and case.** Not "avoid FPs" but "do NOT restore the recall-posture-override — it false-positived Kwon Yuchan in v2."
+4. **Named scaffolds: keep vs drop.** Reference the four-construct list above; specify which to keep and which to drop with one-line empirical rationale each.
+5. **Validation gate command.** Exact bench invocation including model and no-fallback flag, since the optimizer doesn't know about RPM contention.
+6. **Watch-student pass criteria.** 3-4 concrete cases with required outcomes ("Jong su Baek signals must be >=3, Kwon Yuchan must stay clean").
+
+**Companion construct: keep the rejected output as documentation.** `forensic_signals.rejected.v2.md` with an HTML-comment header naming each compression decision against measured outcome. The next optimizer pass should read the rejected file first to avoid re-introducing the same surface form.
+
+**Takeaway:** for recall-sensitive closed-set scan tasks on Gemma 4, the optimization arc is rarely one-shot. The pattern v1 (compress) → measure → v2 (restore-some) → measure → v3 (final) is the realistic shape. The brief on each subsequent pass must carry empirical A/B data from the prior pass; "restore all the scaffolds the previous memo flagged" is the wrong instruction.
+
 ---
 
 ## Topic 7: Prompts for Linguistic Analysis
