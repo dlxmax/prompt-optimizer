@@ -213,10 +213,15 @@ echo or "do not restart the object" guard at the end is fine; full
 re-specification is what backfires. This is a Gemma 4-specific exception
 to the universal start-and-end repetition rule.
 
-## 10. Use T=1.0; do not use T=0
+## 10. Use T=1.0, top_p=0.95, top_k=64; do not use T=0
 
 T=0 is not recommended on Gemma 4. The May 12 benchmark used T=1.0
-throughout.
+throughout. Google's May 5, 2026 model card refresh documents the full
+recommended sampling configuration: `temperature=1.0`, `top_p=0.95`,
+`top_k=64`, applied uniformly across all Gemma 4 sizes and all use cases
+(including judge calls). Pass all three when constructing
+`generationConfig`; the earlier guidance to set `T=1.0` only is
+incomplete.
 
 ## 11. Probe before recommending
 
@@ -241,6 +246,19 @@ but they diverge on tool-calling and on multi-STRING schemas (rule 2).
 It is a no-op and elevates the transient 500 rate. Similarly,
 `<thinking>...</thinking>` XML scaffolds add prompt tokens with no
 behavior change. Remove them from optimized prompts.
+
+**Surface scope.** Google's April 20, 2026 chat-template doc states that
+`<|think|>` in the system instruction enables thinking on Gemma 4. That
+guidance applies to the chat-template surface (HuggingFace Transformers,
+llama.cpp, MLX, Unsloth), where `apply_chat_template(messages,
+enable_thinking=True)` emits the actual special-token id into `input_ids`.
+On the Generative Language REST API surface, `systemInstruction.parts[].text`
+is plain text and the tokenizer does not register `"<|think|>"` as a
+plain-text special-token mapping; the string tokenizes as ordinary BPE
+pieces. The two surfaces are not equivalent. This rule is REST-API-scoped
+and stands; deployers using local chat-template paths should follow
+Google's chat-template doc directly. See PROMPT_RESEARCH.md "Gemma 4 May
+2026 Update: Deployment-Surface Distinction" for the full reconciliation.
 
 ## 14. Thinking surfaces structurally, not as text markers
 

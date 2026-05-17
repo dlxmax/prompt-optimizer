@@ -1,6 +1,6 @@
 # Prompt Engineering Research Archive
 
-Compiled March 2026, refreshed April 2026 with IFBench, LLMLingua-2, 2026 few-shot findings, linguistic-analysis literature, prompt-bloat results, and Gemma 4 model-specific deployment behavior. Older entries that have been partially superseded are tagged in place. Indexed by topic for fast recall in future prompt-related tasks.
+Compiled March 2026, refreshed April 2026 with IFBench, LLMLingua-2, 2026 few-shot findings, linguistic-analysis literature, prompt-bloat results, and Gemma 4 model-specific deployment behavior. Refreshed May 18, 2026 with Google's authoritative Gemma 4 chat-template documentation (April 20 - May 5 updates), the deployment-surface distinction between REST API and chat-template paths, sampling-parameter defaults (T=1.0/top_p=0.95/top_k=64), Multi-Token Prediction (MTP) speculative decoding, multi-turn thought-stripping rules, "Adaptive LOW Thinking" instructability finding, May 2026 31B benchmark numbers, and the Maier et al. "Just Ask for a Table" sponsored-recommendation attack (arxiv 2605.12772). Older entries that have been partially superseded are tagged in place. Indexed by topic for fast recall in future prompt-related tasks.
 
 ---
 
@@ -709,6 +709,186 @@ REST API probes against `gemma-4-31b-it` and `gemma-4-26b-a4b-it` on `generative
 
 ---
 
+### Gemma 4 May 2026 Update: Deployment-Surface Distinction and New Authoritative Guidance
+
+Sources (all updated April-May 2026):
+- Google AI for Developers, "Gemma 4 Prompt Formatting", ai.google.dev/gemma/docs/core/prompt-formatting-gemma4 (updated 2026-04-20)
+- Google AI for Developers, "Thinking mode in Gemma", ai.google.dev/gemma/docs/capabilities/thinking (updated 2026-04-21)
+- Google AI for Developers, "Gemma 4 model overview", ai.google.dev/gemma/docs/core (updated 2026-05-05)
+- HuggingFace model card `google/gemma-4-31B-it` (updated 2026-05-05)
+- Google AI for Developers, "Function calling with Gemma 4", ai.google.dev/gemma/docs/capabilities/text/function-calling-gemma4 (updated 2026-04-08)
+
+#### The Two Deployment Surfaces Are Not Equivalent
+
+The May 2026 doc refresh introduced authoritative chat-template guidance that does NOT transfer wholesale to REST API deployments. Always identify the deployment surface before applying special-token guidance.
+
+| Surface | Where it applies | How special tokens reach the model |
+|---|---|---|
+| **Chat-template (HF Transformers, llama.cpp, MLX, Unsloth)** | Local inference; loaded weights | `apply_chat_template(messages, enable_thinking=True/False)` emits actual special-token ids into `input_ids`. The tokenizer's chat template wraps each turn with `<|turn>role\n...<turn|>`. Documented control tokens (`<|think|>`, `<|channel>`, `<|tool>`, `<|tool_call>`, `<|tool_response>`, `<|"|>`) reach the model as their special-token ids. |
+| **Google Generative Language REST API** | Hosted Gemma 4 via `generativelanguage.googleapis.com/v1beta/.../{model}:generateContent` | `systemInstruction.parts[].text` is plain text. The tokenizer does not register the chat-template control tokens as plain-text special-token mappings, so `"<|think|>"` typed into the text field tokenizes as ordinary BPE pieces. Probes 2026-05-06 and 2026-05-10 confirmed `<|think|>` in `systemInstruction` is a no-op AND elevates the 500 INTERNAL rate AND primes reasoning-shaped output that collides with `responseSchema` (see Topic 9 main "Gemma 4 Specifics" subsection above). |
+
+**Consequence for prompt-optimizer guidance:** Topic 9 main Gemma 4 subsection (above) remains authoritative for REST API deployments. The new subsections below apply primarily to chat-template deployments; where a finding crosses surfaces, the cross-surface scope is called out explicitly.
+
+#### Native System Role (Both Surfaces)
+
+Gemma 4 introduces first-class support for the `system` role. Gemma 3 had no native system role; system content had to be folded into the first user message. For Gemma 4:
+
+```python
+messages = [
+    {"role": "system", "content": "You are a strict reviewer; reject any prompt that fails one item."},
+    {"role": "user", "content": "..."},
+]
+```
+
+Chat-template emission for Gemma 4 wraps this as `<|turn>system\n...<turn|>`. The REST API's `systemInstruction` field has supported a system slot since Gemma 3; what changed in Gemma 4 is that the underlying model is now trained to treat that slot with first-class authority rather than folding it into user context.
+
+**Prompt-optimizer implication:** When the optimizer recommends "place governing directive at both start and end" (checklist item 3) for a Gemma 4 chat-template deployment, the start anchor goes in `role: "system"` and the end repetition goes either in the same system message or as a `role: "user"` reminder appended to the final user turn (because the legitimate-user channel is where recency anchoring matters). The legacy Gemma 3 pattern of "front-and-back inside one user message" is now suboptimal.
+
+#### Sampling Parameter Defaults (Chat-Template, Likely Cross-Surface)
+
+Google's May 2026 model card documents the recommended sampling configuration:
+
+```
+temperature = 1.0
+top_p = 0.95
+top_k = 64
+```
+
+These are the same across all Gemma 4 sizes (E2B, E4B, 26B A4B, 31B). Use across all use cases including judge and evaluation tasks.
+
+This expands our prior guidance (`T=1.0` only). The `top_p=0.95` and `top_k=64` recommendations are new in the public documentation as of May 2026 and align with the Unsloth Gemma 4 fine-tuning guide.
+
+**Why this matters for prompt-optimizer:** When recommending sampling configuration in the Key Changes section of a Gemma 4 review, cite all three values (`T=1.0`, `top_p=0.95`, `top_k=64`). The prior advice to use `T=1.0` alone is incomplete.
+
+#### Multi-Turn Thought Stripping Is Required (Chat-Template Surface)
+
+Google's documented Gemma 4 chat-template behavior:
+
+> "Standard Multi-Turn Conversations: You must remove (strip) the model's generated thoughts from the previous turn before passing the conversation history back to the model for the next turn. The historical model output must only include the final response."
+
+Exception: within a single model turn that involves function or tool calls, thoughts must NOT be removed between the function calls (they carry context across the tool-call cycle).
+
+For long-running agentic workflows, a documented best practice is to extract, summarize, and feed previous-turn reasoning back into the context as standard text (no special-token wrapper required; the model has flexibility in format).
+
+**Prompt-optimizer implication:** For multi-turn Gemma 4 chat-template deployments, the optimizer should flag any prompt that retains raw thought traces in conversation history. This is a deployment-level concern (parser/wrapper code) rather than a prompt-text concern, but is worth surfacing in the Key Changes section when reviewing multi-turn judge prompts.
+
+**REST API note:** The REST API's `:generateContent` is single-turn unless the caller builds the history themselves. If they pass `parts[]` arrays back into subsequent calls, they must filter out elements with `thought: true` to match this rule. The cost surface is the same `usageMetadata.thoughtsTokenCount` field.
+
+#### Multi-Token Prediction (MTP) Speculative Decoding (Both Surfaces)
+
+> "All Gemma 4 models (E2B, E4B, 31B, and 26B A4B) include a dedicated draft model for speculative decoding, enabling significantly faster inference with no quality loss."
+
+This is an inference-engine optimization, not a prompt-construction concern. Documented quality loss is zero. Speedups vary by engine and hardware:
+- Mehul Gupta / Medium: "Gemma 4 31B + MTP draft" benchmarked as the fastest LLM in its class (May 2026).
+- Jarvis Labs benchmark (May 2026): On Gemma 4 31B dense, MTP was ahead of DFlash; on 26B-A4B MoE, DFlash was ahead. T=0 greedy decoding used.
+- NVIDIA Developer Forums: DFlash on Gemma-4-31B-it on Spark achieved ~2.5x speedup.
+
+**Prompt-optimizer implication:** None directly. Note in the deployment checklist that MTP is on by default on most production engines; if a Gemma 4 result is inconsistent across runs, the draft path is one variable to isolate (turn MTP off to compare baseline emit).
+
+#### Adaptive "LOW" Thinking via System Instruction (Chat-Template Surface, Proof of Concept)
+
+Per Google's April 20, 2026 prompt-formatting doc:
+
+> "While 'thinking' in Gemma 4 is officially supported as an ON or OFF boolean feature, the model has exceptionally strong instruction-following capabilities that allow you to modulate its thinking behavior dynamically... Testing has shown that applying a 'LOW' thinking System Instruction can reduce the number of thinking tokens generated by approximately 20%."
+
+The doc explicitly labels this a proof of concept with no canonical prompt and encourages developers to tune their own instruction depth/length/style.
+
+**Caveats:**
+- This is chat-template surface only (depends on the model parsing a system instruction as a directive on its own reasoning).
+- Quantified as "approximately 20% reduction" with no published benchmark; not a strong signal for production.
+- On the REST API, the same instruction inserted as `systemInstruction.parts[].text` may behave similarly because the REST surface routes the system text into the same training-time system slot once it's been rendered through the chat template, but no independent probe has been run. Treat as untested on REST.
+
+**Prompt-optimizer implication:** Do not recommend this as a thinking-suppression mechanism for production deployments. For genuine thinking suppression on REST, use `responseSchema` (Topic 9 main subsection). For chat-template, use `enable_thinking=False`. The "LOW thinking" pattern is a soft modulation, not a switch.
+
+#### Empty-Thought-Channel Stabilization on 26B/31B (Chat-Template Surface)
+
+Documented behavior in the May 2026 chat-template implementation: even when `enable_thinking=False`, the chat template inserts an empty `<|channel>thought\n<channel|>` segment into the prompt for the 26B-A4B and 31B variants:
+
+```
+<|turn>user
+[Prompt]<turn|>
+<|turn>model
+<|channel>thought
+<channel|>
+```
+
+The doc states this "stabilizes model output by suppressing 'ghost' thought channels that may appear even when thinking is deactivated."
+
+**Implication:** This empirically explains an observation from the May 6, 2026 REST API probes that `thoughtsTokenCount` appeared non-zero on many calls even when no thinking-control was requested. The REST API server likely applies the same chat-template stabilization, which emits the empty channel and then has the model continue past it. The thinking-suppression behavior of `responseSchema` (Topic 9 main subsection) cuts through this by enforcing a single non-thought part.
+
+**Prompt-optimizer implication:** None for prompt text. Awareness only: do not interpret a tiny `thoughtsTokenCount` value as evidence of partial thinking activation; it can be a stabilization artifact.
+
+#### Function Calling Is Native (Both Surfaces, New)
+
+Gemma 4 is trained on six function-calling control tokens managing the tool-use lifecycle:
+
+| Token Pair | Purpose |
+|---|---|
+| `<|tool>` ... `<tool|>` | Defines a tool |
+| `<|tool_call>` ... `<tool_call|>` | Model's request to invoke a tool |
+| `<|tool_response>` ... `<tool_response|>` | Tool execution result fed back to the model |
+| `<|"|>` (single token) | String-value delimiter inside structured function-call data |
+
+`<|tool_response>` doubles as a stop sequence for the inference engine. The `<|"|>` delimiter is mandatory around ALL string values inside function-call arguments and responses to keep `{`, `}`, `,`, and quotes literal.
+
+**Important caveat on auto-generated schemas (per Google's function-calling doc):** When passing raw Python functions to `apply_chat_template(..., tools=[fn])`, the automatic converter may describe complex argument objects as generic `"object"` without detailing inner properties. For complex parameters (custom config objects, nested structures), define the JSON schema manually to expose nested property names to the model.
+
+**Prompt-optimizer implication:** When reviewing Gemma 4 function-calling prompts:
+- Tool declarations in the prompt should follow the documented control-token structure (the chat template handles this on chat-template deployments; on the REST API via Vertex/Cloud, the function-call message structure is exposed and callers must follow it).
+- For complex argument shapes, recommend manual JSON schema definition over Python-function auto-generation.
+- Continue to flag 26B-A4B for tool-calling pipelines (existing rule, see Topic 9 main subsection: 26B-A4B has the double-tool-call bug; use 31B-dense or E4B for tool calls).
+
+#### Gemma 4 31B Benchmark Numbers (May 2026)
+
+From the official model card, on instruction-tuned 31B Dense:
+
+| Benchmark | Score |
+|---|---|
+| MMLU Pro | 85.2% |
+| AIME 2026 (no tools) | 89.2% |
+| LiveCodeBench v6 | 80.0% |
+| Codeforces ELO | 2150 |
+| GPQA Diamond | 84.3% |
+| Tau2 (avg over 3) | 76.9% |
+| HLE no tools / with search | 19.5% / 26.5% |
+| BigBench Extra Hard | 74.4% |
+| MMMLU | 88.4% |
+| MMMU Pro (vision) | 76.9% |
+| MATH-Vision | 85.6% |
+| MRCR v2 8-needle 128k (long context) | 66.4% |
+
+- Context window: **256K tokens** on 31B and 26B A4B (vs 128K on E2B/E4B).
+- Released April 2, 2026.
+- Paid API pricing: $0.120 / M input tokens, $0.370 / M output tokens (Price Per Token, May 2026).
+
+**Prompt-optimizer implication:** When the optimizer reviews a long-context Gemma 4 prompt, the 256K window is the new ceiling (up from 128K assumed in earlier guidance). The "lost in the middle" caveat (Topic 6) still applies; the practical high-quality window on RoPE models remains 16K-32K regardless of the advertised maximum.
+
+#### Empirical: "Just Ask for a Table" Attack on Soft System Cues (May 12, 2026)
+
+Maier, Sopa, Sahin, Perez-Toro, Bayer, "Just Ask for a Table: A Thirty-Token User Prompt Defeats Sponsored Recommendations in Twelve LLMs", arxiv 2605.12772, May 12, 2026.
+
+Tested 12 LLMs including `gemma-4-E4B-it`. Reproduction of Wu et al. 2026's finding that frontier LLMs recommend a sponsored, roughly twice-as-expensive flight when the system prompt contains a soft sponsorship cue.
+
+**Key result:** A 30-token user prompt that asks the assistant for "a neutral comparison table first" cuts sponsored-recommendation rate from:
+- 46.9% → 1.0% (averaged across 10 open-source models)
+- 53.0% → 0% (averaged across 2 OpenAI models)
+- Gemma 4 E4B specifically: +21 percentage point neutralization effect, p=0.034.
+
+**Implication for prompt-optimizer (item 15 injection defense):**
+- The attack and the defense are two sides of the same vulnerability surface. A soft system-level cue is overridden by an explicit user-level request for a different output structure. The same dynamic explains why user-submitted content with embedded directives can override a legitimate system prompt unless wrapped in a strict delimiter with data-only treatment.
+- Strengthens the existing item 15 recommendation: for Gemma 4 evaluation prompts that read user-submitted text, the `<user_submission>` delimiter PLUS the data-only directive PLUS the `responseSchema` parser-contract are all required defensively. Removing any of the three weakens the chain.
+- New angle worth surfacing in Key Changes: when the optimizer reviews a prompt whose system instruction contains a SOFT preference ("prefer cited sources", "favor recent papers"), warn that a user-supplied counter-instruction can override it; recommend hardening the system preference into an explicit hard rule with concrete observable criteria.
+
+#### Removing the "Cannot Be Disabled" Wording in Light of New Sources
+
+The May 6, 2026 REST API probe finding stands: thinking-disabling parameters (`thinkingBudget: 0`, `thinkingLevel: "low"`/`"off"`) return HTTP 400 on Gemma 4, and `<|think|>` text in `systemInstruction` does not register as a special token. The `responseSchema` path remains the only working thinking-suppression mechanism on the REST API.
+
+The new documentation showing `<|think|>` in the system instruction controls thinking does NOT contradict this. It applies to the chat-template surface (HF Transformers, llama.cpp, MLX), where the chat template inserts the actual special-token id. On the REST API, the same string is plain BPE text. See "Gemma 4 May 2026 Update: Deployment-Surface Distinction" subsection above.
+
+For deployers using chat-template paths locally: `enable_thinking=False` works as documented. For deployers using the REST API: `responseSchema` remains the lever.
+
+---
+
 ### Gemini 2.5 / 3.x Archived Findings
 
 > **Status note (April 2026):** Gemini is no longer the primary focus model. These findings are kept for reference and for projects that still target Gemini. The universal techniques (rubric generation, N>=5, multi-model consensus) remain valid regardless of model family.
@@ -1032,6 +1212,15 @@ For Gemma 4 targets, avoid using `<|turn>` or `<turn|>` as delimiter tags for us
 | Confident AI LLM-as-judge 2026 | Guide | confident-ai.com/blog/why-llm-as-a-judge-is-the-best-llm-evaluation-method | 2026 |
 | Label Your Data LLM-as-judge 2026 | Guide | labelyourdata.com/articles/llm-as-a-judge | 2026 |
 | Google Gemma 4 Technical Report | Google | storage.googleapis.com/deepmind-media/gemma/gemma4-report.pdf | 2026 |
+| Gemma 4 Prompt Formatting (chat template) | Google AI for Developers | ai.google.dev/gemma/docs/core/prompt-formatting-gemma4 | Updated 2026-04-20 |
+| Thinking mode in Gemma | Google AI for Developers | ai.google.dev/gemma/docs/capabilities/thinking | Updated 2026-04-21 |
+| Gemma 4 model overview | Google AI for Developers | ai.google.dev/gemma/docs/core | Updated 2026-05-05 |
+| HuggingFace google/gemma-4-31B-it model card | HuggingFace | huggingface.co/google/gemma-4-31B-it | Updated 2026-05-05 |
+| Function calling with Gemma 4 | Google AI for Developers | ai.google.dev/gemma/docs/capabilities/text/function-calling-gemma4 | Updated 2026-04-08 |
+| Just Ask for a Table (Maier et al.) | arxiv | arxiv.org/abs/2605.12772 | May 12, 2026 |
+| Gemma 4 Multi-Token Prediction overview | Google AI for Developers | ai.google.dev/gemma/docs/mtp/overview | 2026 |
+| Gemma 4 MTP vs DFlash benchmark | Jarvis Labs | jarvislabs.ai/blog/gemma-4-mtp-vs-dflash-benchmark | May 2026 |
+| Gemma 4 31B Instruct API pricing | Price Per Token | pricepertoken.com/google-gemma-4-31b-it | May 2026 |
 | Gemini API non-determinism (Google Forum) [archived] | Forum | discuss.ai.google.dev/t/the-gemini-api-is-exhibiting-non-deterministic-behavior-for-the-gemini-2-5-pro-model-it-is-producing-different-outputs-for-identical-requests-even-when-a-fixed-seed-is-provided-along-with-a-constant-temperature-this-behavior-has-been-reliably-rep/101331 | Jan 2026 |
 | Rating Roulette (judge self-inconsistency) | EMNLP 2025 | arxiv.org/pdf/2510.27106 | 2025 |
 | Sage benchmark (Are We on the Right Way to Assessing LLM-as-a-Judge?) | arxiv | arxiv.org/html/2512.16041v1 | Dec 2025 |
