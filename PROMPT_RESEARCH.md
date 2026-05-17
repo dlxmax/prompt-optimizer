@@ -458,6 +458,36 @@ Target weight: ~33-36KB. Validation gate: equal or beat production on 31b-only b
 
 **Takeaway:** for recall-sensitive closed-set scan tasks on Gemma 4, the optimization arc is rarely one-shot. The pattern v1 (compress) → measure → v2 (restore-some) → measure → v3 (final) is the realistic shape. The brief on each subsequent pass must carry empirical A/B data from the prior pass; "restore all the scaffolds the previous memo flagged" is the wrong instruction.
 
+#### Closing the loop: v3 promoted to production (May 17, 2026 even later)
+
+The selective add-back strategy above was applied as v3 and benchmarked. v3 promoted to production on the borderline-10 31b-only benchmark with the following numbers:
+
+| Variant | Lines | Bytes | Verdict-exact | AI-binary |
+|---|---|---|---|---|
+| v6_2 (prior production) | 290 | 45,153 | 6/10 | 9/10 |
+| v2 (rejected) | 287 | 47,741 (+6%) | 5/10 | 9/10 |
+| v1 (over-compressed) | 279 | 31,657 (-30%) | n/a 31b-only | 8/10 chain |
+| **v3 (promoted)** | — | **33,977 (-25%)** | **8/10** | **9/10** |
+
+v3 beat prior production by **2 verdict points at 25% fewer bytes**, validating both the byte target (33-36KB landed) and the selective-restoration rules. The v3 build was the first variant in the benchmark sweep to correctly cascade Jong su Baek to `patchwork` (instructor truth); v1, v2, and v6_2 all returned `polished`.
+
+**What v3 restored, precisely:**
+- Rationale clauses + extra PASS density on the 3-5 lexical/syntactic signals that fired empty in v1 (sanitized prose, low perplexity, low burstiness, translation artifacts, AI vocabulary clustering).
+- The second-pass process-instruction preamble (the patchwork read-across-sections directive).
+
+**What v3 did NOT restore:**
+- The closing recall-posture override (the v2 Kwon Yuchan clean→polished FP vector).
+- The Rationale clause on the patchwork-signature definition (the v2 Yujin Kim polished→patchwork FP vector). Yujin Kim still recalled sigs=4 in v3 without that Rationale, confirming the Rationale clause was the FP vector, not insufficient signal coverage.
+- Rationale on `register mismatch` (any trigger) — kept compressed.
+
+**Surprise findings worth keeping:**
+
+1. **Verdict cascade is signal-quality-sensitive, not just count-sensitive.** v3 returned only 2 signals on Jong su Baek but verdict still cascaded to `patchwork`. The cascade logic responded to *which* signals fired (the register-mismatch trigger plus patchwork signature) rather than to a count threshold. The 5.1 process-instruction preamble re-scanning body-vs-framing after L1 evidence accumulated was likely the load-bearing piece.
+2. **Compressed-but-well-structured parses better than long.** Petra Bencina returned `verdict=unknown` (parse failure) under the longer v6_2 production prompt but parsed cleanly to `polished` under v3. Byte savings can improve parseability, not just latency.
+3. **Stripping a scaffold did not hurt the recall it was suspected of supporting.** Yujin Kim sigs=4 in v3 (up from baseline 3) without the patchwork-signature Rationale, confirming the FP attribution.
+
+**Generalized rule:** when an A/B regression flags a scaffold, the next pass should bisect on *whether the scaffold drove recall or drove FPs*, not assume it drove recall. Empirical add-back on a per-signal basis beats restoring the whole construct uniformly.
+
 ---
 
 ## Topic 7: Prompts for Linguistic Analysis
