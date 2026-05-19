@@ -1,6 +1,6 @@
 # Prompt Engineering Research Archive
 
-Compiled March 2026, refreshed April 2026 with IFBench, LLMLingua-2, 2026 few-shot findings, linguistic-analysis literature, prompt-bloat results, and Gemma 4 model-specific deployment behavior. Refreshed May 18, 2026 with Google's authoritative Gemma 4 chat-template documentation (April 20 - May 5 updates), the deployment-surface distinction between REST API and chat-template paths, sampling-parameter defaults (T=1.0/top_p=0.95/top_k=64), Multi-Token Prediction (MTP) speculative decoding, multi-turn thought-stripping rules, "Adaptive LOW Thinking" instructability finding, May 2026 31B benchmark numbers, and the Maier et al. "Just Ask for a Table" sponsored-recommendation attack (arxiv 2605.12772). Older entries that have been partially superseded are tagged in place. Indexed by topic for fast recall in future prompt-related tasks.
+Compiled March 2026, refreshed April 2026 with IFBench, LLMLingua-2, 2026 few-shot findings, linguistic-analysis literature, prompt-bloat results, and Gemma 4 model-specific deployment behavior. Refreshed May 18, 2026 with Google's authoritative Gemma 4 chat-template documentation (April 20 - May 5 updates), the deployment-surface distinction between REST API and chat-template paths, sampling-parameter defaults (T=1.0/top_p=0.95/top_k=64), Multi-Token Prediction (MTP) speculative decoding, multi-turn thought-stripping rules, "Adaptive LOW Thinking" instructability finding, May 2026 31B benchmark numbers, and the Maier et al. "Just Ask for a Table" sponsored-recommendation attack (arxiv 2605.12772). Refreshed May 19, 2026 with DeepSeek V4 family API behavior (V4-Pro 1.6T/49B-activated, V4-Flash 284B/13B-activated MoE; 1M context; CSA+HCA hybrid attention; FP4+FP8 mixed precision; launched April 24, 2026): default-on thinking mode, JSON-mode "json"-keyword requirement and empty-content failure mode, deprecated frequency/presence penalties, strict-mode tool calling on the `/beta` endpoint, the Anthropic-compatible endpoint capability subset, the DSML local chat-template format and the `</think>`-first chat-mode encoding, and disk-based prefix cache hit semantics. Older entries that have been partially superseded are tagged in place. Indexed by topic for fast recall in future prompt-related tasks.
 
 ---
 
@@ -1155,6 +1155,197 @@ For Gemma 4 targets, avoid using `<|turn>` or `<turn|>` as delimiter tags for us
 
 ---
 
+## Topic 12: DeepSeek V4 Family API Behavior (May 2026 launch)
+
+DeepSeek V4 launched April 24, 2026 as a two-model Mixture-of-Experts family with 1M token context. V4-Pro is 1.6T total parameters / 49B activated; V4-Flash is 284B / 13B activated. Both ship under MIT license with open weights and a hybrid attention architecture (Compressed Sparse Attention + Heavily Compressed Attention) that the tech report claims reduces 1M-token inference FLOPs to 27% of V3.2 and KV cache to 10%. Three call surfaces matter for prompt design: native OpenAI-compatible REST (`https://api.deepseek.com`), Anthropic-compatible REST (`https://api.deepseek.com/anthropic`), and local chat-template deployment via the `encoding_dsv4.py` reference (vLLM, SGLang, llama.cpp, Transformers).
+
+Source: DeepSeek API docs, api-docs.deepseek.com, May 2026.
+Source: DeepSeek-V4 tech report, huggingface.co/deepseek-ai/DeepSeek-V4-Pro/blob/main/DeepSeek_V4.pdf
+Source: V4-Pro HuggingFace model card, huggingface.co/deepseek-ai/DeepSeek-V4-Pro, updated April 24, 2026.
+Source: V4 encoding reference, huggingface.co/deepseek-ai/DeepSeek-V4-Pro/blob/main/encoding/README.md
+
+### Model selection and naming
+
+Two model strings carry the family forward; the legacy V3-era names retire on 2026-07-24 15:59 UTC:
+
+| Model | Total / Active params | Default mode | Discount through 2026-05-31 |
+|---|---|---|---|
+| `deepseek-v4-flash` | 284B / 13B | Thinking enabled | None |
+| `deepseek-v4-pro` | 1.6T / 49B | Thinking enabled | 75% off |
+| `deepseek-chat` (legacy, deprecated) | maps to `deepseek-v4-flash` non-thinking | — | retires 2026-07-24 |
+| `deepseek-reasoner` (legacy, deprecated) | maps to `deepseek-v4-flash` thinking | — | retires 2026-07-24 |
+
+Three reasoning effort modes are exposed: Non-think (chat-completion only), Think High (default thinking), Think Max (`reasoning_effort=max`). The HF model card recommends a context window of at least 384K tokens for Think Max. Agent harnesses recognized by the API (Claude Code, OpenCode) are auto-promoted to Think Max.
+
+### Thinking is on by default; disabling requires explicit `extra_body`
+
+Unlike Gemma 4 (where thinking cannot be disabled on the REST API at all), V4 exposes a clean toggle on the native OpenAI-compatible endpoint:
+
+```python
+extra_body={"thinking": {"type": "disabled"}}
+```
+
+When thinking is enabled, the model returns both `content` and `reasoning_content` fields; per-call wall-clock balloons to tens of seconds even on trivial prompts. When thinking is enabled, `temperature`, `top_p`, `presence_penalty`, and `frequency_penalty` are silently no-op (accepted without error, but have no effect on generation). Sampling control requires thinking disabled first.
+
+`reasoning_effort` accepts only `high` or `max`. The remap rules:
+
+- `low` and `medium` → `high`
+- `xhigh` → `max`
+- Anything else: rejected
+
+On the Anthropic-compatible endpoint, `output_config.effort` is the equivalent; `thinking.budget_tokens` is ignored.
+
+### `reasoning_content` plumbing rule for tool-call turns
+
+Multi-turn rule with two distinct branches:
+
+1. Between two `user` messages, if the model did NOT perform a tool call, intermediate `reasoning_content` is server-side-ignored if passed back. Optional to include in history.
+2. Between two `user` messages, if the model DID perform a tool call, intermediate `reasoning_content` MUST be passed back in every subsequent request. Missing it returns HTTP 400.
+
+The local chat-template equivalent is `drop_thinking`: default True without tools (strips reasoning from all but the most recent assistant turn), automatically forced to False when tools are present on the system or developer message.
+
+The simplest correct pattern in both surfaces: append the full `response.choices[0].message` object (or equivalent local Message) to history. It carries `content`, `reasoning_content`, and `tool_calls` together.
+
+### JSON mode requires the literal word "json" and has a documented empty-content failure mode
+
+V4's `response_format={"type": "json_object"}` is the only structured-output enforcement; there is no `responseSchema` analogue. Two prompt-text requirements come directly from the docs:
+
+1. **"json" literal:** The system or user prompt MUST contain the word "json". Without it, the model can emit an unending stream of whitespace until `max_tokens` is reached. The request appears to hang.
+2. **Concrete JSON example:** The docs state "the API may occasionally return empty content. We are actively working on optimizing this issue. You can try modifying the prompt to mitigate such problems." The recommended mitigation is to include an EXAMPLE INPUT and EXAMPLE JSON OUTPUT block in the prompt.
+
+Recovery from empty content is parameter change (temperature step-down 1.0 → 0.85 → 0.7) or prompt revision; same-call retry fails the same way.
+
+The schema itself lives in prose. The caller validates the parsed output. Pair with generous `max_tokens` to prevent truncation mid-JSON.
+
+### `presence_penalty` and `frequency_penalty` are deprecated
+
+The chat-completion API reference flags both as deprecated. They are silently no-ops in both thinking and non-thinking modes. Any prompt-side reliance on sampling-parameter assumptions ("repetition is suppressed by frequency_penalty=0.5") is invalid; "avoid repetition" must be a directive in the prompt body.
+
+### Strict tool calling: `/beta` endpoint with hard schema constraints
+
+Default tool calling on V4 is best-effort; arguments may hallucinate parameters not declared in the schema. Strict mode forces schema conformance at the cost of three constraints:
+
+1. `base_url="https://api.deepseek.com/beta"` (the Beta endpoint, not the production one).
+2. Every `function` in `tools` sets `"strict": true`.
+3. The server validates the JSON Schema and rejects with an error if it contains unsupported types or violates the strict-mode rules.
+
+Strict-mode schema rules carry direct prompt-design implications:
+
+- Every `object` must set `additionalProperties: false` and list every property in `required`. No optional fields under strict mode.
+- `string` accepts `pattern` and `format` (`email`, `hostname`, `ipv4`, `ipv6`, `uuid`); rejects `minLength` and `maxLength`.
+- `array` rejects `minItems` and `maxItems`.
+- Supported types: `object`, `string`, `number`, `integer`, `boolean`, `array`, `enum`, `anyOf`, plus `$ref`/`$def` for reuse and recursion.
+- Max 128 functions per call.
+
+Length and count constraints must move into the prompt body, not the schema. This is the inverse of Gemma 4's `responseSchema` design, where schema descriptions carry per-field instructions.
+
+### The Anthropic-compatible endpoint silently degrades capability
+
+`https://api.deepseek.com/anthropic` accepts Anthropic SDK requests, but strips several primitives:
+
+- `response_format={"type": "json_object"}` not exposed (no Messages API equivalent). For code-parsed JSON, use the OpenAI endpoint.
+- `top_k` ignored.
+- `cache_control` ignored on tools and messages.
+- `thinking.budget_tokens` ignored; only `output_config.effort` works.
+- Multimodal content types (`image`, `document`, `search_result`, `web_search_tool_result`, `mcp_tool_use`, `mcp_tool_result`, `container_upload`, `code_execution_tool_result`, `server_tool_use`) not supported.
+- Unknown `model` value silently maps to `deepseek-v4-flash`. Deploying with "deepseek-v4-pro-max" or any other invented variant silently degrades to Flash without an error.
+
+The unknown-model silent remap is the load-bearing gotcha for cross-vendor wrappers that auto-construct model strings. Validate the model name explicitly before dispatch.
+
+### Disk-based prefix cache with sliding-window persistence
+
+V4's disk cache persists prefix units at three points:
+
+1. End of each user input and end of each model output (two units per call).
+2. Common prefix detected across multiple requests.
+3. Fixed token intervals on long inputs and outputs.
+
+A subsequent request hits the cache only if it FULLY matches a persisted prefix unit. Practical consequences for prompt design:
+
+- Stable instructions (role, schema, evaluation criteria) belong at the very top so they participate in every cache unit.
+- Volatile content at the top (timestamps, request IDs, run identifiers) kills cache reuse.
+- The `usage` field returns `prompt_cache_hit_tokens` and `prompt_cache_miss_tokens` separately. Monitor these to verify cache structure.
+- Cache state does not affect output randomness; cached and fresh calls at non-zero temperature still produce different completions.
+
+### Local chat-template format: no Jinja, DSML for tool calls, `</think>`-first chat mode
+
+The V4 release does NOT ship a Jinja chat template. Local deployments use the `encoding_dsv4.py` reference (`encode_messages` and `parse_message_from_completion_text`). Two encoding peculiarities matter for prompt design:
+
+**Chat-mode (non-thinking) places `</think>` BEFORE the response with no opening `<think>`:**
+
+```
+<｜begin▁of▁sentence｜>{system}
+<｜User｜>{message}<｜Assistant｜></think>{response}<｜end▁of▁sentence｜>
+```
+
+This is intentional: the model treats the (empty) thinking block as already-closed and emits content directly. Prompts that hand-construct fixtures for evaluation against the local model must include the orphan close-tag for chat mode.
+
+**Tool calls use DSML markup, not OpenAI tokens:**
+
+```
+<｜DSML｜tool_calls>
+<｜DSML｜invoke name="$TOOL">
+<｜DSML｜parameter name="$PARAM" string="true|false">$VALUE</｜DSML｜parameter>
+</｜DSML｜invoke>
+</｜DSML｜tool_calls>
+```
+
+`string="true"` carries a raw string; `string="false"` carries JSON (numbers, booleans, arrays, objects). The pipe delimiter `｜` is full-width Unicode (U+FF5C), not the ASCII `|`. Tool execution results wrap in `<tool_result>` tags inside user messages and sort by the order of the corresponding `tool_calls` in the preceding assistant turn.
+
+Prompts that demonstrate tool use must match the surface: REST deployments use OpenAI shape; local chat-template deployments use DSML.
+
+**`reasoning_effort="max"` prepends a built-in preamble.** When `max` is set, the encoding pipeline prepends a fixed preamble BEFORE the system message: "Reasoning Effort: Absolute maximum with no shortcuts permitted. You MUST be very thorough in your thinking and comprehensively decompose the problem ... rigorously stress-testing your logic against all potential paths, edge cases, and adversarial scenarios. Explicitly write out your entire deliberation process, documenting every intermediate step, considered alternative, and rejected hypothesis to ensure absolutely no assumption is left unchecked." Prompts that hand-roll a "think very carefully" preamble at the top of the system block stack with this one and add tokens without behavior change.
+
+**`developer` role exists in the encoding but is not accepted by the REST API.** Used only in DeepSeek's internal search agent pipeline.
+
+### Local sampling: T=1.0, top_p=1.0; T=0 not recommended
+
+The HuggingFace V4-Pro model card recommends `temperature=1.0, top_p=1.0` for local inference. This is identical to the API defaults (both are 1.0; the API accepts `temperature` up to 2.0 and `top_p` up to 1.0). T=0 is not recommended on V4 in any surface; the model was post-trained with two-stage SFT + GRPO followed by on-policy distillation, and the recommended sampling reflects that training.
+
+### Quick instruction tokens (local surface only)
+
+The local encoding exposes single-token classification routes that the REST API does not surface: `<｜action｜>` (search-vs-answer routing), `<｜title｜>` (conversation title generation after first assistant response), `<｜query｜>` (search query generation), `<｜authority｜>` (source-authority classification), `<｜domain｜>` (domain identification), `<｜extracted_url｜>` / `<｜read_url｜>` (per-URL fetch decision). Prompts that target these routes are local-deployment only; REST API callers ignore the `task` field entirely.
+
+### 429 means dynamic concurrency, not exhausted quota
+
+V4's rate limiting differs from per-user-quota APIs:
+
+- `429 Rate Limit Reached` reflects current server concurrency. Back off and retry on the same model; do NOT advance a fallback chain.
+- `500 Server Error` and `503 Server Overloaded` are transient.
+- DeepSeek's published recommendation: "temporarily switch to alternative LLM service providers" if 429 persists; there is no per-account quota increase.
+
+There is no `quotaId.PerDay` distinction analogous to the Gemini Free tier. A burst that triggers 429 will clear on the natural backoff window; chain advance is the wrong response.
+
+`finish_reason` includes a non-standard value, `insufficient_system_resource`, that signals capacity interruption. Retry it as a transient.
+
+### Scheduling tolerance: empty lines and SSE keep-alive comments
+
+While a request waits for inference scheduling (up to 10 minutes), the API emits:
+
+- Non-streaming: continuous empty lines on the open HTTP connection.
+- Streaming: SSE keep-alive comments (`: keep-alive`).
+
+A naive line-by-line parser that assumes every non-blank line is content will break. The connection closes after 10 minutes if inference has not started; budget that ceiling into client timeouts.
+
+### Two Beta features with bounded shapes: chat prefix completion and FIM
+
+Both require `base_url="https://api.deepseek.com/beta"`:
+
+- **Chat Prefix Completion** forces the model to start its reply with a specific string. The last message in `messages` must be `role="assistant"` with `prefix=True` and the desired opening in `content`. Pair with `stop` to bound the completion. Useful when the prompt format is rigid (always-JSON outputs that start with `{`).
+- **FIM Completion** uses `/completions` (not `/chat/completions`). Max output 4K tokens. Pass `prompt` and `suffix`; the model fills between. Non-thinking mode only; the thinking-mode FIM path is not supported.
+
+### Empirical anchor: the forensic grader DeepSeek V4 integration plan (May 2026)
+
+A production integration plan for adding DeepSeek V4 as a borderline-10 forensic grader (May 2026) documents three operational anchors that match the docs:
+
+1. No `responseSchema` means JSON shape must live in prose; the quote-gate validator catches malformed output on retry, with single-empty acceptance after retry exhaustion.
+2. Thinking enabled by default would balloon per-call wall to 30-90s; the plan defaults to `extra_body={"thinking": {"type": "disabled"}}` for deterministic JSON output.
+3. The forensic prompts (`forensic_signals.md`, `forensic_l1.md`, `forensic_narrative.md`) already contain the word "json" verbatim and the JSON example block. This satisfies rule 2 of JSON mode without prompt rewrites.
+
+The plan rejected the Anthropic-compatible endpoint precisely because `response_format` is not exposed there; prose-only JSON discipline without enforced format degrades quote-gate retry rates.
+
+---
+
 ## Full Source List
 
 | Source | Type | URL | Date |
@@ -1239,3 +1430,22 @@ For Gemma 4 targets, avoid using `<|turn>` or `<turn|>` as delimiter tags for us
 | Gemini API Structured Output docs | Docs | ai.google.dev/gemini-api/docs/structured-output | 2026 |
 | Google Cloud: Content Generation Parameters | Docs | docs.cloud.google.com/vertex-ai/generative-ai/docs/multimodal/content-generation-parameters | 2026 |
 | Gemini 3 Developer Guide | Docs | ai.google.dev/gemini-api/docs/gemini-3 | 2026 |
+| DeepSeek API docs (root) | Docs | api-docs.deepseek.com | May 2026 |
+| DeepSeek V4 Preview Release announcement | News | api-docs.deepseek.com/news/news260424 | April 24, 2026 |
+| DeepSeek V4 changelog | Changelog | api-docs.deepseek.com/updates | April 24, 2026 |
+| DeepSeek Thinking Mode guide | Docs | api-docs.deepseek.com/guides/thinking_mode | May 2026 |
+| DeepSeek JSON Output guide | Docs | api-docs.deepseek.com/guides/json_mode | May 2026 |
+| DeepSeek Tool Calls guide (strict-mode beta) | Docs | api-docs.deepseek.com/guides/tool_calls | May 2026 |
+| DeepSeek Context Caching guide | Docs | api-docs.deepseek.com/guides/kv_cache | May 2026 |
+| DeepSeek Anthropic API guide | Docs | api-docs.deepseek.com/guides/anthropic_api | May 2026 |
+| DeepSeek Multi-round Conversation guide | Docs | api-docs.deepseek.com/guides/multi_round_chat | May 2026 |
+| DeepSeek Chat Prefix Completion (Beta) | Docs | api-docs.deepseek.com/guides/chat_prefix_completion | May 2026 |
+| DeepSeek FIM Completion (Beta) | Docs | api-docs.deepseek.com/guides/fim_completion | May 2026 |
+| DeepSeek Create Chat Completion API ref | API ref | api-docs.deepseek.com/api/create-chat-completion | May 2026 |
+| DeepSeek Pricing and model details | Docs | api-docs.deepseek.com/quick_start/pricing | May 2026 |
+| DeepSeek Error codes | Docs | api-docs.deepseek.com/quick_start/error_codes | May 2026 |
+| DeepSeek Rate limit notes | Docs | api-docs.deepseek.com/quick_start/rate_limit | May 2026 |
+| DeepSeek FAQ (empty lines / SSE keep-alive) | Docs | api-docs.deepseek.com/faq | May 2026 |
+| DeepSeek-V4 Tech Report | Paper | huggingface.co/deepseek-ai/DeepSeek-V4-Pro/blob/main/DeepSeek_V4.pdf | April 24, 2026 |
+| DeepSeek-V4-Pro HF model card | HuggingFace | huggingface.co/deepseek-ai/DeepSeek-V4-Pro | April 24, 2026 |
+| DeepSeek-V4 encoding reference (encoding_dsv4.py + README) | HuggingFace | huggingface.co/deepseek-ai/DeepSeek-V4-Pro/blob/main/encoding/README.md | April 24, 2026 |
