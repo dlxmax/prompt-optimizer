@@ -240,8 +240,8 @@ XML tags structure prompt sections (see "XML Tag Separation" above). Variable su
 
 | Convention | Vendor docs (quoted) | Use case |
 |---|---|---|
-| `{variable}` (single curly) | Google Cloud Gemini Enterprise Agent Platform: "Prompt template variables must meet the following requirements: Variables must be wrapped in curly-braces. Variable names must not contain..." | Prompt-template variables for Gemini, Gemma, and other Google-family models. |
-| `{{variable}}` (double curly, Mustache) | Anthropic Claude Console: "A prompt template combines these fixed and variable parts, using placeholders for the dynamic content. In the Claude Console, these placeholders are denoted..." | Prompt-template variables for Claude. |
+| `{variable}` (single curly) | Google Cloud Gemini Enterprise Agent Platform, "Use prompt templates": "Variables must be wrapped in curly-braces. Variable names must not contain spaces." | Prompt-template variables for Gemini, Gemma, and other Google-family models. |
+| `{{variable}}` (double brackets) | Anthropic "Console prompting tools" (docs.anthropic.com): "In the Claude Console, these placeholders are denoted with `{{double brackets}}`, making them easily identifiable and allowing for quick testing of different values." | Prompt-template variables for Claude. |
 | `<|placeholder|>` | Google AI for Developers — Gemma 4 prompt formatting: "We use two special placeholder tokens (`<|image|>` and `<|audio|>`) to specify where image and audio tokens should be inserted." | Reserved for Gemma 4 tokenizer special tokens. Do not use for ordinary substitution. |
 | XML tags (`<example>`, `<context>`) | Anthropic XML tag guidance; Phil Schmid Gemini 3 baseline | STRUCTURE / sectioning. Not variable substitution. |
 
@@ -257,11 +257,11 @@ Empirical anchor (May 2026): convention validated during an ISE-1 slideshow segm
 
 Cross-reference: this convention also backs Topic 12 rule 9.2 (DeepSeek V4 "example tyranny" mitigation), which recommends placeholder tokens (`{L2}`) plus an explicit substitution rule as one of two fixes.
 
-Sources:
-- Google Cloud Gemini Enterprise Agent Platform "Use prompt templates" — docs.cloud.google.com/agents/prompts
-- Anthropic Claude Platform Console prompt engineering — platform.claude.com/docs/prompt-engineering
-- Google AI for Developers Gemma 4 prompt formatting — ai.google.dev/gemma/docs/core/prompt-formatting
-- Phil Schmid (Google DeepMind) Gemini 3 prompting baseline — philschmid.de/gemini-3-prompt-practices
+Sources (all verified via scrapling 2026-05-20, HTTP 200):
+- Google Cloud Gemini Enterprise Agent Platform "Use prompt templates" — docs.cloud.google.com/gemini-enterprise-agent-platform/models/prompts/prompt-templates
+- Anthropic "Console prompting tools" (prompt-templates-and-variables) — docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/prompt-templates-and-variables
+- Google AI for Developers Gemma 4 prompt formatting — ai.google.dev/gemma/docs/core/prompt-formatting-gemma4
+- Phil Schmid "Gemini 3 Prompting: Best Practices for General Usage" (Nov 19, 2025) — philschmid.de/gemini-3-prompt-practices
 
 ### Document-First Ordering
 
@@ -1504,6 +1504,6 @@ Caveat: N=1 (one task class, one prompt). IFBench (NeurIPS 2025; arxiv 2507.0283
 | DeepSeek-V4 Tech Report | Paper | huggingface.co/deepseek-ai/DeepSeek-V4-Pro/blob/main/DeepSeek_V4.pdf | April 24, 2026 |
 | DeepSeek-V4-Pro HF model card | HuggingFace | huggingface.co/deepseek-ai/DeepSeek-V4-Pro | April 24, 2026 |
 | DeepSeek-V4 encoding reference (encoding_dsv4.py + README) | HuggingFace | huggingface.co/deepseek-ai/DeepSeek-V4-Pro/blob/main/encoding/README.md | April 24, 2026 |
-| Google Cloud Gemini Enterprise Agent Platform — Use prompt templates | Docs | docs.cloud.google.com/agents/prompts | 2026-05-13 |
-| Anthropic Claude Platform Console — prompt engineering | Docs | platform.claude.com/docs/prompt-engineering | 2026 |
-| Phil Schmid (Google DeepMind) — Gemini 3 prompting baseline | Blog | philschmid.de/gemini-3-prompt-practices | Nov 2025 |
+| Google Cloud Gemini Enterprise Agent Platform — Use prompt templates | Docs | docs.cloud.google.com/gemini-enterprise-agent-platform/models/prompts/prompt-templates | 2026-05-13 (scrapling-verified 2026-05-20) |
+| Anthropic Console prompting tools — prompt-templates-and-variables | Docs | docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/prompt-templates-and-variables | 2026 (scrapling-verified 2026-05-20) |
+| Phil Schmid — Gemini 3 Prompting: Best Practices for General Usage | Blog | philschmid.de/gemini-3-prompt-practices | Nov 19, 2025 (scrapling-verified 2026-05-20) |
