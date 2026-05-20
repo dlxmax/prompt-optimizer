@@ -234,6 +234,35 @@ Tags also provide a security benefit — they create trusted instruction boundar
 
 Source: Anthropic XML tag guidance — docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/use-xml-tags
 
+### Variable Substitution Placeholder Conventions
+
+XML tags structure prompt sections (see "XML Tag Separation" above). Variable substitution uses curly braces; the brace count is keyed to the target model's vendor convention.
+
+| Convention | Vendor docs (quoted) | Use case |
+|---|---|---|
+| `{variable}` (single curly) | Google Cloud Gemini Enterprise Agent Platform: "Prompt template variables must meet the following requirements: Variables must be wrapped in curly-braces. Variable names must not contain..." | Prompt-template variables for Gemini, Gemma, and other Google-family models. |
+| `{{variable}}` (double curly, Mustache) | Anthropic Claude Console: "A prompt template combines these fixed and variable parts, using placeholders for the dynamic content. In the Claude Console, these placeholders are denoted..." | Prompt-template variables for Claude. |
+| `<|placeholder|>` | Google AI for Developers — Gemma 4 prompt formatting: "We use two special placeholder tokens (`<|image|>` and `<|audio|>`) to specify where image and audio tokens should be inserted." | Reserved for Gemma 4 tokenizer special tokens. Do not use for ordinary substitution. |
+| XML tags (`<example>`, `<context>`) | Anthropic XML tag guidance; Phil Schmid Gemini 3 baseline | STRUCTURE / sectioning. Not variable substitution. |
+
+Anti-patterns:
+
+1. **Bare alphabetic letters as placeholders** (`X`, `Y`, `Z`) when the substituted values are themselves single letters (`A`-`D`, `P`-`T`). Visual ambiguity allows the model to copy the placeholder verbatim. Use semantic slot names (`{L2}` for "line 2", `{role}` for a role token).
+2. **Positional names** (`{var1}`, `{var2}`) instead of semantic names. Semantic names self-document the substitution; positional names require a separate key.
+3. **Omitting a literal-emission guard** for placeholders inside few-shot examples. Models occasionally copy the placeholder text verbatim into output. Include: "Substitute the actual value before emitting; do not emit the literal `{placeholder}` in the output."
+
+Pipeline vs. in-prompt distinction: when calling code does string substitution (e.g., Python `text.replace("{{TRANSCRIPT}}", value)`), keep pipeline placeholders distinct from in-prompt template variables. Production convention: `{{PIPELINE_VAR}}` for pre-render Python substitution, `{L2}` for in-prompt variables. The distinction prevents the pipeline regex from accidentally consuming an in-prompt example placeholder.
+
+Empirical anchor (May 2026): convention validated during an ISE-1 slideshow segmentation directive refactor. Prior version used three ROW-labeled worked examples per jigsaw template to cover three letter-rotation patterns (~1500 bytes per template). Replacement used a single worked example with `{L2}/{L3}/{L4}` placeholders plus a shared lookup table in the ROLE-LETTER ROTATION RULE; net byte reduction ~1200 bytes per template; directive shrank 845 → 693 lines while preserving full 3-ROW coverage. Naming `{L2}/{L3}/{L4}` self-documents the line-to-letter mapping so a reader substitutes mechanically.
+
+Cross-reference: this convention also backs Topic 12 rule 9.2 (DeepSeek V4 "example tyranny" mitigation), which recommends placeholder tokens (`{L2}`) plus an explicit substitution rule as one of two fixes.
+
+Sources:
+- Google Cloud Gemini Enterprise Agent Platform "Use prompt templates" — docs.cloud.google.com/agents/prompts
+- Anthropic Claude Platform Console prompt engineering — platform.claude.com/docs/prompt-engineering
+- Google AI for Developers Gemma 4 prompt formatting — ai.google.dev/gemma/docs/core/prompt-formatting
+- Phil Schmid (Google DeepMind) Gemini 3 prompting baseline — philschmid.de/gemini-3-prompt-practices
+
 ### Document-First Ordering
 
 Placing long context documents before instructions and queries improves response quality by up to 30%.
@@ -1475,3 +1504,6 @@ Caveat: N=1 (one task class, one prompt). IFBench (NeurIPS 2025; arxiv 2507.0283
 | DeepSeek-V4 Tech Report | Paper | huggingface.co/deepseek-ai/DeepSeek-V4-Pro/blob/main/DeepSeek_V4.pdf | April 24, 2026 |
 | DeepSeek-V4-Pro HF model card | HuggingFace | huggingface.co/deepseek-ai/DeepSeek-V4-Pro | April 24, 2026 |
 | DeepSeek-V4 encoding reference (encoding_dsv4.py + README) | HuggingFace | huggingface.co/deepseek-ai/DeepSeek-V4-Pro/blob/main/encoding/README.md | April 24, 2026 |
+| Google Cloud Gemini Enterprise Agent Platform — Use prompt templates | Docs | docs.cloud.google.com/agents/prompts | 2026-05-13 |
+| Anthropic Claude Platform Console — prompt engineering | Docs | platform.claude.com/docs/prompt-engineering | 2026 |
+| Phil Schmid (Google DeepMind) — Gemini 3 prompting baseline | Blog | philschmid.de/gemini-3-prompt-practices | Nov 2025 |

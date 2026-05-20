@@ -170,6 +170,20 @@ Single-pass scoring is sufficient for this 15-item structural checklist when the
    9.3 Lowest-cost completion. For length-bounded fields, V4 defaults to the minimum or below; for closed-set whitelists, V4 invents nearby items when no listed item fits the segment's natural semantic frame. Fix: replace prose ranges with exact counts where possible, and pad whitelists to cover the model's natural completion space rather than the minimum task-required set.
 
    Escalation cap: when a V4 violation resists >=3 rounds of prose escalation, do NOT recommend further escalation. Recommend deterministic post-processing in calling code, validator loosening to accept structurally-valid permutations, or A/B-loser acceptance. See PROMPT_RESEARCH.md Topic 12 "Empirical anchor: strict-ordering failure modes" for the N=1 evidence basis; treat the three patterns as strong priors, not universal claims.
+
+10. Placeholder notation when introducing or rewriting variables. Fires when the revision introduces a new placeholder or rewrites an existing one (disambiguating from substituted values, renaming, converting bare letters to slots). XML tags are for structure (`<example>`, `<context>`), not substitution. For substitution:
+
+   10.1 `{descriptive_name}` (single curly) when target is Google-family (Gemma 4, Gemini 3.x). `{{descriptive_name}}` (double curly) when target is Anthropic Claude. No target specified: default to single curly.
+
+   10.2 Do not use bare alphabetic letters (X, Y, Z) as placeholders when the substituted values are themselves single letters (A-D, P-T). Use a semantic slot name: `{L2}` for "line 2", `{role}` for a role token.
+
+   10.3 Name placeholders by what fills them (line position, role, type), not positionally (`{var1}`, `{var2}`).
+
+   10.4 Do not use `<|name|>` for ordinary substitution; that form is reserved by Gemma 4's tokenizer for special tokens (`<|image|>`, `<|audio|>`).
+
+   10.5 When a placeholder appears inside a few-shot example, append a literal-emission guard: "Substitute the actual value before emitting; do not emit the literal `{placeholder}` in the output."
+
+   See PROMPT_RESEARCH.md Topic 5 "Variable Substitution Placeholder Conventions" for the documentation basis.
 </rules>
 
 <gemma_4_detail>
