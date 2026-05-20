@@ -1,6 +1,6 @@
 {
   "name": "prompt-optimizer",
-  "version": "1.0.28",
+  "version": "1.0.29",
   "description": "Scores and revises LLM prompts against a research-backed checklist. Primary focus is mitigating known failure modes on Gemma 4 31b via the Google Generative Language REST API and on DeepSeek V4 (V4-Pro, V4-Flash) via the DeepSeek API; also targets Gemini and Claude.",
   "author": {
     "name": "dlxmax",

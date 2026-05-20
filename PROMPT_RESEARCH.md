@@ -1,6 +1,6 @@
 # Prompt Engineering Research Archive
 
-Compiled March 2026, refreshed April 2026 with IFBench, LLMLingua-2, 2026 few-shot findings, linguistic-analysis literature, prompt-bloat results, and Gemma 4 model-specific deployment behavior. Refreshed May 18, 2026 with Google's authoritative Gemma 4 chat-template documentation (April 20 - May 5 updates), the deployment-surface distinction between REST API and chat-template paths, sampling-parameter defaults (T=1.0/top_p=0.95/top_k=64), Multi-Token Prediction (MTP) speculative decoding, multi-turn thought-stripping rules, "Adaptive LOW Thinking" instructability finding, May 2026 31B benchmark numbers, and the Maier et al. "Just Ask for a Table" sponsored-recommendation attack (arxiv 2605.12772). Refreshed May 19, 2026 with DeepSeek V4 family API behavior (V4-Pro 1.6T/49B-activated, V4-Flash 284B/13B-activated MoE; 1M context; CSA+HCA hybrid attention; FP4+FP8 mixed precision; launched April 24, 2026): default-on thinking mode, JSON-mode "json"-keyword requirement and empty-content failure mode, deprecated frequency/presence penalties, strict-mode tool calling on the `/beta` endpoint, the Anthropic-compatible endpoint capability subset, the DSML local chat-template format and the `</think>`-first chat-mode encoding, and disk-based prefix cache hit semantics. Older entries that have been partially superseded are tagged in place. Indexed by topic for fast recall in future prompt-related tasks.
+Compiled March 2026, refreshed April 2026 with IFBench, LLMLingua-2, 2026 few-shot findings, linguistic-analysis literature, prompt-bloat results, and Gemma 4 model-specific deployment behavior. Refreshed May 18, 2026 with Google's authoritative Gemma 4 chat-template documentation (April 20 - May 5 updates), the deployment-surface distinction between REST API and chat-template paths, sampling-parameter defaults (T=1.0/top_p=0.95/top_k=64), Multi-Token Prediction (MTP) speculative decoding, multi-turn thought-stripping rules, "Adaptive LOW Thinking" instructability finding, May 2026 31B benchmark numbers, and the Maier et al. "Just Ask for a Table" sponsored-recommendation attack (arxiv 2605.12772). Refreshed May 19, 2026 with DeepSeek V4 family API behavior (V4-Pro 1.6T/49B-activated, V4-Flash 284B/13B-activated MoE; 1M context; CSA+HCA hybrid attention; FP4+FP8 mixed precision; launched April 24, 2026): default-on thinking mode, JSON-mode "json"-keyword requirement and empty-content failure mode, deprecated frequency/presence penalties, strict-mode tool calling on the `/beta` endpoint, the Anthropic-compatible endpoint capability subset, the DSML local chat-template format and the `</think>`-first chat-mode encoding, and disk-based prefix cache hit semantics. Refreshed May 20, 2026 with the Gemini 3.1 Flash Lite 250k TPM ceiling on free-tier and default Tier 1 paid usage and the long-prompt retry-loop self-DDOS pattern (Topic 9), and the DeepSeek V4 strict-ordering empirical anchor (Topic 12) covering alphabetical-default bias, example tyranny, and lowest-cost completion failure modes across 6 optimizer rounds on a 121k-char directive. Older entries that have been partially superseded are tagged in place. Indexed by topic for fast recall in future prompt-related tasks.
 
 ---
 
@@ -889,6 +889,16 @@ For deployers using chat-template paths locally: `enable_thinking=False` works a
 
 ---
 
+### Gemini 3.1 Flash Lite: TPM walls on long prompts
+
+Free-tier Gemini API enforces 250,000 input TPM across all models (ai.google.dev/gemini-api/docs/rate-limits). A 121k-char prompt is ~30k input tokens, or 12% of the per-minute budget per call. A retry loop with 10 attempts and 5s spacing on long-prompt flash-lite accumulates 5+ retries within a minute and self-DDOSes the budget, surfacing as 503 (overloaded) or 429 (PerMinute quota). Empty-content responses on long-prompt flash-lite calls can be quota failures, not prompt failures.
+
+For A/B probe harnesses on long prompts: bypass auto-retry; single-shot with >=90s between calls; >=120s when switching providers (the prior provider's TPM clock keeps running).
+
+Scope: the 250k TPM ceiling applies to the free tier and default Tier 1 paid usage. Higher tiers carry substantially larger TPM budgets. Verify a project's active rate limits in AI Studio before assuming the ceiling applies.
+
+Source: ai.google.dev/gemini-api/docs/rate-limits; empirical confirmation May 2026 (LTI A/B testing, 2 of 2 flash-lite probes produced 0 raw chars under default pipeline retry shape against the same prompt that DeepSeek V4 completed without quota issues).
+
 ### Gemini 2.5 / 3.x Archived Findings
 
 > **Status note (April 2026):** Gemini is no longer the primary focus model. These findings are kept for reference and for projects that still target Gemini. The universal techniques (rubric generation, N>=5, multi-model consensus) remain valid regardless of model family.
@@ -1343,6 +1353,22 @@ A production integration plan for adding DeepSeek V4 as a borderline-10 forensic
 3. The forensic prompts (`forensic_signals.md`, `forensic_l1.md`, `forensic_narrative.md`) already contain the word "json" verbatim and the JSON example block. This satisfies rule 2 of JSON mode without prompt rewrites.
 
 The plan rejected the Anthropic-compatible endpoint precisely because `response_format` is not exposed there; prose-only JSON discipline without enforced format degrades quote-gate retry rates.
+
+### Empirical anchor: strict-ordering failure modes (May 2026)
+
+An LTI session ran 6 rounds of prompt-optimizer iteration on a 121k-char slideshow-segmentation directive against V4-Pro at single-shot (T=1.0, thinking disabled, JSON mode). The rotation rule (per-segment role-letter sequences keyed to a lookup table; e.g., ROW 2 = B/C/A/D, ROW 3 = A/C/B/D) stayed at 0/1 pass with 3-5 errors per response across all 6 rounds despite escalating prose emphasis, schema property-order interventions, and explicit failure examples.
+
+Three persistent failure patterns emerged:
+
+1. **Alphabetical-default bias.** V4 emits multi-letter sequences in ascending alphabetical order regardless of explicit lookup tables, row notation, or per-segment mappings. The bias is stochastic at T=1.0: the same row pattern passes on one segment and fails on another in the same probe.
+2. **Example tyranny.** When a pause-type template carries one concrete example with literal values, V4 copies those literal values across other instances even when its own per-instance keys disagree. Confirmed: a template whose only example used segment_number 5 with letters B/C/A/D produced segment_number 4 outputs with B/C/A/D copied verbatim.
+3. **Lowest-cost completion.** For variable-length fields (e.g., "3 to 5 words"), V4 defaults to the minimum or below. For closed-set verb whitelists, V4 invents nearby verbs ("judge", "flag") when none of the listed verbs fit the segment's natural semantic frame.
+
+Note on schema interventions: round 5 added a `rotation_triple` STRING field positioned BEFORE `instructor_cue` in the schema property order, intended as a token-order pre-cue commit. V4 emitted ZERO `rotation_triple` fields across the probe. V4's `response_format: json_object` enforces JSON validity but ignores `response_schema` property order, required fields, and enums. Property-order interventions are a dead recommendation for V4 targets.
+
+Implications: V4 hits ~50% failure at single-shot on strict-ordering tasks. Prose-emphasis escalation does not move the needle past 1/3 pass on this class of rule across 5 rounds. Pragmatic options when V4 fails a hard rule: deterministic post-processing in calling code, validator loosening to accept structurally-valid permutations, or A/B-loser acceptance.
+
+Caveat: N=1 (one task class, one prompt). IFBench (NeurIPS 2025; arxiv 2507.02833) does not isolate "ordering" as a constraint category; the 7 categories are count, ratio, words, sentence, format, custom, copy. V4-Flash's 79.2% IFBench score is consistent with ~20% failure on verifiable constraints but does not validate the three patterns specifically. Treat as strong priors for prompt-optimizer briefings, not universal claims.
 
 ---
 
