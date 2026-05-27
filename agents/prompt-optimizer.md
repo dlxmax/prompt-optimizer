@@ -184,6 +184,30 @@ Single-pass scoring is sufficient for this 15-item structural checklist when the
    10.5 When a placeholder appears inside a few-shot example, append a literal-emission guard: "Substitute the actual value before emitting; do not emit the literal `{placeholder}` in the output."
 
    See PROMPT_RESEARCH.md Topic 5 "Variable Substitution Placeholder Conventions" for the documentation basis.
+
+11. Gemma 4 schema-padding scan. Fires when both hold: (a) target is Gemma 4 (any size), AND (b) the prompt or its `responseSchema` declares a count constraint on a list-shaped slot (`MIN_ITEMS`, `"at least N"`, `"exactly N"`, `"N to M items"`, `"list 3 signals"`). If either fails, skip. When it fires, scan for the failure pattern and add the matching schema restructure to Key Changes:
+
+   11.1 Identify the constrained CONTENT axis the count targets in spirit but the schema leaves open on the letter. Common unconstrained axes: timestamp-window membership (item must quote a specific segment; schema STRING accepts any text), numeric-token presence (item must cite a number; schema STRING accepts any clause), named-entity class (item must name a person; schema STRING accepts any noun phrase), ontological category (item must be a "premise" not a "conclusion"; schema STRING does not distinguish). The slot's schema item type is the diagnostic surface, not the prose.
+
+   11.2 Restructure the slot's item shape; do NOT tighten the prose. Replace the free-form STRING item with an OBJECT whose REQUIRED fields bind the axis explicitly: add `number_value: STRING` when the axis is numeric, `timestamp_token: STRING` with a pattern when windowed, `entity_class: ENUM` when categorical, `quoted_premise: STRING` plus `derived_conclusion: STRING` when distinguishing extraction levels. Place the constrained field BEFORE the free-form citation field in the OBJECT's property order so it commits first; the citation must then satisfy the already-committed constraint. See `GEMMA4_API_BEST_PRACTICES.md` section 3 for the property-order mechanic.
+
+   11.3 Two-iteration stop. If 1 prose iteration already failed to fix the same count constraint on the same slot, do NOT recommend a third prose tweak. The next move is 11.2 (schema restructure). Flag the third-prose-iteration recommendation as a Gemma 4 anti-pattern in Key Changes.
+
+   11.4 Negative scan targets. Reject these as fixes when proposed: "tighten the prose constraint with stronger wording", "add a closing reminder that lists must be drawn from the window", "escalate MUST to MUST under all circumstances". On Gemma 4, prose loses against a schema permission. The lever is the schema item shape, not directive emphasis.
+
+   11.5 Lexical-only bypass. When the constrained axis is purely lexical (window bounds via substring match, banned-word list, exact-token presence) AND no semantic judgment is required, the alternative to schema restructure is deterministic post-processing in calling code. Flag this option in Key Changes when the axis qualifies. Do NOT recommend post-processing when the constraint needs semantic judgment ("the quote must be a premise, not a conclusion").
+
+12. Gemma 4 parent-child schema-order scan for demotion-bearing enums. Fires when both hold: (a) target is Gemma 4 (any size), AND (b) the prompt or schema contains a parent enum field whose value constrains a child enum's legal values, AND a precondition or evidence check may force the child enum to a value in a DIFFERENT parent's family (DEMOTE pattern). Typical surface: `pause_type` enum (parent) gating `variant_id` enum (child) where a failed precondition demotes `variant_id` to an out-of-family value. If either fails, skip. When it fires:
+
+   12.1 The lever is schema property order, not prose hedging. Gemma 4 honors declared field order; once the parent token emits, the child enum is constrained to the parent's family. A prose hedge ("change parent if the child demotes") does NOT recover the parent because the parent token has already committed in the autoregressive stream.
+
+   12.2 Reorder so the precondition evidence and check come FIRST, then the child enum (the field that may demote), then the parent enum LAST. Derive parent allowed-values from the child's family in the schema description ("Set parent to the family whose member is the chosen child"). The validator coerces parent to match child family; it does not reject the mismatch.
+
+   12.3 Negative scan targets. Reject these as fixes when proposed: "add a prose note that pause_type may need to change on DEMOTE", "soften the parent enum to allow override", "let the model pick again after DEMOTE", "add a 'pause_type_corrected' field after variant_id without reordering the original". None recovers the committed parent token on Gemma 4.
+
+   12.4 Diagnostic: when an LLM emits a parent+child pair from different families on a DEMOTE path, the cause is parent-committed-too-early in schema property order. Reorder before iterating prose. If the visible artifact does not expose schema order (the optimizer sees the prompt text, not the `responseSchema` object), call out the property-order check as a follow-up the deployer must verify, and quote the parent and child field names being inferred.
+
+   12.5 Does not apply to DeepSeek V4 targets. V4 silently drops schema property-order constraints (see rule 9 and `<deepseek_v4_detail>`). For V4, move the same intent into prose with EXAMPLE INPUT + EXAMPLE JSON OUTPUT showing the DEMOTE-triggered child value and its matched parent value side by side, with a literal callout naming both fields. The schema-order recommendation is a Gemma 4 anti-pattern when applied to V4.
 </rules>
 
 <gemma_4_detail>
