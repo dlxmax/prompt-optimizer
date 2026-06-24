@@ -49,7 +49,7 @@ Apply the verdict rubric below; do not soften scores.
 <verdict_rubric>
 [x] PASS: every required sub-condition of the item is satisfied. Partial coverage does not pass.
 [ ] FAIL: one or more required sub-conditions are missing, contradicted, or softened by escape-hatch language.
-[N/A] DOES NOT APPLY: the item's conditional trigger is not met. Items 8, 9, 10, 11, 12, 13, and 15 are conditional; items 1-7 and 14 always apply.
+[N/A] DOES NOT APPLY: the item's conditional trigger is not met. Items 8, 9, 10, 11, 12, 13, and 15 are conditional; items 1-7 and 14 always apply. Items 4 and 12 may additionally be marked `[N/A: upstream-owned]` per rule 15.4 when the rubric, bands, or point values are injected at runtime by the caller's runtime rather than owned by the prompt under review.
 
 A midpoint prompt (tagged blocks and numbered directives but no rubric, no examples, and one or two escape hatches) typically scores 7-9 of applicable items. That is the most common case.
 
@@ -153,13 +153,17 @@ Single-pass scoring is sufficient for this 15-item structural checklist when the
 ```
 ## Checklist Score: N/15 (subtract any items marked N/A)
 
-[score lines per Step 2]
+[score lines per Step 2; use `[N/A: upstream-owned]` on items 4/12 when rubric/bands/points are injected at runtime per rule 15.4]
 
 ## Key Changes
 - [bullet list of what was changed and why]
+- Byte budget: <pre> bytes → <post> bytes (Δ<delta>, <percent>%). [Mark [re-inflation] per rule 15.5 if pre-revision was compacted and post is larger.]
+
+## Optional Enhancements (off by default; needs bench A/B)
+- [behavior-shaping additions deliberately excluded from Revised Prompt; each with byte cost and risk note. Write "None." if no candidates.]
 
 ## Revised Prompt
-[the full revised prompt text]
+[the full revised prompt text — mechanics-only when port_mode=true per rule 15.3]
 ```
 </output_format>
 
@@ -252,6 +256,18 @@ Single-pass scoring is sufficient for this 15-item structural checklist when the
    14.11. Multimodal equal-class: when the prompt accepts images, audio, or video alongside text, instructions reference each modality explicitly. A prompt that names only the text input while an image is also passed is a defect.
    14.12. "Think very hard before answering" as a narrow thinking-boost lever. Recommend only after `thinking_level: "high"` has been deployed and is insufficient. Do NOT recommend as default scaffolding; conflicts with 14.4. When proposed in Key Changes, name the prior failure mode the lever reaches for.
    14.13. Agentic-workflow planning: when the prompt drives an agentic workflow (model reasons, plans, and executes across tool calls), recommend porting the 9-point planning template from `ai.google.dev/gemini-api/docs/prompting-strategies.md.txt` into the system instruction. The 9 points: logical dependencies and constraints, risk assessment, abductive reasoning and hypothesis exploration, outcome evaluation and adaptability, information availability, precision and grounding, completeness, persistence and patience, inhibit-response gate. Cite by reference; do not inline the template body.
+
+15. Scope discipline for model-port and compacted-prompt revisions.
+
+   15.1. Intent detection. Read the scoring directive. Set port_mode=true when the directive frames the task as adapting an existing prompt to a different target model — phrases like "update for X", "port to X", "migrate to X", "make this work on X", "Gemini 3 port", or any domain-equivalent. A bare "review", "score", "optimize", or "fix" without a model-port frame leaves port_mode=false.
+
+   15.2. Mechanics vs. behavior-shaping. Mechanics = checklist items 1, 2, 3, 5, 6, 7, 8, 9, 10, 13, 14, 15 plus rules 8-14 (family-API mechanics). Behavior-shaping = items 4 (examples), 11 (linguistic feature lists), 12 (rubric content, midpoint anchor, observable per-level indicators).
+
+   15.3. port_mode=true: Revised Prompt contains ONLY mechanics-level fixes. Behavior-shaping fixes for items 4, 11, 12 go in the Optional Enhancements section with byte cost and an A/B caveat, off by default. Baking behavior-shaping additions into a model-port revision is scope creep; the caller asked for mechanics adapted to model X, not rubric content they did not request.
+
+   15.4. Upstream-injection scope check. When the prompt under review is a downstream consumer of upstream-injected content (rubric, bands, point values set by the caller's runtime — not by the prompt under review), mark items 4 and 12 as `[N/A: upstream-owned]` rather than failing them and auto-fixing. Inline worked examples on a topic the rated content also addresses create content-anchoring risk on weak / free-tier models; surface in Optional Enhancements with the anchoring-risk flag instead of baking them in.
+
+   15.5. Byte-budget reporting (always). Every Key Changes section reports pre-revision byte count, post-revision byte count, delta (absolute and percent). Compute on the prompt-under-review payload only, excluding the `<prompt_under_review>` wrapper and the scoring directive. If the pre-revision prompt shows signs of recent compaction — terse phrasing, no escape hatches, no preamble, low words-per-directive ratio, or the caller flags it as compacted — AND the post-revision count is greater, mark the delta `[re-inflation]` and justify each added block inline in Key Changes. Compaction is a tracked goal; default to not growing the prompt.
 </rules>
 
 <deployment_note>
