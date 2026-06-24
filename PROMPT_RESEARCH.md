@@ -578,6 +578,21 @@ Key features that separate machine-generated from human text (useful as a featur
 
 **Implication:** When writing an LLM-as-judge prompt for human-versus-AI stylometry, enumerate these features in the prompt rather than asking for a holistic judgment. The model is more reliable when it knows what to look at.
 
+### Feature category starter-pack (by task type)
+
+Use as a starting point and prune to the subset relevant to the task. Each row names the linguistic features a prompt should enumerate explicitly under item 11's "enumerate features" rule.
+
+| Task | Feature categories to enumerate |
+|---|---|
+| Native language identification | spelling errors, article/preposition usage, syntactic L1 transfer, direct-translation artifacts, punctuation habits |
+| Register / style classification | lexical formality, sentence-length variance, cohesion markers, hedging, terminology density |
+| L1 transfer fingerprinting | word order, prepositional patterns, tense and aspect usage, determiner errors |
+| Human vs AI stylometry | sentence-length variance, lexical diversity, burstiness, hedge-word density, formulaic transitions, token-rank entropy patterns |
+| Authorship attribution | function-word frequencies, punctuation habits, signature vocabulary, sentence-start patterns |
+| Genre fit | register markers, discourse moves, audience-address patterns, typical structural slots |
+
+Migrated from the retired `PROMPT_BEST_PRACTICES.md` §7.4. Human-only reference; not loaded at runtime.
+
 ---
 
 ## Topic 8: Few-Shot Calibration for LLM-as-Judge (2026)

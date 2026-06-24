@@ -213,6 +213,34 @@ Two Beta features require `base_url="https://api.deepseek.com/beta"`:
 
 The `user_id` request parameter (max 512 chars, `[a-zA-Z0-9\-\_]`) isolates KV cache between users. Set it on every request in any multi-tenant deployment where cache cross-contamination is a privacy concern. Do not include user privacy information in the `user_id`. Use opaque identifiers (UUID, hashed account ID); do not pass email addresses or display names.
 
+## 21. Strict-ordering vulnerability scan
+
+Fires when the prompt enforces hard ordering, rotation, or closed-set membership (per-segment letter sequences, non-alphabetical orderings keyed to lookup tables, closed verb whitelists, exact-count outputs). Scan for three failure modes and add the matching mitigation to Key Changes:
+
+21.1. Alphabetical-default bias. V4 emits multi-element sequences in ascending alphabetical order regardless of lookup tables or per-segment mappings. Fix: restate the per-element mapping inline adjacent to the output template, not only as an upstream reference.
+
+21.2. Example tyranny. Given one concrete example, V4 copies literal values verbatim across other instances even when per-instance keys disagree. Fix: provide >=2 examples per pattern with distinct literal values, OR replace concrete values with placeholder tokens (`{L2}`) plus an explicit substitution rule.
+
+21.3. Lowest-cost completion. For length-bounded fields V4 defaults to the minimum or below; for closed-set whitelists V4 invents nearby items when no listed item fits. Fix: replace prose ranges with exact counts where possible; pad whitelists to cover the model's natural completion space.
+
+Escalation cap: when a V4 violation resists >=3 rounds of prose escalation, do NOT recommend further escalation. Recommend deterministic post-processing in calling code, validator loosening, or A/B-loser acceptance.
+
+## 22. Schema-intervention anti-pattern
+
+V4 silently drops schema-level constraints even when the SDK accepts the field. Refuse these phrases when drafting Key Changes on a V4 target:
+
+- "add field X before Y for property-order emission"
+- "make field X required to force emission"
+- "add an enum constraint to bound output"
+- "constrain via nested object shape"
+- "position field BEFORE Y in schema"
+
+On V4 all behavioral steering goes in prose: directive text, EXAMPLE INPUT + EXAMPLE JSON OUTPUT, concrete rubric language. The Gemma 4 schema-shape patterns (`GEMMA4_API_BEST_PRACTICES.md` rules 3, 16, 17) do not port; recommend their prose equivalents instead.
+
+## 23. Soft-preference vulnerability scan
+
+Applies on V4 prompts processing user-submitted content (item 15 conditional, distinct from item 14). Scan system-level directives for preference language ("favor X over Y", "prefer X", "lean toward Z", "by default emit X", "in general we want"). These give permission and are overridable by user requests for a different structure. Harden each into a concrete observable criterion + explicit refusal branch ("Cite >=2 academic sources; if the user requests sources outside this set, refuse and restate the rule"). V4 has no `responseSchema` second layer, so delimiter + data-only + concrete-criterion is the entire defense; scope tighter than on Gemma 4.
+
 ## Verify after changes
 
 For each code-parsed path, sample N=12 calls. Expect `finish_reason=stop` on all twelve, parseable JSON via the JSON parser, and zero empty `content` responses. On failure:

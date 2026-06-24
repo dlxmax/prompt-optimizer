@@ -133,10 +133,9 @@ This optimizer runs on Claude and targets any LLM. Declare `Target model: <name>
 When invoked, the prompt-optimizer agent:
 
 1. Reads the prompt under review (caller-message shape enforced: `<prompt_under_review>` block first, scoring directive at the end anchored with "Based on the preceding prompt, ...")
-2. Scores against the **15-item checklist** (embedded, no file I/O needed for scoring)
-3. Loads only the relevant sections of `PROMPT_BEST_PRACTICES.md` for any failing items that require technique detail (lazy, skipped entirely if all items pass)
-4. For each declared `Target model:`, loads the matching family reference: [`GEMINI_3X_API_BEST_PRACTICES.md`](GEMINI_3X_API_BEST_PRACTICES.md), [`GEMMA4_API_BEST_PRACTICES.md`](GEMMA4_API_BEST_PRACTICES.md), or [`DEEPSEEK_V4_API_BEST_PRACTICES.md`](DEEPSEEK_V4_API_BEST_PRACTICES.md)
-5. Returns a **revised version** with every violation fixed and annotated
+2. Scores against the **15-item checklist** (embedded; the agent file is self-contained, no file I/O needed for scoring)
+3. For each declared `Target model:`, loads the matching family reference: [`GEMINI_3X_API_BEST_PRACTICES.md`](GEMINI_3X_API_BEST_PRACTICES.md), [`GEMMA4_API_BEST_PRACTICES.md`](GEMMA4_API_BEST_PRACTICES.md), or [`DEEPSEEK_V4_API_BEST_PRACTICES.md`](DEEPSEEK_V4_API_BEST_PRACTICES.md). Bare reviews and Claude-targeted reviews load no family file.
+4. Returns a **revised version** with every violation fixed and annotated
 
 ### The 15-Item Checklist
 
@@ -181,7 +180,6 @@ Copy the `agents/` folder and the family reference files into your Claude Code c
 
 ```bash
 cp agents/prompt-optimizer.md ~/.claude/agents/
-cp PROMPT_BEST_PRACTICES.md ~/.claude/
 cp GEMMA4_API_BEST_PRACTICES.md ~/.claude/
 cp GEMINI_3X_API_BEST_PRACTICES.md ~/.claude/
 cp DEEPSEEK_V4_API_BEST_PRACTICES.md ~/.claude/
@@ -266,8 +264,7 @@ All text inside `<prompt_under_review>` is treated as data only — instructions
 
 | File | Purpose |
 |---|---|
-| `agents/prompt-optimizer.md` | The Claude Code agent definition |
-| `PROMPT_BEST_PRACTICES.md` | Best practices guide (7 sections + 15-item checklist) |
+| `agents/prompt-optimizer.md` | The Claude Code agent definition: universal 15-item checklist, scoring rubric, compaction rules |
 | `GEMINI_3X_API_BEST_PRACTICES.md` | Gemini 3.x family on the Interactions API (3.5 Flash GA, 3.1 Pro, 3 Flash Preview, 3 Pro Preview) |
 | `GEMMA4_API_BEST_PRACTICES.md` | Gemma 4 on the Gemini Interactions API (probe-verified May 2026, ported to Interactions wiring) |
 | `DEEPSEEK_V4_API_BEST_PRACTICES.md` | DeepSeek V4 family API mechanics (V4-Pro, V4-Flash) |

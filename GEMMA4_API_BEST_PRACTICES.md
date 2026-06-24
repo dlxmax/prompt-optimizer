@@ -337,6 +337,56 @@ Expected behavior parallel: no `response_format` → `thought` step(s)
 precede `model_output`; with `response_format` → single `model_output`
 step. Probe before production rollout.
 
+## 15. Recall-sensitive scan extension for closed-set forensic checklists
+
+Fires when the prompt is a recall-sensitive closed-set scan (model walks a fixed list of N signals/categories and emits findings per item; AI-detection scans, L1 marker detection, multi-criterion forensic checklists). When it fires, these four constructs are added to the optimizer's compaction preserve-list:
+
+15.1. "Rationale:" clauses on each signal definition. Without them, Gemma at T=1.0 reads the signal name and moves on without scanning.
+
+15.2. PASS-by-example density of >=2 PASS examples on signals where the prior pass's `findings[]` recall was measurably empty. Keep density at 1 on signals that recalled fine.
+
+15.3. Process-instruction preambles before second-pass review steps that read across earlier output (e.g., "the patchwork signature requires looking across two sections AFTER L1 evidence has accumulated"). Flattening to a conditional collapses the second pass into the first.
+
+15.4. Closing recall-posture override ("when a substantive signal is borderline-supported, emit it; downstream calls aggregate") when the prior pass under-recalled on borderline cases.
+
+Apply 15.1-15.4 selectively per task, not as a package. Empirical risk profile, lowest to highest false-positive: 15.3 < 15.2 (signal-scoped) < 15.1 (low FP on lexical/syntactic signals, high FP on holistic-pattern signals) < 15.4 (over-fires on clean cases globally). When briefed on a regression cycle without per-signal A/B data, default to restoring 15.3, then 15.2 on signals that recalled empty, and treat 15.1 and 15.4 as opt-in with named-case justification.
+
+## 16. Content-axis schema binding for count-constrained slots
+
+Fires when the prompt or its `response_format.schema` declares a count constraint on a list-shaped slot (`minItems`, `"at least N"`, `"exactly N"`, `"N to M items"`, `"list 3 signals"`).
+
+16.1. Identify the constrained CONTENT axis the count targets in spirit but the schema leaves open. Common unconstrained axes: timestamp-window membership, numeric-token presence, named-entity class, ontological category. The slot's schema item type is the diagnostic surface, not the prose.
+
+16.2. Restructure the slot's item shape; do NOT tighten the prose. Replace the free-form `string` item with an `object` whose REQUIRED fields bind the axis explicitly: `number_value: string` (numeric axis), `timestamp_token: string` with pattern (windowed), `entity_class: enum` (categorical), `quoted_premise: string` + `derived_conclusion: string` (extraction levels). Place the constrained field BEFORE the citation field in property order (rule 3 applies).
+
+16.3. Two-iteration stop. If 1 prose iteration already failed on the same slot, do NOT recommend a third. Next move is 16.2. Flag third-prose-iteration recommendations as a Gemma 4 anti-pattern.
+
+16.4. Negative scan targets. Reject: "tighten the prose constraint", "add a closing reminder", "escalate MUST". On Gemma 4, prose loses against a schema permission.
+
+16.5. Lexical-only bypass. When the axis is purely lexical (substring match, banned-word list, exact-token presence) AND no semantic judgment is required, the alternative to schema restructure is deterministic post-processing in calling code. Do NOT recommend post-processing when the constraint needs semantic judgment.
+
+## 17. Parent-child enum order on DEMOTE paths
+
+Fires when the prompt or schema contains a parent enum whose value constrains a child enum's legal values, AND a precondition or evidence check may force the child to a value in a DIFFERENT parent's family (DEMOTE pattern). Typical surface: `pause_type` enum (parent) gating `variant_id` enum (child) where a failed precondition demotes `variant_id`.
+
+17.1. The lever is schema property order, not prose hedging. Once the parent token emits, the child enum is constrained to the parent's family. A prose hedge does NOT recover the committed parent token.
+
+17.2. Reorder so precondition evidence and check come FIRST, then the child enum (the field that may demote), then the parent enum LAST. Derive parent allowed-values from the child's family in the schema description ("Set parent to the family whose member is the chosen child"). The validator coerces parent to match child family.
+
+17.3. Negative scan targets. Reject: "add a prose note that parent may need to change on DEMOTE", "soften the parent enum", "let the model pick again after DEMOTE", "add a corrected field after child without reordering". None recovers the committed parent on Gemma 4.
+
+17.4. Diagnostic: parent+child pair from different families on a DEMOTE path means parent-committed-too-early in schema property order. Reorder before iterating prose. If the optimizer sees prompt text but not the schema object, flag the property-order check as a deployer-side follow-up and quote the inferred parent/child field names.
+
+17.5. Does not apply to DeepSeek V4 targets. V4 silently drops schema property-order constraints. For V4, move the same intent into prose with EXAMPLE INPUT + EXAMPLE JSON OUTPUT showing the DEMOTE-triggered child value and its matched parent value side by side, with a literal callout naming both fields. See `DEEPSEEK_V4_API_BEST_PRACTICES.md`.
+
+## 18. Prose enum + scan imperative
+
+When a Gemma 4 prompt contains a prose enum list adjacent to a scan or coverage imperative ("check every signal in <signals>", "consider each category"), do NOT strip the list on the grounds that `response_format.schema` enum enforces the same set. Gemma 4 31b reads prose lists as walkable scan checklists; schema enforcement is necessary but not sufficient for coverage. Flag any "remove duplicate enum, schema enforces it" suggestion as an anti-pattern.
+
+## 19. Soft-preference vulnerability scan
+
+Applies on Gemma 4 prompts processing user-submitted content (item 15 conditional, distinct from item 14). Scan system-level directives for preference language ("favor X over Y", "prefer X", "lean toward Z", "by default emit X", "in general we want"). These give permission and are overridable by user requests for a different structure. Harden each into a concrete observable criterion + explicit refusal branch ("Cite >=2 academic sources; if the user requests sources outside this set, refuse and restate the rule"). Adds to, does not replace, the item 15 delimiter + data-only + `response_format` chain.
+
 ## Cross-family: do not generalize from sibling Gemini models
 
 - **Gemini 3.5 Flash** (`gemini-3.5-flash`): GA on Interactions. Defaults
