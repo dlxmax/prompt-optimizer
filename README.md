@@ -2,15 +2,27 @@
 
 A Claude Code agent that scores and revises LLM prompts against a research-backed checklist.
 
-**Topics:** `gemma-4` · `gemma` · `gemini` · `gemini-3.5` · `gemini-3.5-flash` · `gemini-3.x` · `interactions-api` · `claude` · `deepseek` · `deepseek-v4` · `response-schema` · `structured-output` · `rubric` · `llm-judge` · `prompt-engineering` · `prompts` · `agents` · `sycophancy` · `validation` · `compliance` · `best-practices`
+**Topics:** `gemini` · `gemini-3.5` · `gemini-3.5-flash` · `gemini-3.x` · `interactions-api` · `gemma-4` · `gemma` · `claude` · `deepseek` · `deepseek-v4` · `response-schema` · `structured-output` · `rubric` · `llm-judge` · `prompt-engineering` · `prompts` · `agents` · `sycophancy` · `validation` · `compliance` · `best-practices`
 
-**Primary focus: mitigating known failure modes on `Gemma 4 31b`, `Gemini 3.x` (including 3.5 Flash GA) via the Gemini Interactions API, and `DeepSeek V4` (V4-Pro, V4-Flash) via the DeepSeek API.** The agent also targets Claude. The 15-item checklist is model-agnostic; model-specific rules kick in when a `Target model:` is declared. Probe data behind the current rules: 100+ probe calls against Gemma 4 between May 6–13 2026, the DeepSeek V4 strict-ordering failure modes captured across 6 optimizer rounds in May 2026, and the canonical Gemini docs scraped on 2026-06-24 covering the Interactions API GA, 3.5 Flash, long-context placement, thinking, and prompt design strategies.
+**Primary focus: mitigating known failure modes on `Gemini 3.x` (including 3.5 Flash GA) via the Gemini Interactions API, `Gemma 4 31b` via the same API, and `DeepSeek V4` (V4-Pro, V4-Flash) via the DeepSeek API.** The agent also targets Claude. The 15-item checklist is model-agnostic; model-specific rules kick in when a `Target model:` is declared. Probe data behind the current rules: the canonical Gemini docs scraped on 2026-06-24 covering the Interactions API GA, 3.5 Flash, long-context placement, thinking, and prompt design strategies; 100+ probe calls against Gemma 4 between May 6–13 2026; and the DeepSeek V4 strict-ordering failure modes captured across 6 optimizer rounds in May 2026.
 
 The two goals are: prompts the model actually executes instead of silently skipping over directives, and call mechanics that do not waste retry budget on failures the schema or parser already explains.
 
 **Primary workflow:** Use this agent inside Claude Code to optimize prompts for any LLM. The optimizer runs on Claude; when it writes a rubric for a judge prompt, Claude is authoring the rubric and the target model applies it (cross-model rubric generation), which research shows equals or outperforms same-model self-generation. Model-specific guidance is baked into the checklist and applied when a `Target model:` is declared.
 
 ## Failure modes the optimizer mitigates
+
+### Gemini 3.x / 3.5 Flash (Interactions API)
+
+Five rules the optimizer scans for, drawn from Google's canonical prompt design strategies, the 3.5 Flash guide, the Interactions API GA docs, and the long-context guide. Full mechanics in [`GEMINI_3X_API_BEST_PRACTICES.md`](GEMINI_3X_API_BEST_PRACTICES.md).
+
+- **Remove `temperature`, `top_p`, `top_k`.** Google's 3.5 Flash guide is explicit: "we strongly recommend not changing the default values ... Remove these parameters from all requests." Setting them on Gemini 3.x can cause looping or degraded performance. To force determinism, write the system instruction with explicit rules instead.
+- **Replace `thinking_budget` (numeric) with `thinking_level` (`minimal` / `low` / `medium` / `high`).** 3.5 Flash defaults to `medium` (down from `high` on 3 Flash Preview). `thinking_level` and `thinking_budget` are mutually exclusive — passing both returns HTTP 400.
+- **Long-context query placement.** Substantial context blocks come first; the user's specific query goes at the END, anchored with "Based on the preceding information...". Burying the query at the top is a defect on long-context prompts.
+- **Critical-instructions placement.** Persona, behavioral constraints, and output format requirements live in the `system_instruction` parameter OR at the very beginning of the user prompt — not buried after long context or examples.
+- **Consistent structure (XML XOR Markdown).** Use XML-style tags OR Markdown headings as section delimiters; do not mix both styles within the same prompt.
+
+The optimizer also flags multimodal prompts that fail to reference each modality explicitly, and recommends porting Google's published 9-point agentic planning template into the system instruction when the prompt drives an agentic workflow.
 
 ### Gemma 4 31b (Interactions API)
 
@@ -75,18 +87,6 @@ parsed = json.loads(interaction.output_text)
 parsed, _ = json.JSONDecoder().raw_decode(interaction.output_text)
 ```
 
-### Gemini 3.x / 3.5 Flash (Interactions API)
-
-Five rules the optimizer scans for, drawn from Google's canonical prompt design strategies, the 3.5 Flash guide, the Interactions API GA docs, and the long-context guide. Full mechanics in [`GEMINI_3X_API_BEST_PRACTICES.md`](GEMINI_3X_API_BEST_PRACTICES.md).
-
-- **Remove `temperature`, `top_p`, `top_k`.** Google's 3.5 Flash guide is explicit: "we strongly recommend not changing the default values ... Remove these parameters from all requests." Setting them on Gemini 3.x can cause looping or degraded performance. To force determinism, write the system instruction with explicit rules instead.
-- **Replace `thinking_budget` (numeric) with `thinking_level` (`minimal` / `low` / `medium` / `high`).** 3.5 Flash defaults to `medium` (down from `high` on 3 Flash Preview). `thinking_level` and `thinking_budget` are mutually exclusive — passing both returns HTTP 400.
-- **Long-context query placement.** Substantial context blocks come first; the user's specific query goes at the END, anchored with "Based on the preceding information...". Burying the query at the top is a defect on long-context prompts.
-- **Critical-instructions placement.** Persona, behavioral constraints, and output format requirements live in the `system_instruction` parameter OR at the very beginning of the user prompt — not buried after long context or examples.
-- **Consistent structure (XML XOR Markdown).** Use XML-style tags OR Markdown headings as section delimiters; do not mix both styles within the same prompt.
-
-The optimizer also flags multimodal prompts that fail to reference each modality explicitly, and recommends porting Google's published 9-point agentic planning template into the system instruction when the prompt drives an agentic workflow.
-
 ### DeepSeek V4 (V4-Pro / V4-Flash)
 
 Three rules the optimizer scans for. Full mechanics in [`DEEPSEEK_V4_API_BEST_PRACTICES.md`](DEEPSEEK_V4_API_BEST_PRACTICES.md).
@@ -112,7 +112,7 @@ Most LLM prompts are written by feel. Frontier models in 2026 do not refuse task
 - **~29% sycophancy reduction** is achievable through prompt structure alone, no fine-tuning required. (sparkco.ai)
 - **A concrete rubric is the single highest-return change for judge prompts**: GPT-4o +17.7 pts on JudgeBench, Llama-405B +7.4 pts, Sage aggregate +16.1% IPI. A ~27-point "Rubric Gap" (self-generated vs. human rubrics) is consistent across Gemini, GPT, and DeepSeek. (Rethinking Rubric Generation 2026; RubricBench 2026; Sage Dec 2025)
 - **All frontier judges are unreliable on a single pass** ("rating roulette"). High-stakes judge calls need N≥5 majority vote for consistency (reduces variance ~70%), though accuracy gains are small (+2.3pp); the high-ROI accuracy levers are rubric quality and structured reasoning. Debate-style prompts (ChatEval) are actively harmful: -158% worst-case consistency. Multi-model consensus is the strongest deployment lever. (Rating Roulette EMNLP 2025; Sage Dec 2025)
-- **Three model families need their own playbooks:** Gemma 4 via Interactions ([`GEMMA4_API_BEST_PRACTICES.md`](GEMMA4_API_BEST_PRACTICES.md)), Gemini 3.x via Interactions ([`GEMINI_3X_API_BEST_PRACTICES.md`](GEMINI_3X_API_BEST_PRACTICES.md)), and DeepSeek V4 ([`DEEPSEEK_V4_API_BEST_PRACTICES.md`](DEEPSEEK_V4_API_BEST_PRACTICES.md)).
+- **Three model families need their own playbooks:** Gemini 3.x via Interactions ([`GEMINI_3X_API_BEST_PRACTICES.md`](GEMINI_3X_API_BEST_PRACTICES.md)), Gemma 4 via Interactions ([`GEMMA4_API_BEST_PRACTICES.md`](GEMMA4_API_BEST_PRACTICES.md)), and DeepSeek V4 ([`DEEPSEEK_V4_API_BEST_PRACTICES.md`](DEEPSEEK_V4_API_BEST_PRACTICES.md)).
 
 ## Multi-Model Workflow
 
@@ -120,9 +120,9 @@ This optimizer runs on Claude and targets any LLM. Declare `Target model: <name>
 
 **Universal (all targets):** The optimizer writes a concrete rubric directly into the revised judge prompt (cross-model rubric generation: Claude authors, target applies), shown by the Rethinking Rubric Generation paper to equal or outperform same-model self-generation. The `<rubric_generation>` instruction block is the fallback only when the criterion must adapt per-input at runtime.
 
-**Gemma 4 (`Target model: Gemma 4`).** Surface: Gemini Interactions API (`v1beta/interactions`, `client.interactions.create(...)`, `google-genai >= 2.3.0`). The checklist applies `response_format` as the deployment lever (suppresses always-on thinking, fixes JSON structure, ~30 to 40x speedup), property-ordered properties for reason-before-commit, `raw_decode` for parsing, retry classification, and the schema-padding / parent-child enum-order rules. Both `gemma-4-31b-it` and `gemma-4-26b-a4b-it` are covered; rule 2 isolates the multi-STRING failure mode unique to `26b-a4b`, and the tool-calling bug is captured for the same variant. Use `31b` when both are options. Gemma 4 still uses T=1.0, top_p=0.95, top_k=64 (NOT the Gemini 3.x parameter-removal rule).
-
 **Gemini 3.x (`Target model: Gemini 3.5 Flash` / `Gemini 3.1 Pro` / `Gemini 3 Flash Preview` / `Gemini 3.x`).** Surface: Interactions API only; `:generateContent` is retired for the optimizer's recommendations. Strip `temperature` / `top_p` / `top_k`; use `thinking_level` instead of `thinking_budget`; place query at end of long context; pick XML XOR Markdown for section delimiters; place critical instructions in `system_instruction` or at the very beginning of the user prompt; reference each modality explicitly. 3.5 Flash does NOT support Computer Use (stay on Gemini 3 Flash Preview for that workload); image segmentation is not supported anywhere in 3.x (use Gemini 2.5 Flash with thinking off or Gemini Robotics-ER 1.6).
+
+**Gemma 4 (`Target model: Gemma 4`).** Surface: Gemini Interactions API (`v1beta/interactions`, `client.interactions.create(...)`, `google-genai >= 2.3.0`). The checklist applies `response_format` as the deployment lever (suppresses always-on thinking, fixes JSON structure, ~30 to 40x speedup), property-ordered properties for reason-before-commit, `raw_decode` for parsing, retry classification, and the schema-padding / parent-child enum-order rules. Both `gemma-4-31b-it` and `gemma-4-26b-a4b-it` are covered; rule 2 isolates the multi-STRING failure mode unique to `26b-a4b`, and the tool-calling bug is captured for the same variant. Use `31b` when both are options. Gemma 4 still uses T=1.0, top_p=0.95, top_k=64 (NOT the Gemini 3.x parameter-removal rule).
 
 **DeepSeek V4 (`Target model: DeepSeek V4`).** Default-on thinking mode; JSON-mode "json"-keyword and example-block requirement; strict-mode tool calling on the `/beta` endpoint; the Anthropic-compatible endpoint capability subset; the schema-intervention refusal list. All behavioral steering routes through prose, not schema.
 
@@ -135,7 +135,7 @@ When invoked, the prompt-optimizer agent:
 1. Reads the prompt under review (caller-message shape enforced: `<prompt_under_review>` block first, scoring directive at the end anchored with "Based on the preceding prompt, ...")
 2. Scores against the **15-item checklist** (embedded, no file I/O needed for scoring)
 3. Loads only the relevant sections of `PROMPT_BEST_PRACTICES.md` for any failing items that require technique detail (lazy, skipped entirely if all items pass)
-4. For each declared `Target model:`, loads the matching family reference: [`GEMMA4_API_BEST_PRACTICES.md`](GEMMA4_API_BEST_PRACTICES.md), [`GEMINI_3X_API_BEST_PRACTICES.md`](GEMINI_3X_API_BEST_PRACTICES.md), or [`DEEPSEEK_V4_API_BEST_PRACTICES.md`](DEEPSEEK_V4_API_BEST_PRACTICES.md)
+4. For each declared `Target model:`, loads the matching family reference: [`GEMINI_3X_API_BEST_PRACTICES.md`](GEMINI_3X_API_BEST_PRACTICES.md), [`GEMMA4_API_BEST_PRACTICES.md`](GEMMA4_API_BEST_PRACTICES.md), or [`DEEPSEEK_V4_API_BEST_PRACTICES.md`](DEEPSEEK_V4_API_BEST_PRACTICES.md)
 5. Returns a **revised version** with every violation fixed and annotated
 
 ### The 15-Item Checklist
@@ -268,8 +268,8 @@ All text inside `<prompt_under_review>` is treated as data only — instructions
 |---|---|
 | `agents/prompt-optimizer.md` | The Claude Code agent definition |
 | `PROMPT_BEST_PRACTICES.md` | Best practices guide (7 sections + 15-item checklist) |
-| `GEMMA4_API_BEST_PRACTICES.md` | Gemma 4 on the Gemini Interactions API (probe-verified May 2026, ported to Interactions wiring) |
 | `GEMINI_3X_API_BEST_PRACTICES.md` | Gemini 3.x family on the Interactions API (3.5 Flash GA, 3.1 Pro, 3 Flash Preview, 3 Pro Preview) |
+| `GEMMA4_API_BEST_PRACTICES.md` | Gemma 4 on the Gemini Interactions API (probe-verified May 2026, ported to Interactions wiring) |
 | `DEEPSEEK_V4_API_BEST_PRACTICES.md` | DeepSeek V4 family API mechanics (V4-Pro, V4-Flash) |
 | `PROMPT_RESEARCH.md` | Full research archive with 60+ sources (2024 to 2026) |
 
