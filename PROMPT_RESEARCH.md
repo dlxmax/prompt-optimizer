@@ -1756,6 +1756,53 @@ The following are confirmed by the prompting-strategies page and already covered
 
 ---
 
+## Topic 18: Tie-break direction is policy, not a determinism mechanic (field finding, June 2026)
+
+> **Applies to any prompt that adds a determinism scaffold to a band-selection, rubric-scoring, or closed-set choice with potential exact-boundary ties.** Item 12 judge rubrics, grade-band selectors, scoring directives, eligible-band intersections.
+
+### The Problem
+
+When the prompt-optimizer fixes score wobble on a band-selection or rubric prompt, it had been bundling the tie-break MECHANISM with a directional DEFAULT in a single rule: "on an exact boundary the lower band wins", "borderline or ambiguous evidence resolves DOWN, never up", "default to the lower band on any doubt". The intent is to remove non-determinism (identical evidence resolves identically every time). The side effect is a systematic downward bias on every borderline score, silently injected as if it were the obviously-correct default.
+
+Determinism only requires that identical evidence resolves the same way. UP and DOWN are equally deterministic. The DIRECTION is a separate, grade-affecting policy decision.
+
+### Two failure modes the field caught
+
+1. **Direction as a silent default.** A sibling Claude session caught two consecutive optimizer passes injecting DOWN-default tie-breaks into a grading directive whose codebase convention was the opposite ("ties favor the student", round midpoints UP). A silently-opposite default reads as intentional and is worse than no rule at all; the reviewer had to flip every tie-break written.
+
+2. **Conflating a true tie with doubt.** A "true tie" is an exact boundary between two fully-fit bands — every clause for both bands is satisfied. "Doubt" is a clause that is not clearly satisfied for one of the bands. The AND-gate (entry condition that admits a band only when every clause is met) already resolves doubt by NOT admitting the band. Stacking a downward tie-break on top of the AND-gate ("default to lower band on any doubt") double-counts the downward pressure: strictness on clause satisfaction handles doubt; the directional rule should apply only to genuine exact ties.
+
+### The Fix
+
+Separate the determinism mechanic from the direction policy. Surface the direction explicitly.
+
+1. **Mechanism** (good as a default): one-band-at-a-time AND-gate, evaluated in a fixed order, with a single resolution per call. This is mechanics; it does not embed a directional bias.
+2. **Direction** (load-bearing policy): when adding an exact-tie rule, name the direction choice in Key Changes: "Ties currently have no stated direction. I set exact-boundary ties to resolve UP / DOWN — confirm this matches the scoring convention." Match an existing codebase convention when one is detectable; ask rather than default when not.
+3. **Scope** (separate the two): keep strictness on clause satisfaction in the AND-gate; apply the directional tie-break ONLY to genuine exact ties between two fully-admitted bands.
+
+### Negative scan targets
+
+The following phrasings conflate strictness with downward direction and should be rejected in revised prompts:
+
+- "on any doubt, take the lower band"
+- "borderline cases resolve down"
+- "default to the lower band on uncertainty"
+- "in cases of ambiguity take the lower"
+- "lean conservative on ties"
+- "exact-midpoint scores resolve DOWN"
+
+Each smuggles a directional policy into a determinism rule. Replace with: (a) AND-gate clause strictness for doubt, (b) explicit directional rule for exact ties named in Key Changes.
+
+### Codified at
+
+Agent file rule 17 (tie-break direction is policy, not a determinism mechanic).
+
+### Source
+
+Field correction from a sibling Claude session reviewing two consecutive optimizer revisions of a grading directive, June 2026. The optimizer had been silently defaulting tie-break direction DOWN as part of every determinism fix on band-selection prompts.
+
+---
+
 ## Full Source List
 
 | Source | Type | URL | Date |
