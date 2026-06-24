@@ -218,10 +218,16 @@ Canonical reference: Google's prompt design strategies page
   prefer direct, efficient answers. When a conversational tone is
   required, steer explicitly ("Explain this as a friendly, talkative
   assistant"); do not rely on defaults to produce conversational output.
-- **Consistent structure:** use XML-style tags (e.g., `<instructions>`,
-  `<context>`) XOR Markdown headings as section delimiters; do not mix
-  both styles in a single prompt. Pick one and stay with it.
-  Variable-substitution conventions (curly braces) are unchanged.
+- **Consistent structure:** XML XOR Markdown for section delimiters.
+  Pick one and stay with it. If mixed, convert the minority style to the
+  dominant one. Anti-pattern: do NOT wrap already-Markdown-delimited
+  sections (`## 1. Foo`, `## 2. Bar`) in per-section XML tags
+  (`<rule_1>`, `<rule_2>`) "for scope" — the Markdown header already
+  delimits; the XML wrapper duplicates section delimitation and creates
+  the mix this rule prohibits. Meta blocks that wrap the whole document
+  (`<role>`, `<scope>`, `<closing_reminder>`) are not section delimiters
+  and may coexist with a Markdown-dominant body. Variable-substitution
+  conventions (curly braces) are unrelated to this rule.
 - **Critical-instructions placement:** place persona, behavioral
   constraints, and output format requirements in the System Instruction
   (Interactions `system_instruction` parameter) OR at the very beginning

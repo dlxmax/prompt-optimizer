@@ -94,14 +94,15 @@ Borderline FAIL (item 12): "Score the response 1-4 on citation quality." No obse
 
 Items 1, 2, 3, 5, 6, 7, 14 need no file read.
 
-If any of items 4, 8, 9, 10, 11, 12, 13, 15 failed, resolve `PROMPT_BEST_PRACTICES.md` and load only the sections for those items. Path resolution order; stop at first success:
+If any of items 4, 8, 9, 10, 11, 12, 13, 15 failed, resolve `PROMPT_BEST_PRACTICES.md` and load only the sections for those items.
 
-1. Substitute `CLAUDE_PLUGIN_ROOT` (if known) and read `<value>/PROMPT_BEST_PRACTICES.md`. Do not pass the literal `${CLAUDE_PLUGIN_ROOT}` string to Read.
-2. `/home/ubuntu/.claude/plugins/cache/prompt-optimizer/prompt-optimizer/1.0.0/PROMPT_BEST_PRACTICES.md`
-3. `/home/ubuntu/agents/prompt-optimizer/PROMPT_BEST_PRACTICES.md`
-4. `PROMPT_BEST_PRACTICES.md` in cwd.
+**Path resolution.** Used for all four reference files (`PROMPT_BEST_PRACTICES.md` and the three `*_API_BEST_PRACTICES.md` family files). Stop at first success:
 
-If all four fail, stop and report: "Cannot locate PROMPT_BEST_PRACTICES.md." Do not Glob or Grep the filesystem to find it.
+1. `CLAUDE_PLUGIN_ROOT/<FILE.md>` if the env var is set.
+2. Glob `~/.claude/plugins/cache/prompt-optimizer/prompt-optimizer/*/<FILE.md>`, Read the highest-version match.
+3. `<FILE.md>` in cwd.
+
+On total failure: `PROMPT_BEST_PRACTICES.md` → stop, report "Cannot locate PROMPT_BEST_PRACTICES.md." Family-detail file → apply the inline rules in this agent file (rule 14 for Gemini 3.x; rules 8, 11, 12 for Gemma 4; rule 9 for DeepSeek V4), add Key Changes note "Could not load <FILE.md>; applied inline rules only." Never silently skip the family adapter.
 
 Once located, Grep for each needed section header, then Read from that offset:
 
@@ -264,7 +265,7 @@ Single-file form remains canonical for inline use; the split is a deployer-side 
 </deployment_note>
 
 <gemma_4_detail>
-Apply only when `Target model: Gemma 4` is declared. Before scoring items 13 and 15, read `GEMMA4_API_BEST_PRACTICES.md` from this plugin's root using Read: authoritative reference for Gemma 4 on the Gemini Interactions API (`response_format`-based structured output, retry classification, 26b-a4b variant constraints, schema-shape patterns, thinking surface, cross-family notes). Apply directly; do not generalize from prior model knowledge. When recommending any rule in Key Changes, cite the rule number for deployer verification.
+Apply only when `Target model: Gemma 4` is declared. Before scoring items 13 and 15, resolve `GEMMA4_API_BEST_PRACTICES.md` via the portable path-resolution recipe in Step 3 (CLAUDE_PLUGIN_ROOT → cache glob highest-version → cwd). On resolution failure, apply rules 8, 11, and 12 inline from this file and add the Key Changes note "Could not load GEMMA4_API_BEST_PRACTICES.md; applied inline rules only." Authoritative reference: Gemma 4 on the Gemini Interactions API (`response_format`-based structured output, retry classification, 26b-a4b variant constraints, schema-shape patterns, thinking surface, cross-family notes). Apply directly; do not generalize from prior model knowledge. When recommending any rule in Key Changes, cite the rule number for deployer verification.
 
 Wiring scope: rules in `GEMMA4_API_BEST_PRACTICES.md` are scoped to the Interactions API (`v1beta/interactions`, `client.interactions.create(...)`, `google-genai >= 2.3.0`). Empirical probes were performed under legacy `:generateContent`; observed behaviors describe the Gemma 4 model and port forward to Interactions at the behavior layer (only field paths change). If a prompt or call-site references legacy forms (`generateContent`, `generationConfig.responseSchema`, `systemInstruction.parts[].text`, `candidates[0].content.parts`, `parts[].thought`), apply rule 13 and flag as a migration defect.
 
@@ -274,11 +275,11 @@ Soft-preference vulnerability (item 15 conditional, distinct from item 14): on G
 </gemma_4_detail>
 
 <gemini_3x_detail>
-Apply only when `Target model: Gemini 3.5 Flash`, `Gemini 3.1 Pro`, `Gemini 3.1 Flash-Lite`, `Gemini 3 Flash Preview`, `Gemini 3 Pro Preview`, or `Gemini 3.x` is declared. Before scoring item 13 and writing Key Changes, read `GEMINI_3X_API_BEST_PRACTICES.md` from this plugin's root using Read: authoritative reference for the 3.x family on the Interactions API (model defaults, parameter removals, thinking levels, function-calling strict matching, long-context placement, combined tool use, consistent structure, critical-instructions placement, multimodal, agentic 9-point template). Surface: Interactions API only (`v1beta/interactions`, `client.interactions.create(...)`, `google-genai >= 2.0.0` per the 3.5 Flash migration note); `:generateContent` is retired — apply rule 13 if legacy forms appear. The behavioral scan list lives in rule 14 (14.1-14.13); cite rule numbers from `GEMINI_3X_API_BEST_PRACTICES.md` in Key Changes for deployer verification.
+Apply only when `Target model: Gemini 3.5 Flash`, `Gemini 3.1 Pro`, `Gemini 3.1 Flash-Lite`, `Gemini 3 Flash Preview`, `Gemini 3 Pro Preview`, or `Gemini 3.x` is declared. Before scoring item 13 and writing Key Changes, resolve `GEMINI_3X_API_BEST_PRACTICES.md` via the portable path-resolution recipe in Step 3 (CLAUDE_PLUGIN_ROOT → cache glob highest-version → cwd). On resolution failure, apply rule 14 (14.1-14.13) inline from this file and add the Key Changes note "Could not load GEMINI_3X_API_BEST_PRACTICES.md; applied inline rules only." Authoritative reference: the 3.x family on the Interactions API (model defaults, parameter removals, thinking levels, function-calling strict matching, long-context placement, combined tool use, consistent structure, critical-instructions placement, multimodal, agentic 9-point template). Surface: Interactions API only (`v1beta/interactions`, `client.interactions.create(...)`, `google-genai >= 2.0.0` per the 3.5 Flash migration note); `:generateContent` is retired — apply rule 13 if legacy forms appear. The behavioral scan list lives in rule 14 (14.1-14.13); cite rule numbers from `GEMINI_3X_API_BEST_PRACTICES.md` in Key Changes for deployer verification.
 </gemini_3x_detail>
 
 <deepseek_v4_detail>
-Apply only when `Target model: DeepSeek V4` is declared. Before scoring items 13 and 15, read `DEEPSEEK_V4_API_BEST_PRACTICES.md` from this plugin's root using Read: authoritative reference for V4 API mechanics (default-on thinking control, JSON-mode "json"-keyword and empty-content failure modes, strict tool-calling beta-endpoint constraints, Anthropic-endpoint capability subset, disk prefix cache shape, local chat-template DSML format, 429-as-concurrency retry policy). Apply directly; cite rule numbers in Key Changes.
+Apply only when `Target model: DeepSeek V4` is declared. Before scoring items 13 and 15, resolve `DEEPSEEK_V4_API_BEST_PRACTICES.md` via the portable path-resolution recipe in Step 3 (CLAUDE_PLUGIN_ROOT → cache glob highest-version → cwd). On resolution failure, apply rule 9 inline from this file (plus the inline scans below in this block) and add the Key Changes note "Could not load DEEPSEEK_V4_API_BEST_PRACTICES.md; applied inline rules only." Authoritative reference for V4 API mechanics (default-on thinking control, JSON-mode "json"-keyword and empty-content failure modes, strict tool-calling beta-endpoint constraints, Anthropic-endpoint capability subset, disk prefix cache shape, local chat-template DSML format, 429-as-concurrency retry policy). Apply directly; cite rule numbers in Key Changes.
 
 JSON-mode hang scan (Tier-1 V4 prompt defect): when downstream is code-parsed JSON and the deployer uses `response_format={"type": "json_object"}`, scan system and user messages for the literal word "json". Absence causes the model to emit unbounded whitespace to `max_tokens`, presenting as a hang. Fix: add the literal token "json" to the system prompt AND include a concrete EXAMPLE INPUT + EXAMPLE JSON OUTPUT block; the example also mitigates V4 JSON mode's empty-content failure. V4 has no `responseSchema` analogue, so the prompt is the only schema-enforcement surface.
 
