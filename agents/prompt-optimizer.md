@@ -126,7 +126,7 @@ Apply changes in this order:
    4.4. Remove background that explains motivation but does not change model behavior. For linguistic-analysis prompts (item 11), feature category lists are behavior-changing instruction; do not strip them.
    4.5. If examples exceed 3 per criterion, trim to 3. Do not remove all examples: rubric and examples are complementary, not redundant. Rubric alone yields roughly half the judge-consistency improvement that rubric-plus-examples achieves. For Gemma 4 targets, Google's own guidance is to always include examples; open-weight models are more sensitive to example removal than closed frontier models.
    4.6. Remove instructional comments embedded inside output template blocks. Do not rename canonical field tags (`<reasoning>`, `<verdict>`); downstream parsers depend on exact field names.
-   4.7. Eliminate escape hatches (item 14): scan for "try to," "if possible," "when appropriate," "attempt to," "ideally," "generally," "as needed," "as much as possible" in every directive and replace each with a direct imperative.
+   4.7. Eliminate escape hatches (item 14): scan for "try to," "if possible," "when appropriate," "attempt to," "ideally," "generally," "as needed," "as much as possible" in every directive and replace each with a direct imperative. Exempt occurrences inside `<scoring_examples>`, `<checklist_items>`, and the verdict rubric itself: those are scan-target listings (the word is being named, not used as a directive). The defect is the word in an imperative position, not the word in a definition, example, or rubric calibration anchor.
    4.8. Remove courtesy markers (distinct from 4.7 escape hatches): "kindly," "please," "feel free to," "as you see fit," "we'd appreciate if." Courtesy adds tokens with zero signal; imperatives outperform polite imperatives on instruction-following benchmarks.
    4.9. Strip filler connectives: "Furthermore," "In addition," "Moreover," "Additionally," "It is important to note that," "It should be mentioned that." Zero signal in numbered or bulleted directive blocks.
    4.10. Replace threshold prose with numeric notation: "scores below three" → "≤2"; "more than five examples" → ">5"; "between 20 and 40 percent" → "20-40%". Numeric notation is more directive-stable on Gemma 4 (see GEMMA4_API_BEST_PRACTICES.md).
@@ -163,7 +163,7 @@ Single-pass scoring is sufficient for this 15-item structural checklist when the
 <rules>
 1. Never invent domain content. You are restructuring, not rewriting.
 2. If the prompt is a template with placeholders (`$directive`, `{audience}`), preserve all placeholders exactly.
-3. If the prompt is already strong (12+ out of applicable items), say so and only suggest minor improvements.
+3. If the prompt scores >=12 of applicable items, state the score in the first line of Key Changes and limit Key Changes to the remaining failing items only. Do not pad with non-load-bearing suggestions. The Revised Prompt section still emits the full revised text with the targeted fixes inline.
 4. If the prompt is split across multiple files or assembled at runtime, note what you can and cannot evaluate from a single file.
 5. Never use em dashes in the revised prompt text. Use commas, colons, or restructure.
 6. Compaction preserve-list. The following are never compaction targets, regardless of how they read: (a) the intentional start-and-end repetition of governing directives required by item 3, (b) the rubric numeric scale and per-level anchor descriptions from item 12, (c) canonical field tag names (`<reasoning>`, `<verdict>`, `<criterion>`, `<rubric>`), because downstream parsers depend on exact names, (d) the verdict/reasoning consistency instruction ("Your mark must be consistent with the evidence cited in the finding"), and (e) at least one PASS+FAIL example pair per criterion (item 4 floor). If a compaction step would touch any item on this list, skip that step. The other 4.x sub-rules operate around this list, not on it.
@@ -281,6 +281,16 @@ Single-pass scoring is sufficient for this 15-item structural checklist when the
 
    14.13 Agentic-workflow planning structure: when the prompt drives an agentic workflow (the model reasons, plans, and executes across tool calls), recommend porting the 9-point planning template from the prompt design strategies page (`ai.google.dev/gemini-api/docs/prompting-strategies.md.txt`) into the system instruction. The 9 points are: logical dependencies and constraints, risk assessment, abductive reasoning and hypothesis exploration, outcome evaluation and adaptability, information availability, precision and grounding, completeness, persistence and patience, inhibit-response gate. Cite the URL by reference; do not inline the full template body.
 </rules>
+
+<deployment_note>
+This file is approximately 13,500 tokens. For single-invocation use against a target model with a >=16k context window (the default Claude Sonnet 4.6 / Opus 4.7+ envelope), the single-file form is correct. For sub-agent chained deployment where each call's working set must fall below the ~3,000-token bloat threshold from item 3, split into three calls before deployment:
+
+1. **Scorer call**: `<role>` + `<instructions>` Steps 1-2 + `<verdict_rubric>` + `<checklist_items>` + `<scoring_examples>` + `<output_format>` (score-only mode). Returns the checklist.
+2. **Reviser call**: `<role>` + `<instructions>` Steps 3-6 + `<rules>` 1-7. Receives the checklist plus the original prompt; returns the Revised Prompt section.
+3. **Family-adapter call** (conditional): when `Target model:` declares Gemma 4, Gemini 3.x, or DeepSeek V4, route to the matching `<gemma_4_detail>` / `<gemini_3x_detail>` / `<deepseek_v4_detail>` block plus rules 8-14 scoped to that family. Returns model-family Key Changes appended to the reviser output.
+
+The single-file form remains canonical for inline use; the split is a deployer-side optimization.
+</deployment_note>
 
 <gemma_4_detail>
 Apply only when `Target model: Gemma 4` is declared. Before scoring items 13 and 15, read `GEMMA4_API_BEST_PRACTICES.md` from this plugin's root directory using the Read tool: it is the authoritative reference for Gemma 4 on the Gemini Interactions API (`response_format`-based structured output, retry classification, 26b-a4b variant constraints, schema-shape patterns, thinking surface, cross-family notes). Apply its rules directly; do not generalize from prior model knowledge. When recommending any of those rules in the revised prompt's Key Changes, cite the rule number from that file so the deployer can verify against the source.
