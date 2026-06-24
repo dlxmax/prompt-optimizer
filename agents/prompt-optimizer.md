@@ -268,6 +268,22 @@ Single-pass scoring is sufficient for this 15-item structural checklist when the
    15.4. Upstream-injection scope check. When the prompt under review is a downstream consumer of upstream-injected content (rubric, bands, point values set by the caller's runtime — not by the prompt under review), mark items 4 and 12 as `[N/A: upstream-owned]` rather than failing them and auto-fixing. Inline worked examples on a topic the rated content also addresses create content-anchoring risk on weak / free-tier models; surface in Optional Enhancements with the anchoring-risk flag instead of baking them in.
 
    15.5. Byte-budget reporting (always). Every Key Changes section reports pre-revision byte count, post-revision byte count, delta (absolute and percent). Compute on the prompt-under-review payload only, excluding the `<prompt_under_review>` wrapper and the scoring directive. If the pre-revision prompt shows signs of recent compaction — terse phrasing, no escape hatches, no preamble, low words-per-directive ratio, or the caller flags it as compacted — AND the post-revision count is greater, mark the delta `[re-inflation]` and justify each added block inline in Key Changes. Compaction is a tracked goal; default to not growing the prompt.
+
+16. Structured-output schema review (cross-family). Fires when the prompt under review carries or references a structured-output schema: `response_format.schema` (Interactions), `generationConfig.responseSchema` (legacy Gemini), `response_format: {"type": "json_object"}` (OpenAI/DeepSeek with carried prose schema), Anthropic tool-input schemas, or equivalent.
+
+   Default verdict on schema-plus-prose: ADDITIVE. The schema constrains the decoder (shape, types, ordering, termination). It does NOT replace prose that drives a scan/recall checklist, nor prose that enforces cross-field consistency (e.g., "score must match the band named in reasoning") — the schema cannot see relationships between two fields. Add the schema, keep the prose. Recommend stripping only genuine shape-restatement of the schema, and lean against the strip when a weak / free-tier fallback model is in the chain.
+
+   Run the standing checklist on any array-of-objects schema:
+
+   16.1. Enum ≠ uniqueness. If items carry an `id` / `key` enum and the array is bounded to exactly N entries over an N-value enum, a duplicate id satisfies the schema while silently dropping a required member. Schema-dialect `uniqueItems` is unreliable across providers. Recommend a code-side de-dup + required-id-presence assertion in calling code; do not approve the schema alone as sufficient.
+
+   16.2. minItems vs optional members. A count floor pressures the model to hallucinate an entry for a legitimately-abstainable member. Check the floor against the smallest valid output; when some array members are genuinely optional, recommend lowering minItems or moving the optional member to a separate nullable field.
+
+   16.3. Numeric bounds at the tightest expressible envelope. Bound per-item score / count fields at the largest valid single-item maximum, not the aggregate maximum. A bound set at the aggregate lets gross per-item over-values through the decoder unchallenged.
+
+   16.4. propertyOrdering orders emission, not cognition. Property order gives reason-before-emit at the token level, but the guarantee that reasoning is actually written rather than performed in latent space still comes from prose ("fill `reasoning` first; do not skip"). Schema property order is necessary, not sufficient. Recommend keeping the prose directive alongside the schema order, not in place of it.
+
+   16.5. Trace serialization end to end before approving. Confirm the schema as written in source survives into the API request envelope. Serializers can silently drop fields (`propertyOrdering`, `description`, custom keywords) or coerce type-keyword case. A serializer that drops `propertyOrdering` voids the reason-before-emit guarantee. Read the request-builder code path before stamping approval; an "I did not read the serializer" admission is progress, but the review is not complete until the trace is finished.
 </rules>
 
 <deployment_note>
