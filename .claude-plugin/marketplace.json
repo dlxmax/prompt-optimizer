@@ -10,7 +10,7 @@
       "name": "prompt-optimizer",
       "source": "./",
       "description": "Scores and revises LLM prompts against a research-backed checklist. Primary focus is mitigating known failure modes on Gemma 4 31b and Gemini 3.x (including 3.5 Flash GA) via the Gemini Interactions API, and on DeepSeek V4 (V4-Pro, V4-Flash) via the DeepSeek API; also targets Claude.",
-      "version": "1.0.44",
+      "version": "1.0.45",
       "author": {
         "name": "dlxmax"
       },
