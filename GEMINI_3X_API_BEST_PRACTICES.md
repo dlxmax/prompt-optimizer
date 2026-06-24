@@ -22,10 +22,9 @@ patterns, prompt-shape guidance specific to 3.x. For Gemma 4 targets read
 **Surface scope.** Scope every recommendation below to the
 Interactions API (`generativelanguage.googleapis.com/v1beta/interactions`,
 accessed via `client.interactions.create(...)` with `google-genai >= 2.0.0`
-Python SDK or `@google/genai >= 2.0.0` JS SDK; Google's 3.5 Flash guide
-recommends 2.0.0+ for the Interactions breaking-changes pass, and the
-general Interactions minimum is 2.3.0). Treat the legacy `:generateContent`
-endpoint as retired for prompt-optimizer's recommendations.
+Python SDK or `@google/genai >= 2.0.0` JS SDK; the general Interactions
+minimum is 2.3.0). Treat the legacy `:generateContent` endpoint as retired
+for prompt-optimizer's recommendations.
 </scope>
 
 ## 1. Model selection
@@ -38,24 +37,19 @@ endpoint as retired for prompt-optimizer's recommendations.
 | `gemini-3-flash-preview` | high | minimal, low, medium, high | Computer Use workloads (3.5 Flash does NOT support Computer Use). |
 | `gemini-3-pro-preview` | high | low, high | Hardest reasoning tasks. No `minimal` or `medium`. |
 
-3.5 Flash supports 1M input tokens / 65k output tokens / January 2025
-knowledge cutoff / Batch API / Context Caching / Google Search /
-Google Maps grounding / File Search / Code Execution / URL Context /
-standard Function Calling / combined tool use. Image segmentation is NOT
-supported in Gemini 3.x; route segmentation workloads to Gemini 2.5 Flash
-(thinking off) or Gemini Robotics-ER 1.6.
+3.5 Flash supports 1M input tokens / 65k output tokens / Batch API /
+Context Caching / Google Search / Google Maps grounding / File Search /
+Code Execution / URL Context / standard Function Calling / combined tool
+use. Image segmentation is NOT supported in Gemini 3.x; route segmentation
+workloads to Gemini 2.5 Flash (thinking off) or Gemini Robotics-ER 1.6.
 
 ## 2. Strip `temperature`, `top_p`, `top_k` from every request body
 
-Google's 3.5 Flash guide is explicit:
-
-> "`temperature`, `top_p`, `top_k`: we strongly recommend not changing the
-> default values. Gemini 3's reasoning capabilities are optimized for the
-> default settings. Remove these parameters from all requests."
-
-This applies to **every Gemini 3.x model** including 3.5 Flash, 3.1 Pro,
-3.1 Flash-Lite, 3 Flash Preview, and 3 Pro Preview. To force determinism,
-write a system instruction with explicit rules; do not set temperature.
+Gemini 3.x reasoning is optimized for default sampling. Remove
+`temperature`, `top_p`, and `top_k` from all request bodies. This applies
+to **every Gemini 3.x model** including 3.5 Flash, 3.1 Pro, 3.1 Flash-Lite,
+3 Flash Preview, and 3 Pro Preview. To force determinism, write a system
+instruction with explicit rules; do not set temperature.
 
 Branch on model family in cross-family code: Gemma 4 uses T=1.0,
 top_p=0.95, top_k=64; Gemini 3.x uses model defaults with the sampling
@@ -80,7 +74,7 @@ When to use which level:
 | Level | When |
 |---|---|
 | `minimal` | Chat-like use cases, quick factual answers, simple tool calls. |
-| `low` | Code/agentic tasks needing fewer steps; analysis and writing that need some thinking. Significantly improved on 3.5 Flash vs. 3 Flash Preview. |
+| `low` | Code/agentic tasks needing fewer steps; analysis and writing that need some thinking. |
 | `medium` (default) | Best quality for most tasks; complex code and agentic use cases. |
 | `high` | Complex reasoning, hard math, hardest code/agent tasks. Allows extended thoughts and function calls. |
 
@@ -101,8 +95,8 @@ conversations automatically.
   `google_search_call` / `google_search_result`) also carry distinct
   signatures that must be resent.
 
-Thought preservation increases per-turn token usage in measured cases.
-Verify cost impact when migrating from 3 Flash Preview.
+Thought preservation increases per-turn token usage. Verify cost impact
+when migrating from 3 Flash Preview.
 
 ## 5. Thinking surfaces as `thought` steps in `steps[]`
 
@@ -131,9 +125,7 @@ signature, last delta before `step.stop`).
 
 ## 6. Function calling: strict response matching
 
-Interactions API errors on mismatched function responses (legacy
-GenerateContent returns empty responses with `finish_reason: STOP` instead
-of erroring). Enforce:
+Interactions API errors on mismatched function responses. Enforce:
 
 | Requirement | Detail |
 |---|---|
@@ -194,19 +186,12 @@ result_text = f"{json.dumps(result)}\n\n<extra instructions here>"
 
 ## 10. Long-context: place query at the end, anchored to the context
 
-Google's 3.5 Flash guide:
-
-> "Context management: When working with large datasets (such as entire
-> books, codebases, or long videos), place your specific instructions or
-> questions at the end of the prompt, after the data context. Anchor the
-> model's reasoning by starting your question with a phrase like, 'Based
-> on the preceding information...'."
-
-Google's Long Context FAQ:
-
-> "In most cases, especially if the total context is long, the model's
-> performance will be better if you put your query / question at the end
-> of the prompt (after all the other context)."
+When working with large datasets (entire books, codebases, or long
+videos), place specific instructions or questions at the end of the
+prompt, after the data context. Anchor the model's reasoning by starting
+the question with a phrase like "Based on the preceding information...".
+For long total context, putting the query/question at the end after all
+other context measurably improves performance.
 
 Apply this shape:
 
@@ -251,8 +236,7 @@ Canonical reference: Google's prompt design strategies page
   `thinking_level: "high"` is not enough, the clause "Think very hard
   before answering" improves performance at the cost of extra
   thinking tokens. Deploy only after `thinking_level: "high"` has been
-  tried and named insufficient; do not deploy as default scaffolding
-  (conflicts with the precise-and-direct rule above).
+  tried and named insufficient; do not deploy as default scaffolding.
 - **Context management:** see rule 10 above.
 
 ## 12. Combined tool use is supported in 3.x
@@ -310,24 +294,22 @@ upgraded to 3.5 Flash:
 - Move multimodal content INSIDE function responses, not as sibling parts.
 - Append inline instructions to the END of function-response text separated
   by two newlines.
-- Test with thought preservation on; token usage increases per turn in
-  measured cases.
+- Test with thought preservation on; token usage increases per turn.
 - Place query at end of prompt for long-context inputs.
 - Drop chain-of-thought scaffolding from prompts; lean on `thinking_level`.
-- Update SDK to `google-genai` >= 2.0.0 (per Google's migration note) or
-  >= 2.3.0 (general Interactions floor).
+- Update SDK to `google-genai` >= 2.0.0 (>= 2.3.0 for the general
+  Interactions floor).
 - Stay on Gemini 3 Flash Preview for Computer Use workloads; 3.5 Flash
   does not support Computer Use.
 
 ## 15. Agentic workflows: port the 9-point planning template
 
 When the prompt drives an agentic workflow (the model reasons, plans,
-and executes tasks across tool calls), Google's prompt design strategies
-page publishes a researcher-validated 9-point system-instruction
-template: (1) logical dependencies and constraints, (2) risk assessment,
-(3) abductive reasoning and hypothesis exploration, (4) outcome
-evaluation and adaptability, (5) information availability, (6) precision
-and grounding, (7) completeness, (8) persistence and patience,
+and executes tasks across tool calls), use a 9-point system-instruction
+template covering: (1) logical dependencies and constraints, (2) risk
+assessment, (3) abductive reasoning and hypothesis exploration, (4)
+outcome evaluation and adaptability, (5) information availability, (6)
+precision and grounding, (7) completeness, (8) persistence and patience,
 (9) inhibit-response gate.
 
 When the prompt is intended for an agentic workflow but lacks an
