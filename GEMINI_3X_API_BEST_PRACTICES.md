@@ -211,7 +211,9 @@ Application:
 
 ## 11. Prompting changes for 3.x
 
-Google's 3.5 Flash prompt best-practices section:
+Canonical reference: Google's prompt design strategies page
+(`ai.google.dev/gemini-api/docs/prompting-strategies.md.txt`) plus the
+3.5 Flash prompting best-practices section. The two converge on:
 
 - **Precise instructions:** be concise. Gemini 3.x responds best to
   direct, clear instructions. Verbose or complex prompt engineering
@@ -222,6 +224,26 @@ Google's 3.5 Flash prompt best-practices section:
 - **Output verbosity:** Gemini 3 and 3.1 are less verbose by default and
   prefer direct, efficient answers. If a conversational tone is needed,
   steer explicitly ("Explain this as a friendly, talkative assistant").
+- **Consistent structure:** XML-style tags (e.g., `<instructions>`,
+  `<context>`) OR Markdown headings as section delimiters — not both
+  styles mixed within a single prompt. Pick one and stay with it.
+  Variable-substitution conventions (curly braces) are unchanged.
+- **Critical-instructions placement:** persona, behavioral constraints,
+  and output format requirements belong in the System Instruction
+  (Interactions `system_instruction` parameter) OR at the very beginning
+  of the user prompt. Burying these after long context or examples is a
+  defect. The start-and-end recency rule for the governing directive
+  still applies as a closing reminder.
+- **Multimodal equal-class:** when the prompt accepts images, audio, or
+  video alongside text, instructions must reference each modality
+  explicitly. A prompt that names only the text input when an image is
+  also passed is a defect.
+- **Thinking-boost lever (narrow fallback):** for heavy reasoning where
+  `thinking_level: "high"` is not enough, the clause "Think very hard
+  before answering" can improve performance at the cost of extra
+  thinking tokens. Use only after `thinking_level: "high"` has been
+  tried; do not deploy as default scaffolding since it conflicts with
+  the precise-and-direct rule above.
 - **Context management:** see rule 10 above.
 
 ## 12. Combined tool use is supported in 3.x
@@ -282,6 +304,23 @@ Recommend in Key Changes section when target is being upgraded to 3.5 Flash:
   >= 2.3.0 (general Interactions floor).
 - Stay on Gemini 3 Flash Preview for Computer Use workloads; 3.5 Flash
   does not support Computer Use.
+
+## 15. Agentic workflows: port the 9-point planning template
+
+When the prompt drives an agentic workflow (the model reasons, plans,
+and executes tasks across tool calls), Google's prompt design strategies
+page publishes a researcher-validated 9-point system-instruction
+template: (1) logical dependencies and constraints, (2) risk assessment,
+(3) abductive reasoning and hypothesis exploration, (4) outcome
+evaluation and adaptability, (5) information availability, (6) precision
+and grounding, (7) completeness, (8) persistence and patience,
+(9) inhibit-response gate.
+
+When the prompt is intended for an agentic workflow but lacks an
+equivalent planning structure, recommend porting the 9-point template
+into the system instruction. The template body lives at
+`ai.google.dev/gemini-api/docs/prompting-strategies.md.txt`; cite the
+URL rather than inlining the full template.
 
 ## Verify after changes
 

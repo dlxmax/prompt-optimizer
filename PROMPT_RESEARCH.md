@@ -1709,6 +1709,53 @@ Total response cost = output tokens + thought tokens. Read `interaction.usage.to
 
 ---
 
+## Topic 17: Gemini 3 prompting strategies (canonical, June 2026)
+
+Source: Gemini API "Prompt design strategies": ai.google.dev/gemini-api/docs/prompting-strategies.md.txt (scrapling-verified 2026-06-24).
+
+This page is the canonical Gemini 3 prompting reference. It supersedes older directive sets (Phil Schmid Nov 2025, the Vertex "Gemini 3 prompting guide") when their guidance conflicts. Items below are the ones not already covered in Topic 14 (long-context query placement), Topic 15 (3.5 Flash specifics), and Topic 16 (thinking on Interactions). Re-confirmations of existing rules are summarized in 17.6.
+
+### 17.1 Consistent structure: XML-style tags OR Markdown headings, not both
+
+> "Use consistent structure: Employ clear delimiters to separate different parts of your prompt. XML-style tags (e.g., `<instructions>`, `<context>`) or Markdown headings are effective. Choose one format and use it consistently within a single prompt."
+
+Application: when a prompt mixes XML tags AND Markdown headings as **section delimiters within the same document**, flag the mix. Pick the dominant style and convert the other to match. This is distinct from Topic 5's variable-substitution convention (curly braces for placeholders); the new rule scopes to section delimiters only.
+
+### 17.2 Critical-instructions placement: System Instruction or very beginning of user prompt
+
+> "Prioritize critical instructions: Place essential behavioral constraints, role definitions (persona), and output format requirements in the System Instruction or at the very beginning of the user prompt."
+
+Refines Topic 6 / item 3. For Gemini 3.x, critical directives belong in the interaction-scoped `system_instruction` parameter on Interactions, OR at the very beginning of the user message if no system instruction is wired. Burying persona, output format, or guardrails after long context or examples is a defect. The Topic 6 start-and-end recency rule for the governing directive still applies as a closing reminder; this 17.2 rule sharpens "start" to mean the very beginning, not "somewhere in the first third."
+
+### 17.3 Multimodal inputs as equal-class
+
+> "Handle multimodal inputs coherently: When using text, images, audio, or video, treat them as equal-class inputs. Ensure your instructions clearly reference each modality as needed."
+
+When a prompt accepts images or audio alongside text but the instructions only reference text (e.g., "Score the user's essay" while an image is also passed), flag the missing modality reference. Add explicit references to each modality the model must attend to.
+
+### 17.4 "Think very hard before answering" as a narrow thinking-boost lever
+
+> "For problems that require heavy reasoning, simple requests like 'Think very hard before answering' can improve performance, though at the cost of extra thinking tokens."
+
+Narrow use only: deploy after `thinking_level: "high"` has been tried and is not enough. Conflicts conceptually with the universal "drop chain-of-thought scaffolding" rule (Topic 15.9), so it must be added deliberately, not as default scaffolding. When recommending it in Key Changes, name the prior failure mode the lever is reaching for.
+
+### 17.5 Agentic workflows: 9-point planning template
+
+For prompts driving agentic workflows (the model reasons, plans, and executes tasks across tool calls), the prompting-strategies page publishes a researcher-validated 9-point system-instruction template covering: (1) logical dependencies and constraints, (2) risk assessment, (3) abductive reasoning and hypothesis exploration, (4) outcome evaluation and adaptability, (5) information availability, (6) precision and grounding, (7) completeness, (8) persistence and patience, (9) inhibit-response gate. Full template body lives at the source URL above.
+
+Recommend porting the 9-point structure into the system instruction when the prompt is intended for an agentic workflow but lacks equivalent planning structure. Do not inline the full template into the prompt-optimizer agent file; cite the source URL by reference.
+
+### 17.6 Confirmations (no new action required)
+
+The following are confirmed by the prompting-strategies page and already covered elsewhere:
+
+- Long-context query at the end, anchored with "Based on the information above..." → Topic 14, 15.9.
+- Remove `temperature`, `top_p`, `top_k` from all Gemini 3.x requests → Topic 15.3 (page adds: "Changing these parameters (for example, setting the temperature below 1.0) can cause unexpected behavior, such as looping or degraded performance, particularly in complex mathematical or reasoning tasks").
+- Drop chain-of-thought scaffolding; thinking is internal → Topic 15.9, Topic 16.
+- Be precise and direct; output is less verbose by default → Topic 15.9.
+
+---
+
 ## Full Source List
 
 | Source | Type | URL | Date |
@@ -1742,7 +1789,7 @@ Total response cost = output tokens + thought tokens. Read `interaction.usage.to
 | Anthropic Claude 4.x prompting guide | Docs | docs.anthropic.com | Mar 2026 |
 | Anthropic XML tag guidance | Docs | docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/use-xml-tags | 2025 |
 | OpenAI evaluation best practices | Docs | platform.openai.com/docs/guides/evaluation-best-practices | 2025 |
-| Google Gemini prompting strategies | Docs | ai.google.dev/gemini-api/docs/prompting-strategies | 2025 |
+| Google Gemini prompt design strategies (canonical Gemini 3) | Docs | ai.google.dev/gemini-api/docs/prompting-strategies.md.txt | 2026 (scrapling-verified 2026-06-24) |
 | Gemini 3 prompting guide | Google Cloud | docs.cloud.google.com/vertex-ai/generative-ai/docs/start/gemini-3-prompting-guide | 2025 |
 | Lakera prompt engineering guide | Guide | lakera.ai/blog/prompt-engineering-guide | 2026 |
 | IFBench leaderboard (2026) | Benchmark | benchlm.ai/benchmarks/ifBench | April 2026 |

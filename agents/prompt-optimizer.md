@@ -270,6 +270,16 @@ Single-pass scoring is sufficient for this 15-item structural checklist when the
    14.7 Computer Use is NOT supported on 3.5 Flash. If the prompt under review wires Computer Use with `gemini-3.5-flash`, recommend staying on `gemini-3-flash-preview` for that workload.
 
    14.8 Image segmentation is NOT supported in Gemini 3.x. For segmentation, recommend Gemini 2.5 Flash with thinking off or Gemini Robotics-ER 1.6.
+
+   14.9 Consistent structure: XML XOR Markdown for section delimiters. The canonical prompt design strategies page directs callers to pick either XML-style tags (`<instructions>`, `<context>`) or Markdown headings and stay with that choice within a single prompt. If the prompt under review mixes both styles as section delimiters, flag the mix and convert the minority style to the dominant one. This rule scopes to section delimiters only; the curly-brace variable-substitution convention from rule 10 is unrelated and unchanged.
+
+   14.10 Critical-instructions placement: persona, behavioral constraints, and output format requirements must live in the `system_instruction` parameter on Interactions OR at the very beginning of the user prompt — not buried after a long context block or after few-shot examples. The start-and-end recency rule (item 3) for the governing directive still applies as the closing reminder; this rule sharpens "start" to the very beginning.
+
+   14.11 Multimodal equal-class: when the prompt accepts images, audio, or video alongside text, instructions must reference each modality explicitly. A prompt that names only the text input ("Score the user's essay") while an image is also passed is a defect. Recommend adding an explicit modality reference.
+
+   14.12 "Think very hard before answering" as a narrow thinking-boost lever. Recommend only after `thinking_level: "high"` has been deployed and is insufficient for the task. Do NOT recommend as default scaffolding; it conflicts with 14.4 (drop chain-of-thought scaffolding). When proposed in Key Changes, name the prior failure mode the lever is reaching for.
+
+   14.13 Agentic-workflow planning structure: when the prompt drives an agentic workflow (the model reasons, plans, and executes across tool calls), recommend porting the 9-point planning template from the prompt design strategies page (`ai.google.dev/gemini-api/docs/prompting-strategies.md.txt`) into the system instruction. The 9 points are: logical dependencies and constraints, risk assessment, abductive reasoning and hypothesis exploration, outcome evaluation and adaptability, information availability, precision and grounding, completeness, persistence and patience, inhibit-response gate. Cite the URL by reference; do not inline the full template body.
 </rules>
 
 <gemma_4_detail>
@@ -298,6 +308,12 @@ Parameter removal is the single highest-frequency Gemini 3.x defect. Scan the pr
 Long-context query placement is the second highest-frequency 3.x defect. Google's 3.5 Flash guide says: "place your specific instructions or questions at the end of the prompt, after the data context. Anchor the model's reasoning by starting your question with a phrase like, 'Based on the preceding information...'." When the prompt under review has substantial inline context and the query at the top, flag the inversion in Key Changes and reorder.
 
 Prompt brevity. Gemini 3.x responds best to direct, clear instructions. Drop chain-of-thought scaffolding ("think step by step in detail before answering"); the model over-analyzes. Use `thinking_level` instead. Item 4 (few-shot examples) still applies; the change is to drop reasoning preambles, not examples.
+
+Consistent structure and critical-instructions placement (canonical Gemini 3 prompt design strategies page). Pick XML-style tags OR Markdown headings as section delimiters and stay with that choice; flag prompts that mix both styles. Place persona, behavioral constraints, and output format requirements in the `system_instruction` parameter OR at the very beginning of the user message — not buried after a long context block or examples. Multimodal prompts must explicitly reference each modality the model is asked to attend to.
+
+Thinking-boost lever ("Think very hard before answering"): narrow fallback only, recommended after `thinking_level: "high"` is insufficient. Conflicts with the prompt-brevity rule above if deployed as default scaffolding; only add when reaching for a specific reasoning failure.
+
+Agentic workflows: when the prompt drives tool-use agents that must reason and plan across multiple steps, recommend porting the 9-point planning structure (logical dependencies, risk assessment, abductive reasoning, outcome evaluation, information availability, precision and grounding, completeness, persistence and patience, inhibit-response gate) from the prompt design strategies page into the system instruction.
 
 Computer Use is NOT supported on `gemini-3.5-flash`. If the prompt wires Computer Use with 3.5 Flash, recommend staying on `gemini-3-flash-preview` for that workload. Image segmentation is NOT supported anywhere in the 3.x family.
 </gemini_3x_detail>
