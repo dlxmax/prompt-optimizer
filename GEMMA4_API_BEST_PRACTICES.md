@@ -7,6 +7,23 @@ constraints). For prompt-text guidance, use the `prompt-optimizer` agent
 with `Target model: Gemma 4` declared; this file is the reference the
 agent reads to apply that target.
 
+> **API surface note (June 2026).** All probe-verified rules in sections 1
+> through 14 below are scoped to the legacy `:generateContent` endpoint
+> (`generativelanguage.googleapis.com/v1beta/models/<model>:generateContent`).
+> Google declared the new **Interactions API**
+> (`generativelanguage.googleapis.com/v1beta/interactions`, accessed via
+> `client.interactions.create(...)` in `google-genai >= 2.3.0`) generally
+> available in June 2026 and lists both `gemma-4-31b-it` and
+> `gemma-4-26b-a4b-it` as supported models. `generateContent` "remains fully
+> supported" per the GA announcement, so these rules do not lapse — but the
+> Interactions API moves schema to top-level `response_format` instead of
+> `generationConfig.responseSchema`, returns a `steps[]` timeline instead of
+> `candidates[0].content.parts[]`, and exposes `previous_interaction_id` /
+> `store` / `background`. See section 15 for the surface-mapping rules; the
+> behavioral findings in sections 1-14 have NOT been re-probed on the new
+> surface, and rule 14's `parts[].thought = true` filter does not have a
+> verified analogue on Interactions yet.
+
 ## 1. Use `responseSchema` for any code-parsed output
 
 Set `generationConfig.responseSchema` plus `responseMimeType:
@@ -286,3 +303,97 @@ JSON via `raw_decode`. Non-zero `MALFORMED_RESPONSE` or thinking-token
 leak means rule 1 did not land. `MAX_TOKENS` with degenerate output on
 26b-a4b means rule 2 did not land. Alternating 400/500 on a
 schema-bearing call means rule 4 needs a bisect.
+
+## 15. Interactions API surface mapping (June 2026 GA, unprobed)
+
+The Interactions API is a parallel, additive surface that ships both Gemma
+4 variants as supported Models. None of sections 1-14's behavioral findings
+have been re-probed against `client.interactions.create(...)`; treat this
+section as a request-shape translation table plus an explicit list of
+open questions to verify before relying on legacy rules on the new surface.
+
+### 15.1 Where things move
+
+| Slot | `:generateContent` (legacy) | `interactions.create` (new) |
+|---|---|---|
+| Endpoint | `v1beta/models/<model>:generateContent` | `v1beta/interactions` (canonical per structured-output guide); `v1beta2/interactions` appears in the migration guide — try `v1beta` first |
+| SDK method | `client.models.generate_content(...)` | `client.interactions.create(...)` |
+| Min SDK | any `google-genai` / `@google/genai` | `google-genai >= 2.3.0`, `@google/genai >= 2.3.0` |
+| User input | `contents: [{role, parts: [{text}]}]` | `input: "..."` (string) or `input: [{type, ...}, ...]` |
+| System instruction | `systemInstruction.parts[].text` | `system_instruction` parameter (interaction-scoped) |
+| Schema | `generationConfig.responseSchema` + `generationConfig.responseMimeType: "application/json"` | Top-level `response_format: [{type: "text", mime_type: "application/json", schema: {...}}]` (single object or array) |
+| Response root | `response.candidates[0].content.parts[]` | `interaction.steps[]` with a `model_output` step whose `content[]` carries typed items |
+| Trailing text shortcut | concat `parts[].text` filtered by `thought == null` | `interaction.output_text` (joins **only trailing** TextContent items) |
+| Multi-turn | resend full `contents[]` | `previous_interaction_id=<prev.id>`; server holds history |
+| Tool list | `tools: [{"googleSearchRetrieval": {}}]` | `tools: [{"type": "google_search"}, {"type": "url_context"}, ...]` |
+| Streaming | `:streamGenerateContent` | `stream=True`; events `event_type=="step.delta"` (Python) / `type=="step.delta"` (JS), text in `event.delta.text` |
+| Long-running | not supported | `background=true` (incompatible with `store=false`) |
+| Storage | not stored | default `store=true`; opt out with `store=false` (which blocks `previous_interaction_id` and `background`) |
+
+### 15.2 What carries over unchanged (schema layer)
+
+The JSON Schema subset accepted by the Interactions `response_format[].schema`
+field is the same one accepted by legacy `responseSchema` plus explicit
+guarantees for string `format` (`date-time`/`date`/`time`), array
+`prefixItems`, and recursive `$ref: "#"`. Behavioral rules that are about
+**schema shape on Gemma 4** rather than API plumbing port over at the
+schema level:
+
+- Rule 2 (`26b-a4b`: at most one unbounded STRING per OBJECT) — applies if
+  the behavior reproduces on Interactions. Schema validator constraints are
+  unchanged; the failure mode is model behavior, not API.
+- Rule 3 (property order in `properties` controls generation order) —
+  applies at the schema level. Place `reasoning` STRING before `verdict`
+  enum the same way.
+- Rule 4 (wide schemas reject a top-level reasoning STRING on 31b) — same
+  schema shape, same behavior expected.
+- Rule 9 (top-level `ARRAY[OBJECT]` batch shape) — schema-level rule.
+
+### 15.3 What does NOT carry over verbatim (parsing layer)
+
+- **Rule 14 (`parts[].thought = true` filter).** The `parts[]` array is gone
+  on Interactions. The legacy thought-flag does not have a verified analogue
+  in `interaction.steps[]`. Open question: does Gemma 4 thinking appear as a
+  distinct step type (e.g., `model_thought`) or as a typed `content[]` item
+  inside `model_output`? Unknown. Do not transplant the legacy filter
+  pattern; introspect `steps[]` and report shape before recommending a
+  filter.
+- **Rule 1 (`responseSchema` is the only reliable thinking-suppressor).**
+  Whether top-level `response_format` produces the same single-non-thought
+  collapse and the same ~30-40x wall-clock speedup on Interactions is
+  unprobed. The wiring is `response_format`, not `responseSchema`; the
+  empirical claim must be re-measured.
+- **Rule 5 (`json.JSONDecoder().raw_decode()` for trailing garbage).**
+  Whether Gemma 4 occasionally appends trailing text after valid JSON on
+  Interactions is unprobed. The defensive parser is cheap; recommend it
+  on both surfaces until disproved.
+
+### 15.4 New failure modes specific to Interactions
+
+- **`output_text` truncation.** `interaction.output_text` joins only
+  trailing consecutive TextContent items. If Gemma 4 emits a thinking-shaped
+  preamble or interleaved tool output before the final answer, the
+  preamble's text content is dropped from `.output_text`. For any code path
+  that does not use `response_format`, iterate `steps[]` instead.
+- **History double-counting.** Passing both `previous_interaction_id` and a
+  hand-rolled history string inside `input` double-counts. Pick one.
+- **`store=false` lockout.** `store=false` blocks both `previous_interaction_id`
+  chains and `background=true`. Recommend `store=true` plus an explicit
+  `interactions.delete` cleanup for PII rather than `store=false` if
+  multi-turn is needed.
+- **Combined `response_format` + built-in tools is Gemini-3-only preview.**
+  Per the structured-output guide, mixing `response_format` with
+  `google_search` / `url_context` / `code_execution` / `file_search` /
+  `function_calling` is Gemini 3 series only. Gemma 4 cannot mix the two.
+
+### 15.5 Sources
+
+- Interactions API overview (GA, supported-models table including both Gemma
+  4 variants): `ai.google.dev/gemini-api/docs/interactions-overview`
+  (scrapling-verified 2026-06-24; page last updated 2026-06-23).
+- Migrate to Interactions API:
+  `ai.google.dev/gemini-api/docs/migrate-to-interactions.md.txt`
+  (scrapling-verified 2026-06-24; uses `v1beta2/interactions`).
+- Structured outputs (Interactions, REST curl uses `v1beta/interactions`):
+  `ai.google.dev/gemini-api/docs/structured-output` (scrapling-verified
+  2026-06-24; page last updated 2026-06-22).

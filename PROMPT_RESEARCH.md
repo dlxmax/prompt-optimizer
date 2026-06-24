@@ -1401,6 +1401,81 @@ Caveat: N=1 (one task class, one prompt). IFBench (NeurIPS 2025; arxiv 2507.0283
 
 ---
 
+## Topic 13: Gemini Interactions API (June 2026 GA)
+
+Google moved the Generative Language platform's recommended request shape from `:generateContent` to a new **Interactions API** that went generally available in June 2026 (overview page last updated 2026-06-23; scrapling-verified 2026-06-24). The legacy `generateContent` endpoint "remains fully supported" per Google's own GA wording, so existing Gemma 4 empirical findings under Topic 9 / Section 5.8 stay load-bearing for that surface. The Interactions API is a parallel, additive surface that prompt-optimizer must scan for and apply different schema-wiring rules to.
+
+### 13.1 GA scope and supported models
+
+The June 2026 Interactions API supported-models table lists both `gemma-4-31b-it` and `gemma-4-26b-a4b-it` as Models (not Agents), alongside the Gemini 3.x family, Gemini 2.5 family, image/TTS variants, and Lyria 3. Deep Research and Antigravity ship as Agents. Coverage of the prompt-optimizer's primary Gemma 4 targets is therefore complete on the new surface.
+
+> **Open question (no empirical probes yet).** The probe-verified Gemma 4 behavior under `generateContent` (always-on thinking exposed as `parts[].thought = true`, `responseSchema` collapsing to one non-thought part, ~30-40x speedup, baseline ~20% transient 500 rate, `<|think|>` no-op-plus-elevated-500, `responseSchema` as the only reliable thinking suppressor) was established on the legacy surface. We do not yet have probes against `gemma-4-31b-it` or `gemma-4-26b-a4b-it` via `interactions.create`. Until those probes run, treat the API-mechanic rules in `GEMMA4_API_BEST_PRACTICES.md` as scoped to the legacy surface and flag the gap when a user reports they are on Interactions.
+
+### 13.2 Endpoint and SDK versions
+
+- REST endpoint: `https://generativelanguage.googleapis.com/v1beta/interactions` per the structured-output guide (scrapling-verified 2026-06-24, page last updated 2026-06-22).
+  - The standalone Migration Guide page (`/docs/migrate-to-interactions.md.txt`, scrapling-verified 2026-06-24) instead shows `v1beta2/interactions`. The structured-output guide is more recently updated, so treat `v1beta/interactions` as canonical and note the doc inconsistency for deployers. If a user reports 404, fall back to `v1beta2`.
+- Python SDK: `google-genai` >= 2.3.0. JS SDK: `@google/genai` >= 2.3.0. Older SDK versions have no `interactions.create` method.
+- Client surface: `client.interactions.create(...)` (replaces `client.models.generate_content(...)`).
+
+### 13.3 Request shape (what changes for prompt scanning)
+
+| Slot | `generateContent` (legacy) | Interactions (new) |
+|---|---|---|
+| Per-call user input | `contents: [{role, parts: [{text}, ...]}]` | `input: "..."` (string) OR `input: [{type, ...}, ...]` (multimodal array) |
+| Multi-turn history | Caller resends full `contents[]` array each turn | Server-side: pass `previous_interaction_id` (default `store=true`) |
+| Schema for structured output | `generationConfig.responseSchema` + `generationConfig.responseMimeType: "application/json"` | Top-level `response_format: [{type: "text", mime_type: "application/json", schema: {...}}]` (or a single object, not array) |
+| System instruction | `systemInstruction.parts[].text` | `system_instruction` parameter (interaction-scoped) |
+| Tool list (built-in) | `tools: [{"googleSearchRetrieval": {}}]` or `tools: [{"google_search": {}}]` | `tools: [{"type": "google_search"}, {"type": "url_context"}, ...]` |
+| Background execution | Not supported | `background=true` (incompatible with `store=false`) |
+| Stateless override | Default | `store=false` (forbids `previous_interaction_id` chains and `background=true`) |
+
+`previous_interaction_id` carries history only. Per the overview: `tools`, `system_instruction`, and `generation_config` (including `thinking_level`, `temperature`) are **interaction-scoped** and must be re-sent on every turn if they should apply.
+
+### 13.4 Response shape (what changes for parsing rules)
+
+Response is a stored `Interaction` resource with a `steps[]` timeline. The shape that previously lived at `response.candidates[0].content.parts[]` now lives at one of the entries in `interaction.steps[]` with `type: "model_output"` and a `content[]` array of typed items (e.g., `{"type": "text", "text": "..."}`, `{"type": "image", "mime_type": "image/jpeg", "data": "..."}`).
+
+- SDK convenience: `interaction.output_text` (string) joins **trailing** consecutive `TextContent` items at the end of the model's response. Earlier text blocks separated by non-text content (thoughts, images, tool calls) are not included. For interleaved multimodal/tool-call output, iterate `steps[]` manually.
+- Server-stored steps also include `user_input` steps when retrieved via `interactions.get`; `interactions.create` only returns model-generated steps in the response body.
+- Streaming events use `event_type` (Python) / `type` (JS) equal to `"step.delta"`, with the chunk in `event.delta.text`. Partial-JSON concatenation works the same way under structured output.
+
+The legacy `parts[].thought = true` filtering rule (Topic 9 / Section 5.8) does **not** apply to Interactions responses verbatim because the `parts[]` array is gone; the equivalent surface — if Gemma 4 thinking is exposed at all on Interactions — should appear as a distinct step type or `content[]` item. Unprobed. Flag this as a follow-up probe when the deployer reports adopting Interactions for Gemma 4.
+
+### 13.5 JSON Schema subset (largely unchanged)
+
+The structured-output guide (scrapling-verified 2026-06-24) enumerates the supported `type` values as `string`, `number`, `integer`, `boolean`, `object`, `array`, and `null` (the last via `{"type": ["string", "null"]}`). Type-specific properties: `properties` / `required` / `additionalProperties` for `object`; `enum` / `format` (`date-time` / `date` / `time`) for `string`; `enum` / `minimum` / `maximum` for `number` / `integer`; `items` / `prefixItems` / `minItems` / `maxItems` for `array`. `anyOf` and `$ref: "#"` (recursive) are demonstrated in the same guide.
+
+This is the same JSON Schema subset Gemma 4's `responseSchema` accepted on the legacy endpoint, plus the explicit guarantees for `format` (string), `prefixItems` (array), and recursive `$ref: "#"`. The Gemma 4 schema-shape rules in `GEMMA4_API_BEST_PRACTICES.md` (one unbounded STRING per OBJECT for `26b-a4b`, property-order controls generation order, parent-child enum ordering) are about model behavior, not API plumbing, so they port over unchanged at the schema level. **What changes is where the schema lives** (top-level `response_format[].schema`, not `generationConfig.responseSchema`).
+
+### 13.6 Combined structured-output + built-in tools is preview, Gemini 3 only
+
+The structured-output guide flags `response_format` combined with `tools` (Google Search, URL Context, Code Execution, File Search, Function Calling) as a Gemini 3-series-only preview feature. Gemma 4 cannot mix the two. If a user prompt under review wires a Gemma 4 call with both `response_format` and `tools[]`, the call will likely fail or fall back to one of the two; flag it.
+
+### 13.7 Data retention defaults
+
+`store=true` is the default. Retention: 55 days (Paid Tier), 1 day (Free Tier). For prompts that contain PII or that callers later want to delete, recommend either `store=false` (incompatible with `previous_interaction_id` chains and `background=true`) or explicit `interactions.delete` cleanup. Cache-friendliness: the overview explicitly calls out that `previous_interaction_id` improves implicit prefix caching across turns; sending stateless requests with full history each turn loses that win.
+
+### 13.8 Migration scan rules (additions for the agent)
+
+When a prompt's wiring is visible (call-site config in the same artifact), scan for:
+
+1. **Schema-location confusion.** A prompt instructed to be wired with the **Interactions API** but whose call-site uses `generationConfig.responseSchema` will silently fail to enforce the schema. Likewise, a prompt instructed for `generateContent` whose call-site uses top-level `response_format` will fail. Flag the wiring mismatch in Key Changes, not in the prompt body.
+2. **Parts-vs-steps parsing.** Downstream code that parses `response.candidates[0].content.parts[*].text` cannot consume an `Interaction` response. Recommend `interaction.output_text` for single trailing-text outputs and `interaction.steps[].content[*]` iteration for multimodal/tool-call interleaved outputs.
+3. **History-resend anti-pattern on Interactions.** A multi-turn flow that resends the full history string in every `input` while also passing `previous_interaction_id` double-counts the history. Pick one.
+4. **`tools[]` shape mismatch.** Legacy `tools: [{"google_search": {}}]` (Gemini SDK alias for `googleSearchRetrieval`) becomes Interactions `tools: [{"type": "google_search"}]`. Item shape is a typed string discriminator, not a nested object.
+5. **Gemma 4 + Interactions thinking gap.** When the user states the target is Gemma 4 on Interactions and asks how to filter or surface thinking, do not transplant the legacy `parts[].thought == true` filter advice. State the gap, point them at `interaction.steps[]` introspection, and recommend a probe.
+
+### 13.9 Sources
+
+| Source | URL | Status |
+|---|---|---|
+| Interactions API overview (GA announcement, supported-models table) | ai.google.dev/gemini-api/docs/interactions-overview | scrapling-verified 2026-06-24; page updated 2026-06-23 |
+| Migrate to Interactions API guide | ai.google.dev/gemini-api/docs/migrate-to-interactions.md.txt | scrapling-verified 2026-06-24; shows `v1beta2/interactions` (older form) |
+| Structured outputs (Interactions version, with REST curl examples) | ai.google.dev/gemini-api/docs/structured-output | scrapling-verified 2026-06-24; page updated 2026-06-22; shows `v1beta/interactions` |
+
+---
+
 ## Full Source List
 
 | Source | Type | URL | Date |
@@ -1507,3 +1582,6 @@ Caveat: N=1 (one task class, one prompt). IFBench (NeurIPS 2025; arxiv 2507.0283
 | Google Cloud Gemini Enterprise Agent Platform — Use prompt templates | Docs | docs.cloud.google.com/gemini-enterprise-agent-platform/models/prompts/prompt-templates | 2026-05-13 (scrapling-verified 2026-05-20) |
 | Anthropic Console prompting tools — prompt-templates-and-variables | Docs | docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/prompt-templates-and-variables | 2026 (scrapling-verified 2026-05-20) |
 | Phil Schmid — Gemini 3 Prompting: Best Practices for General Usage | Blog | philschmid.de/gemini-3-prompt-practices | Nov 19, 2025 (scrapling-verified 2026-05-20) |
+| Gemini Interactions API overview (GA announcement) | Docs | ai.google.dev/gemini-api/docs/interactions-overview | Updated 2026-06-23 (scrapling-verified 2026-06-24) |
+| Migrate to Interactions API guide | Docs | ai.google.dev/gemini-api/docs/migrate-to-interactions.md.txt | 2026 (scrapling-verified 2026-06-24) |
+| Gemini Structured Outputs (Interactions version with REST curl) | Docs | ai.google.dev/gemini-api/docs/structured-output | Updated 2026-06-22 (scrapling-verified 2026-06-24) |

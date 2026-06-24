@@ -62,7 +62,12 @@ One line per item: CRITERION_A=yes CRITERION_B=no → VERDICT N: KEEP or DROP
 
 Consistent tag names across all prompts in a system make the prompts programmable — parsers can extract sections by tag.
 
-**Gemma 4 note.** When targeting Gemma 4 via Google's Generative Language REST API (`generativelanguage.googleapis.com/v1beta/models/<model>:generateContent`, with `:streamGenerateContent` for streaming), the API layer handles conversation boundaries — callers send `contents: [{role, parts}]` arrays and never write turn-control tokens. Turn-control tokens (`<|turn>` / `<turn|>`) and `<|channel>` text markers do not surface to or from the REST endpoint. `<|think|>` is accepted as input but is a no-op for thinking control on this endpoint (and elevates the transient 500 rate); thinking is always on and surfaces structurally as `parts[].thought = true` (see Section 5.8). The XML-style semantic tags above (`<role>`, `<instructions>`, `<context>`, etc.) are the right tool for structuring prompt content and remain fully effective.
+**Gemma 4 note.** When targeting Gemma 4 via Google's Generative Language REST API, the API layer handles conversation boundaries — callers send a structured input array and never write turn-control tokens. There are now two supported request shapes:
+
+- **Legacy `generateContent`** (`generativelanguage.googleapis.com/v1beta/models/<model>:generateContent`, with `:streamGenerateContent` for streaming): callers send `contents: [{role, parts}]`. All Section 5.8 / `GEMMA4_API_BEST_PRACTICES.md` empirical findings are probe-verified on this surface.
+- **Interactions API** (`generativelanguage.googleapis.com/v1beta/interactions`, accessed via `client.interactions.create(...)` in `google-genai >= 2.3.0`): generally available June 2026, with both `gemma-4-31b-it` and `gemma-4-26b-a4b-it` listed as supported. Callers send `input` (string or typed array), schema lives in top-level `response_format[]`, and the response is a `steps[]` timeline with an `interaction.output_text` convenience accessor. Behavioral findings have NOT been re-probed on this surface.
+
+Turn-control tokens (`<|turn>` / `<turn|>`) and `<|channel>` text markers do not surface to or from either REST endpoint. `<|think|>` is accepted as input on `generateContent` but is a no-op for thinking control (and elevates the transient 500 rate); thinking is always on and surfaces structurally as `parts[].thought = true` on `generateContent` (see Section 5.8). The equivalent thinking surface on the Interactions API is unprobed. The XML-style semantic tags above (`<role>`, `<instructions>`, `<context>`, etc.) are the right tool for structuring prompt content and remain fully effective on both surfaces.
 
 ### 2.2 Number Every Directive
 
