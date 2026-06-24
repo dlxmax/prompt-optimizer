@@ -1,21 +1,32 @@
 # Gemini 3.x API best practices
 
+<role>
+Reference material for the prompt-optimizer agent. Load when `Target model:`
+declares `Gemini 3.5 Flash`, `Gemini 3.1 Pro Preview`, `Gemini 3.1 Flash-Lite`,
+`Gemini 3 Flash Preview`, `Gemini 3 Pro Preview`, or `Gemini 3.x`. Apply every
+numbered rule below to the prompt under review; cite rule numbers in the
+optimizer's Key Changes for deployer verification. Treat every directive as
+imperative to the optimizer, not as vendor-doc paraphrase.
+</role>
+
+<scope>
 Authoritative reference for the **Gemini Interactions API** when targeting
 the Gemini 3.x family: `gemini-3.5-flash` (GA, default for new
 production work), `gemini-3.1-pro-preview`, `gemini-3.1-flash-lite`,
 `gemini-3-flash-preview`, and `gemini-3-pro-preview`. Scope: API call
 mechanics, parameter defaults, thinking control, function-calling
-patterns, prompt-shape guidance specific to 3.x. For Gemma 4 targets see
-`GEMMA4_API_BEST_PRACTICES.md`; for DeepSeek V4 targets see
+patterns, prompt-shape guidance specific to 3.x. For Gemma 4 targets read
+`GEMMA4_API_BEST_PRACTICES.md`; for DeepSeek V4 targets read
 `DEEPSEEK_V4_API_BEST_PRACTICES.md`.
 
-> **Surface scope.** All recommendations below are scoped to the
-> Interactions API (`generativelanguage.googleapis.com/v1beta/interactions`,
-> accessed via `client.interactions.create(...)` with `google-genai >= 2.0.0`
-> Python SDK or `@google/genai >= 2.0.0` JS SDK; Google's 3.5 Flash guide
-> recommends 2.0.0+ for the Interactions breaking-changes pass, and the
-> general Interactions minimum is 2.3.0). The legacy `:generateContent`
-> endpoint is retired for prompt-optimizer's recommendations.
+**Surface scope.** Scope every recommendation below to the
+Interactions API (`generativelanguage.googleapis.com/v1beta/interactions`,
+accessed via `client.interactions.create(...)` with `google-genai >= 2.0.0`
+Python SDK or `@google/genai >= 2.0.0` JS SDK; Google's 3.5 Flash guide
+recommends 2.0.0+ for the Interactions breaking-changes pass, and the
+general Interactions minimum is 2.3.0). Treat the legacy `:generateContent`
+endpoint as retired for prompt-optimizer's recommendations.
+</scope>
 
 ## 1. Model selection
 
@@ -31,10 +42,10 @@ patterns, prompt-shape guidance specific to 3.x. For Gemma 4 targets see
 knowledge cutoff / Batch API / Context Caching / Google Search /
 Google Maps grounding / File Search / Code Execution / URL Context /
 standard Function Calling / combined tool use. Image segmentation is NOT
-supported in Gemini 3.x; stay on Gemini 2.5 Flash (thinking off) or
-Gemini Robotics-ER 1.6 for segmentation workloads.
+supported in Gemini 3.x; route segmentation workloads to Gemini 2.5 Flash
+(thinking off) or Gemini Robotics-ER 1.6.
 
-## 2. Remove `temperature`, `top_p`, `top_k` from all configs
+## 2. Strip `temperature`, `top_p`, `top_k` from every request body
 
 Google's 3.5 Flash guide is explicit:
 
@@ -42,14 +53,14 @@ Google's 3.5 Flash guide is explicit:
 > default values. Gemini 3's reasoning capabilities are optimized for the
 > default settings. Remove these parameters from all requests."
 
-This applies to **all Gemini 3.x models** including 3.5 Flash, 3.1 Pro,
+This applies to **every Gemini 3.x model** including 3.5 Flash, 3.1 Pro,
 3.1 Flash-Lite, 3 Flash Preview, and 3 Pro Preview. To force determinism,
-write a system instruction with explicit rules instead of setting
-temperature.
+write a system instruction with explicit rules; do not set temperature.
 
-This is a behavioral inversion from Gemma 4 (which uses T=1.0, top_p=0.95,
-top_k=64) and from many older Gemini 2.5 deployments. Cross-family code
-must branch on model family.
+Branch on model family in cross-family code: Gemma 4 uses T=1.0,
+top_p=0.95, top_k=64; Gemini 3.x uses model defaults with the sampling
+triple absent from the request body; many older Gemini 2.5 deployments
+set the sampling triple explicitly and must be migrated.
 
 ## 3. Use `thinking_level`, not `thinking_budget`
 
@@ -62,7 +73,7 @@ generation_config = {"thinking_level": "medium"}
 
 Values: `"minimal"`, `"low"`, `"medium"` (default on 3.5 Flash), `"high"`.
 `thinking_level` and `thinking_budget` are **mutually exclusive in the
-same request** — passing both returns HTTP 400.
+same request**: passing both returns HTTP 400.
 
 When to use which level:
 
@@ -73,8 +84,8 @@ When to use which level:
 | `medium` (default) | Best quality for most tasks; complex code and agentic use cases. |
 | `high` | Complex reasoning, hard math, hardest code/agent tasks. Allows extended thoughts and function calls. |
 
-Default on 3.5 Flash is **`medium`**, changed from `high` on 3 Flash
-Preview. Test before assuming the prior default carries over.
+The default on 3.5 Flash is **`medium`**, changed from `high` on 3 Flash
+Preview. Verify the prior default does not carry over before overriding.
 
 ## 4. Thought preservation across turns is automatic in stateful mode
 
@@ -90,8 +101,8 @@ conversations automatically.
   `google_search_call` / `google_search_result`) also carry distinct
   signatures that must be resent.
 
-Thought preservation may increase per-turn token usage — verify cost
-impact when migrating from 3 Flash Preview.
+Thought preservation increases per-turn token usage in measured cases.
+Verify cost impact when migrating from 3 Flash Preview.
 
 ## 5. Thinking surfaces as `thought` steps in `steps[]`
 
@@ -112,7 +123,7 @@ generation_config = {"thinking_summaries": "auto"}
 ```
 
 When enabled, walk `interaction.steps[]` selecting `step.type == "thought"`;
-iterate `step.summary[]`. Always handle the empty-summary case.
+iterate `step.summary[]`. Handle the empty-summary case in every consumer.
 
 Streaming delta types for thinking: `thought_summary` (text or image
 content, one or more deltas) and `thought_signature` (the cryptographic
@@ -122,7 +133,7 @@ signature, last delta before `step.stop`).
 
 Interactions API errors on mismatched function responses (legacy
 GenerateContent returns empty responses with `finish_reason: STOP` instead
-of erroring). Always:
+of erroring). Enforce:
 
 | Requirement | Detail |
 |---|---|
@@ -146,12 +157,11 @@ final = client.interactions.create(
 )
 ```
 
-## 7. Multimodal function responses go INSIDE the response
+## 7. Place multimodal function responses INSIDE the response
 
 Common defect: client provides an image as a sibling part to a function
-response. Causes thought leakage and lower-quality outputs. Correct
-shape: include the multimodal content inside the function-result `result[]`
-array:
+response. Causes thought leakage and lower-quality outputs. Place the
+multimodal content inside the function-result `result[]` array:
 
 ```python
 input=[{
@@ -165,26 +175,24 @@ input=[{
 }]
 ```
 
-## 8. Inline instructions appended to function-response text, not as separate parts
+## 8. Append inline instructions to function-response text, not as separate parts
 
 Defect: extra instructions sent as separate `Part` items after a function
-response. Causes thought leakage. Correct shape: append to the
-function-response text separated by two newlines.
+response. Causes thought leakage. Append to the function-response text
+separated by two newlines:
 
 ```python
 result_text = f"{json.dumps(result)}\n\n<extra instructions here>"
 ```
 
-## 9. Reducing tool-call overuse
-
-Two levers, in order:
+## 9. Reduce tool-call overuse with two levers in order
 
 1. **Lower `thinking_level`** (`medium` → `low` → `minimal`). Higher
    thinking levels encourage tool use for exploration and verification.
 2. **Add a system instruction** explicitly bounding tool calls. Example:
    "You have a limited action budget of N tool calls. Use them efficiently."
 
-## 10. Long-context: query at the end, anchored to the context
+## 10. Long-context: place query at the end, anchored to the context
 
 Google's 3.5 Flash guide:
 
@@ -200,57 +208,58 @@ Google's Long Context FAQ:
 > performance will be better if you put your query / question at the end
 > of the prompt (after all the other context)."
 
-Application:
+Apply this shape:
 
-- Governing directives (role, output schema, refusal rules) at the START.
-- Large context block (data, transcripts, codebases) in the MIDDLE.
-- The user's specific query/question at the END, anchored with "Based on
+- Place governing directives (role, output schema, refusal rules) at the START.
+- Place the large context block (data, transcripts, codebases) in the MIDDLE.
+- Place the user's specific query/question at the END, anchored with "Based on
   the preceding information..." or a domain-specific equivalent.
-- Recency reminder of the governing directive at the very end (universal
-  start-and-end rule for governing directives still holds).
+- Repeat the governing directive at the very end as a recency reminder
+  (the universal start-and-end rule for governing directives still holds).
 
 ## 11. Prompting changes for 3.x
 
 Canonical reference: Google's prompt design strategies page
 (`ai.google.dev/gemini-api/docs/prompting-strategies.md.txt`) plus the
-3.5 Flash prompting best-practices section. The two converge on:
+3.5 Flash prompting best-practices section. Enforce the converged rules:
 
 - **Precise instructions:** be concise. Gemini 3.x responds best to
   direct, clear instructions. Verbose or complex prompt engineering
-  techniques designed for older models may cause the model to
-  over-analyze. Drop chain-of-thought scaffolding like
+  techniques designed for older models cause the model to over-analyze
+  on 3.x. Drop chain-of-thought scaffolding like
   "think step by step in detail before answering"; use `thinking_level`
   instead.
 - **Output verbosity:** Gemini 3 and 3.1 are less verbose by default and
-  prefer direct, efficient answers. If a conversational tone is needed,
-  steer explicitly ("Explain this as a friendly, talkative assistant").
-- **Consistent structure:** XML-style tags (e.g., `<instructions>`,
-  `<context>`) OR Markdown headings as section delimiters — not both
-  styles mixed within a single prompt. Pick one and stay with it.
+  prefer direct, efficient answers. When a conversational tone is
+  required, steer explicitly ("Explain this as a friendly, talkative
+  assistant"); do not rely on defaults to produce conversational output.
+- **Consistent structure:** use XML-style tags (e.g., `<instructions>`,
+  `<context>`) XOR Markdown headings as section delimiters; do not mix
+  both styles in a single prompt. Pick one and stay with it.
   Variable-substitution conventions (curly braces) are unchanged.
-- **Critical-instructions placement:** persona, behavioral constraints,
-  and output format requirements belong in the System Instruction
+- **Critical-instructions placement:** place persona, behavioral
+  constraints, and output format requirements in the System Instruction
   (Interactions `system_instruction` parameter) OR at the very beginning
-  of the user prompt. Burying these after long context or examples is a
-  defect. The start-and-end recency rule for the governing directive
-  still applies as a closing reminder.
+  of the user prompt; do not bury them after long context or examples.
+  The start-and-end recency rule for the governing directive still
+  applies as a closing reminder.
 - **Multimodal equal-class:** when the prompt accepts images, audio, or
-  video alongside text, instructions must reference each modality
-  explicitly. A prompt that names only the text input when an image is
-  also passed is a defect.
+  video alongside text, reference each modality explicitly in the
+  instructions; do not name only the text input when an image is also
+  passed.
 - **Thinking-boost lever (narrow fallback):** for heavy reasoning where
   `thinking_level: "high"` is not enough, the clause "Think very hard
-  before answering" can improve performance at the cost of extra
-  thinking tokens. Use only after `thinking_level: "high"` has been
-  tried; do not deploy as default scaffolding since it conflicts with
-  the precise-and-direct rule above.
+  before answering" improves performance at the cost of extra
+  thinking tokens. Deploy only after `thinking_level: "high"` has been
+  tried and named insufficient; do not deploy as default scaffolding
+  (conflicts with the precise-and-direct rule above).
 - **Context management:** see rule 10 above.
 
 ## 12. Combined tool use is supported in 3.x
 
 Google Search, URL Context, Code Execution, File Search, and standard
 Function Calling can be used in the **same request** on 3.5 Flash and
-other 3.x models. Tools array shape uses typed-string discriminators:
+other 3.x models. Use the typed-string discriminator shape:
 
 ```python
 tools=[
@@ -260,13 +269,16 @@ tools=[
 ]
 ```
 
+Recommend combined tool use over chained single-tool calls when the task
+spans multiple tool types.
+
 ## 13. Structured output + tools is a 3.x-only preview
 
 `response_format` combined with built-in tools is documented as a
 **Gemini 3-series-only preview**. Available across the 3.x family
 including 3.5 Flash and 3.1 Pro Preview. Not available on Gemma 4 or
-2.5 family — for those targets, choose one or the other (or run a
-two-step pipeline: tools-call first, structured-reduction second).
+2.5 family: for those targets, choose one or the other, or run a
+two-step pipeline (tools-call first, structured-reduction second).
 
 Canonical shape:
 
@@ -285,19 +297,21 @@ interaction = client.interactions.create(
 
 ## 14. Migration checklist when moving to 3.5 Flash
 
-Recommend in Key Changes section when target is being upgraded to 3.5 Flash:
+Recommend in the optimizer's Key Changes section when the target is being
+upgraded to 3.5 Flash:
 
 - Update model name (e.g., `gemini-3-flash-preview` → `gemini-3.5-flash`).
 - Remove `temperature`, `top_p`, `top_k`.
 - Replace `thinking_budget` (numeric) with `thinking_level` (string enum).
-- Verify default `medium` thinking is acceptable for the task. Test `low`
-  for cost; reserve `high` for hardest cases.
+- Verify default `medium` thinking fits the task. Test `low` for cost;
+  reserve `high` for hardest cases.
 - Add `id` and matching `name` to all `function_result` parts; return one
   response per call.
 - Move multimodal content INSIDE function responses, not as sibling parts.
 - Append inline instructions to the END of function-response text separated
   by two newlines.
-- Test with thought preservation on — token usage may increase per turn.
+- Test with thought preservation on; token usage increases per turn in
+  measured cases.
 - Place query at end of prompt for long-context inputs.
 - Drop chain-of-thought scaffolding from prompts; lean on `thinking_level`.
 - Update SDK to `google-genai` >= 2.0.0 (per Google's migration note) or
@@ -317,8 +331,8 @@ and grounding, (7) completeness, (8) persistence and patience,
 (9) inhibit-response gate.
 
 When the prompt is intended for an agentic workflow but lacks an
-equivalent planning structure, recommend porting the 9-point template
-into the system instruction. The template body lives at
+equivalent planning structure, port the 9-point template into the system
+instruction. The template body lives at
 `ai.google.dev/gemini-api/docs/prompting-strategies.md.txt`; cite the
 URL rather than inlining the full template.
 
@@ -331,3 +345,11 @@ URL rather than inlining the full template.
 - `interaction.output_text` (or `steps[]` walk for interleaved output) is
   parseable.
 - `interaction.usage.total_thought_tokens` is recorded for cost tracking.
+
+## Closing directive recap
+
+This file is imperative reference for the prompt-optimizer agent when
+`Target model: Gemini 3.x` is declared. Apply every numbered rule to the
+prompt under review, cite rule numbers in Key Changes, and treat the
+Interactions API as the sole supported surface. Legacy `:generateContent`
+wiring is a migration defect to flag, not a fallback to accept.
