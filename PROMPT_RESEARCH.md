@@ -1401,15 +1401,15 @@ Caveat: N=1 (one task class, one prompt). IFBench (NeurIPS 2025; arxiv 2507.0283
 
 ---
 
-## Topic 13: Gemini Interactions API (June 2026 GA)
+## Topic 13: Gemini Interactions API (June 2026 GA — sole supported surface for prompt-optimizer)
 
-Google moved the Generative Language platform's recommended request shape from `:generateContent` to a new **Interactions API** that went generally available in June 2026 (overview page last updated 2026-06-23; scrapling-verified 2026-06-24). The legacy `generateContent` endpoint "remains fully supported" per Google's own GA wording, so existing Gemma 4 empirical findings under Topic 9 / Section 5.8 stay load-bearing for that surface. The Interactions API is a parallel, additive surface that prompt-optimizer must scan for and apply different schema-wiring rules to.
+Google's Generative Language platform moved to the **Interactions API** as the recommended interface in June 2026 (overview page last updated 2026-06-23; scrapling-verified 2026-06-24). Per Google's GA wording the legacy `generateContent` endpoint still accepts requests, but for prompt-optimizer's purposes it is **retired**: the agent treats appearance of `generateContent`, `generationConfig.responseSchema`, `responseMimeType`, `systemInstruction.parts[].text` wiring, `contents: [{role, parts}]` request shape, and `candidates[0].content.parts[].thought` parsing as **migration defects** and recommends rewiring to Interactions equivalents. Existing Gemma 4 empirical findings under Topic 9 / Section 5.8 carry forward as **model-behavior** observations (response to schema constraints, thinking control attempts, retry signatures) — they describe what Gemma 4 the model does, not what the legacy endpoint does, and port to Interactions where the wiring is `response_format.schema` instead of `generationConfig.responseSchema`.
 
 ### 13.1 GA scope and supported models
 
 The June 2026 Interactions API supported-models table lists both `gemma-4-31b-it` and `gemma-4-26b-a4b-it` as Models (not Agents), alongside the Gemini 3.x family, Gemini 2.5 family, image/TTS variants, and Lyria 3. Deep Research and Antigravity ship as Agents. Coverage of the prompt-optimizer's primary Gemma 4 targets is therefore complete on the new surface.
 
-> **Open question (no empirical probes yet).** The probe-verified Gemma 4 behavior under `generateContent` (always-on thinking exposed as `parts[].thought = true`, `responseSchema` collapsing to one non-thought part, ~30-40x speedup, baseline ~20% transient 500 rate, `<|think|>` no-op-plus-elevated-500, `responseSchema` as the only reliable thinking suppressor) was established on the legacy surface. We do not yet have probes against `gemma-4-31b-it` or `gemma-4-26b-a4b-it` via `interactions.create`. Until those probes run, treat the API-mechanic rules in `GEMMA4_API_BEST_PRACTICES.md` as scoped to the legacy surface and flag the gap when a user reports they are on Interactions.
+> **Empirical baseline and porting rule.** The probe-verified Gemma 4 behaviors (always-on thinking, schema-collapse suppression, ~30-40x speedup under schema, baseline ~20% transient 500 rate, `<|think|>` no-op-plus-elevated-500, schema as the only reliable thinking suppressor) were established under the legacy wiring. They describe Gemma 4 the model and port forward at the **behavior layer**. The wiring updates: `responseSchema` → `response_format.schema`; `generationConfig.responseMimeType` → `response_format.mime_type`; `candidates[0].content.parts[].thought == true` filter → `interaction.steps[]` walk selecting `step.type == "model_output"` while ignoring `step.type == "thought"`. Re-probes under Interactions wiring are pending but expected to reproduce the same model behaviors.
 
 ### 13.2 Endpoint and SDK versions
 
@@ -1418,35 +1418,41 @@ The June 2026 Interactions API supported-models table lists both `gemma-4-31b-it
 - Python SDK: `google-genai` >= 2.3.0. JS SDK: `@google/genai` >= 2.3.0. Older SDK versions have no `interactions.create` method.
 - Client surface: `client.interactions.create(...)` (replaces `client.models.generate_content(...)`).
 
-### 13.3 Request shape (what changes for prompt scanning)
+### 13.3 Canonical request shape (Interactions, what prompt-optimizer recommends)
 
-| Slot | `generateContent` (legacy) | Interactions (new) |
+| Slot | Canonical (Interactions) | Migration defect to flag |
 |---|---|---|
-| Per-call user input | `contents: [{role, parts: [{text}, ...]}]` | `input: "..."` (string) OR `input: [{type, ...}, ...]` (multimodal array) |
-| Multi-turn history | Caller resends full `contents[]` array each turn | Server-side: pass `previous_interaction_id` (default `store=true`) |
-| Schema for structured output | `generationConfig.responseSchema` + `generationConfig.responseMimeType: "application/json"` | Top-level `response_format: [{type: "text", mime_type: "application/json", schema: {...}}]` (or a single object, not array) |
-| System instruction | `systemInstruction.parts[].text` | `system_instruction` parameter (interaction-scoped) |
-| Tool list (built-in) | `tools: [{"googleSearchRetrieval": {}}]` or `tools: [{"google_search": {}}]` | `tools: [{"type": "google_search"}, {"type": "url_context"}, ...]` |
-| Background execution | Not supported | `background=true` (incompatible with `store=false`) |
-| Stateless override | Default | `store=false` (forbids `previous_interaction_id` chains and `background=true`) |
+| Per-call user input | `input: "..."` (string) or `input: [{type: "text", text}, {type: "image", mime_type, data}, ...]` | `contents: [{role, parts: [{text}, ...]}]` |
+| Multi-turn history | `previous_interaction_id=<prev.id>` (default `store=true`) | Resending full history array each turn |
+| Structured output | `response_format: {type: "text", mime_type: "application/json", schema: {...}}` (single object; array form also accepted) | `generationConfig.responseSchema` + `generationConfig.responseMimeType` |
+| System instruction | `system_instruction` parameter (interaction-scoped) | `systemInstruction.parts[].text` |
+| Tool list (built-in) | `tools: [{type: "google_search"}, {type: "url_context"}, ...]` (typed-string discriminator) | `tools: [{googleSearchRetrieval: {}}]` or `tools: [{google_search: {}}]` |
+| Background execution | `background=true` (incompatible with `store=false`) | Not supported on legacy |
+| Stateless override | `store=false` (forbids `previous_interaction_id` chains and `background=true`) | n/a |
 
-`previous_interaction_id` carries history only. Per the overview: `tools`, `system_instruction`, and `generation_config` (including `thinking_level`, `temperature`) are **interaction-scoped** and must be re-sent on every turn if they should apply.
+`previous_interaction_id` carries conversation history only. Per the overview: `tools`, `system_instruction`, and `generation_config` (including `thinking_level`, `temperature`) are **interaction-scoped** and must be re-sent on every turn if they should apply.
 
-### 13.4 Response shape (what changes for parsing rules)
+### 13.4 Response shape (parsing rules)
 
-Response is a stored `Interaction` resource with a `steps[]` timeline. The shape that previously lived at `response.candidates[0].content.parts[]` now lives at one of the entries in `interaction.steps[]` with `type: "model_output"` and a `content[]` array of typed items (e.g., `{"type": "text", "text": "..."}`, `{"type": "image", "mime_type": "image/jpeg", "data": "..."}`).
+Response is an `Interaction` resource with a `steps[]` timeline. Each entry has a `type`:
 
-- SDK convenience: `interaction.output_text` (string) joins **trailing** consecutive `TextContent` items at the end of the model's response. Earlier text blocks separated by non-text content (thoughts, images, tool calls) are not included. For interleaved multimodal/tool-call output, iterate `steps[]` manually.
-- Server-stored steps also include `user_input` steps when retrieved via `interactions.get`; `interactions.create` only returns model-generated steps in the response body.
-- Streaming events use `event_type` (Python) / `type` (JS) equal to `"step.delta"`, with the chunk in `event.delta.text`. Partial-JSON concatenation works the same way under structured output.
+- `"user_input"`: present when retrieved via `interactions.get`, omitted from `interactions.create` response body.
+- `"thought"`: the new dedicated thinking surface (see Topic 16). Has `signature` (always present, encrypted) and optional `summary` (array of typed content blocks). Never appears on user inputs, model outputs, or standard function calls.
+- `"model_output"`: the final answer. `content[]` is an array of typed items (e.g., `{type: "text", text}`, `{type: "image", mime_type, data}`).
+- `"function_call"` / `"function_result"`: tool-use steps.
+- Built-in tool steps like `"google_search_call"` / `"google_search_result"` carry their own signatures on the call/result blocks.
 
-The legacy `parts[].thought = true` filtering rule (Topic 9 / Section 5.8) does **not** apply to Interactions responses verbatim because the `parts[]` array is gone; the equivalent surface — if Gemma 4 thinking is exposed at all on Interactions — should appear as a distinct step type or `content[]` item. Unprobed. Flag this as a follow-up probe when the deployer reports adopting Interactions for Gemma 4.
+SDK convenience: `interaction.output_text` (string) joins **trailing** consecutive `TextContent` items at the end of the model's response. Earlier text blocks separated by non-text content (thoughts, images, tool calls) are not included. For interleaved multimodal/tool-call output, iterate `steps[]` manually.
 
-### 13.5 JSON Schema subset (largely unchanged)
+Streaming events: `event_type == "step.delta"` (Python) / `type == "step.delta"` (JS) with the chunk in `event.delta.text`. Two distinct delta types for thinking: `thought_summary` (text or image summary, may be multiple deltas) and `thought_signature` (the cryptographic signature, last delta before `step.stop`). Partial-JSON concatenation works the same way under structured output.
+
+The legacy `parts[].thought == true` filter is replaced by walking `steps[]` and selecting `step.type == "model_output"` (ignoring `thought`, `function_call`, `function_result`, and built-in tool steps).
+
+### 13.5 JSON Schema subset
 
 The structured-output guide (scrapling-verified 2026-06-24) enumerates the supported `type` values as `string`, `number`, `integer`, `boolean`, `object`, `array`, and `null` (the last via `{"type": ["string", "null"]}`). Type-specific properties: `properties` / `required` / `additionalProperties` for `object`; `enum` / `format` (`date-time` / `date` / `time`) for `string`; `enum` / `minimum` / `maximum` for `number` / `integer`; `items` / `prefixItems` / `minItems` / `maxItems` for `array`. `anyOf` and `$ref: "#"` (recursive) are demonstrated in the same guide.
 
-This is the same JSON Schema subset Gemma 4's `responseSchema` accepted on the legacy endpoint, plus the explicit guarantees for `format` (string), `prefixItems` (array), and recursive `$ref: "#"`. The Gemma 4 schema-shape rules in `GEMMA4_API_BEST_PRACTICES.md` (one unbounded STRING per OBJECT for `26b-a4b`, property-order controls generation order, parent-child enum ordering) are about model behavior, not API plumbing, so they port over unchanged at the schema level. **What changes is where the schema lives** (top-level `response_format[].schema`, not `generationConfig.responseSchema`).
+The Gemma 4 schema-shape rules in `GEMMA4_API_BEST_PRACTICES.md` (one unbounded `string` per `object` for `26b-a4b`, property-order controls generation order, parent-child enum ordering) are about model behavior, not API plumbing, so they apply to `response_format.schema` directly.
 
 ### 13.6 Combined structured-output + built-in tools is preview, Gemini 3 only
 
@@ -1456,15 +1462,17 @@ The structured-output guide flags `response_format` combined with `tools` (Googl
 
 `store=true` is the default. Retention: 55 days (Paid Tier), 1 day (Free Tier). For prompts that contain PII or that callers later want to delete, recommend either `store=false` (incompatible with `previous_interaction_id` chains and `background=true`) or explicit `interactions.delete` cleanup. Cache-friendliness: the overview explicitly calls out that `previous_interaction_id` improves implicit prefix caching across turns; sending stateless requests with full history each turn loses that win.
 
-### 13.8 Migration scan rules (additions for the agent)
+### 13.8 Migration-defect scan rules (drive Key Changes section)
 
-When a prompt's wiring is visible (call-site config in the same artifact), scan for:
+Treat appearance of any of the following in a prompt or visible call-site as a **migration defect requiring rewiring**, not a "supported alternative":
 
-1. **Schema-location confusion.** A prompt instructed to be wired with the **Interactions API** but whose call-site uses `generationConfig.responseSchema` will silently fail to enforce the schema. Likewise, a prompt instructed for `generateContent` whose call-site uses top-level `response_format` will fail. Flag the wiring mismatch in Key Changes, not in the prompt body.
-2. **Parts-vs-steps parsing.** Downstream code that parses `response.candidates[0].content.parts[*].text` cannot consume an `Interaction` response. Recommend `interaction.output_text` for single trailing-text outputs and `interaction.steps[].content[*]` iteration for multimodal/tool-call interleaved outputs.
-3. **History-resend anti-pattern on Interactions.** A multi-turn flow that resends the full history string in every `input` while also passing `previous_interaction_id` double-counts the history. Pick one.
-4. **`tools[]` shape mismatch.** Legacy `tools: [{"google_search": {}}]` (Gemini SDK alias for `googleSearchRetrieval`) becomes Interactions `tools: [{"type": "google_search"}]`. Item shape is a typed string discriminator, not a nested object.
-5. **Gemma 4 + Interactions thinking gap.** When the user states the target is Gemma 4 on Interactions and asks how to filter or surface thinking, do not transplant the legacy `parts[].thought == true` filter advice. State the gap, point them at `interaction.steps[]` introspection, and recommend a probe.
+1. **`generateContent` call surface.** `client.models.generate_content(...)` / `:generateContent` / `:streamGenerateContent` endpoint paths. Recommend `client.interactions.create(...)` and `v1beta/interactions`.
+2. **Legacy schema position.** `generationConfig.responseSchema`, `generationConfig.responseMimeType`. Recommend top-level `response_format: {type: "text", mime_type: "application/json", schema: {...}}`.
+3. **Legacy request shape.** `contents: [{role, parts: [{text}]}]`. Recommend `input: "..."` (string) or `input: [{type, ...}, ...]` (typed array).
+4. **Legacy system instruction.** `systemInstruction.parts[].text`. Recommend `system_instruction` parameter.
+5. **Legacy response parsing.** `response.candidates[0].content.parts[*].text`, `parts[].thought == true` filter. Recommend `interaction.output_text` for trailing-text outputs and `interaction.steps[]` iteration filtering on `step.type == "model_output"` for interleaved outputs.
+6. **Legacy tool shape.** `tools: [{googleSearchRetrieval: {}}]`, `tools: [{google_search: {}}]`. Recommend `tools: [{type: "google_search"}]` etc.
+7. **History double-counting.** Multi-turn flow that both passes `previous_interaction_id` AND resends the full history in `input`. Pick one.
 
 ### 13.9 Sources
 
@@ -1472,7 +1480,232 @@ When a prompt's wiring is visible (call-site config in the same artifact), scan 
 |---|---|---|
 | Interactions API overview (GA announcement, supported-models table) | ai.google.dev/gemini-api/docs/interactions-overview | scrapling-verified 2026-06-24; page updated 2026-06-23 |
 | Migrate to Interactions API guide | ai.google.dev/gemini-api/docs/migrate-to-interactions.md.txt | scrapling-verified 2026-06-24; shows `v1beta2/interactions` (older form) |
-| Structured outputs (Interactions version, with REST curl examples) | ai.google.dev/gemini-api/docs/structured-output | scrapling-verified 2026-06-24; page updated 2026-06-22; shows `v1beta/interactions` |
+| Structured outputs (Interactions version, with REST curl examples) | ai.google.dev/gemini-api/docs/structured-output.md.txt | scrapling-verified 2026-06-24; page updated 2026-06-22; shows `v1beta/interactions` |
+
+---
+
+## Topic 14: Long-context query placement (2026)
+
+For prompts that include a substantial context block (data, documents, transcripts, codebases, long examples), the **user's specific query/question goes at the END of the prompt, after all the context**. This holds across the Gemini family and aligns with the 2023 Lost-in-the-Middle finding on RoPE-positional models.
+
+Source: Gemini API "Long context" FAQ: ai.google.dev/gemini-api/docs/long-context.md.txt (scrapling-verified 2026-06-24).
+
+Direct quote (FAQ "Where is the best place to put my query in the context window?"):
+
+> "In most cases, especially if the total context is long, the model's performance will be better if you put your query / question at the end of the prompt (after all the other context)."
+
+Source: Gemini API "What's new in Gemini 3.5 Flash" → Prompting best practices → Context management: ai.google.dev/gemini-api/docs/whats-new-gemini-3.5.md.txt (scrapling-verified 2026-06-24).
+
+Direct quote:
+
+> "When working with large datasets (such as entire books, codebases, or long videos), place your specific instructions or questions at the end of the prompt, after the data context. Anchor the model's reasoning by starting your question with a phrase like, 'Based on the preceding information...'."
+
+### 14.1 How this interacts with the start-and-end placement rule (Topic 6)
+
+Topic 6 says: load-bearing directives should appear at the first AND last sections of a prompt. The long-context guidance refines that. The two rules together:
+
+- **Governing directives** (role, output format, guardrails, refusal branches): start AND end (Topic 6 rule unchanged).
+- **The user's specific query/question**: end only, after the context block, anchored with a phrase that points back at the context ("Based on the preceding information...", "Using the document above...", "Given the codebase, ...").
+
+Common defect (pre-2026 Gemma habit): query restated at the top before the context. The context-first-question-last rule is consistent with how the model attends to long inputs; restating the query before the context burns tokens without behavior gain and pushes the load-bearing query into the lost-in-the-middle band when the context is long.
+
+### 14.2 Application
+
+When the prompt under review contains a substantial context block (≥ ~500 tokens of inline data) and the query is currently at the top:
+
+1. Keep the governing directives (role, output schema, refusal rules) at the top.
+2. Move the user's specific query/question to AFTER the context block.
+3. Anchor the moved query with "Based on the preceding information...", "Given the context above, ...", or a domain-specific equivalent.
+4. End-of-prompt recency reminder of the governing directive remains required by Topic 6 / item 3.
+
+When the prompt's context is short (≤ ~500 tokens, e.g., a single short paragraph), the long-context rule is not load-bearing — Topic 6 start-and-end placement is sufficient.
+
+---
+
+## Topic 15: Gemini 3.5 Flash (June 2026 GA)
+
+Source: Gemini API "What's new in Gemini 3.5 Flash": ai.google.dev/gemini-api/docs/whats-new-gemini-3.5.md.txt (scrapling-verified 2026-06-24).
+
+### 15.1 Model surface
+
+| Item | Value |
+|---|---|
+| Model ID | `gemini-3.5-flash` |
+| GA status | Generally Available, stable, scaled production use |
+| Context window | 1M tokens input, 65k max output |
+| Knowledge cutoff | January 2025 |
+| Surface | Interactions API (primary). GenerateContent is "also supported" per Google but treated as retired by prompt-optimizer (Topic 13). |
+| Computer Use | NOT supported on 3.5 Flash. For Computer Use, stay on Gemini 3 Flash Preview. |
+| Image segmentation | NOT supported in Gemini 3.x. Stay on Gemini 2.5 Flash with thinking off or Gemini Robotics-ER 1.6. |
+| Batch API | Supported. |
+| Context Caching | Supported (implicit via `previous_interaction_id`; explicit caching also available). |
+| Tools | Google Search, Google Maps grounding, File Search, Code Execution, URL Context, Function Calling (with combined tool use). |
+
+### 15.2 Default thinking effort changed: `high` → `medium`
+
+Default thinking effort on Gemini 3.5 Flash is `medium`, down from `high` on Gemini 3 Flash Preview. `medium` yields very good results across most tasks at lower latency and cost. Use `high` only for complex reasoning, hard math, and difficult coding/agent tasks.
+
+Thinking-level table (3.5 Flash row):
+
+| Level | When to use | 3.5 Flash support |
+|---|---|---|
+| `minimal` | Chat, quick factual answers, simple tool calls | Supported |
+| `low` | Code/agentic tasks with fewer steps; analysis and writing that need some thinking | Supported (significantly improved on 3.5) |
+| `medium` | Best quality for most tasks; complex code and agentic use cases | **Supported (default)** |
+| `high` | Complex reasoning, hard math, hardest code/agent tasks | Supported (Dynamic) |
+
+`thinking_level` and `thinking_budget` are mutually exclusive in a single request — passing both returns 400. `thinking_budget` still works for backward compatibility but is no longer recommended; migrate to `thinking_level` for predictability.
+
+### 15.3 Sampling parameters: stop sending `temperature`, `top_p`, `top_k`
+
+> "`temperature`, `top_p`, `top_k`: we strongly recommend not changing the default values. Gemini 3's reasoning capabilities are optimized for the default settings."
+
+Quote applies to **all Gemini 3.x models** including 3.5 Flash. The migration checklist explicitly says "Remove these parameters from all requests." This is a behavioral change from the Gemma 4 / pre-3.x guidance (Gemma 4 still uses T=1.0 + N≥5 majority vote — Topic 9).
+
+To force determinism on Gemini 3.x: write a system instruction with explicit rules rather than dropping temperature.
+
+### 15.4 Thought preservation across turns
+
+Gemini 3.5 Flash maintains intermediate reasoning across multi-turn conversations automatically.
+
+- **Interactions API**: thoughts are preserved server-side automatically. No caller action needed when `store=true` and `previous_interaction_id` is passed.
+- **GenerateContent (retired for prompt-optimizer's recommendations)**: requires passing the full unmodified history including thought signatures.
+
+This improves performance on iterative debugging and code refactoring but may increase token usage per turn.
+
+### 15.5 Function-calling strict response matching
+
+Interactions API errors on mismatched function responses (GenerateContent returns empty responses with `finish_reason: STOP`). Always:
+
+- Include the `id` from the corresponding `FunctionCall` in every `FunctionResponse` (`call_id` field).
+- The `name` in the response must match the `name` in the call.
+- Return exactly one `FunctionResponse` per `FunctionCall` received.
+
+### 15.6 Multimodal function responses go inside the response, not alongside it
+
+Common defect: client provides an image as a sibling part to a function response. This causes thought leakage and lower-quality outputs. Correct shape:
+
+```
+input: [{
+  type: "function_result",
+  name: tool_call.name,
+  call_id: tool_call.id,
+  result: [
+    {type: "text", text: "instrument.jpg"},
+    {type: "image", mime_type: "image/jpeg", data: base64}
+  ]
+}]
+```
+
+### 15.7 Inline instructions appended to function-response text
+
+Defect: extra instructions sent as separate parts after a function response. Causes thought leakage. Correct shape: append to the function-response text separated by two newlines.
+
+### 15.8 Reducing tool-call overuse
+
+Two levers, in order:
+
+1. Reduce `thinking_level` (`medium` → `low` → `minimal`). Higher levels encourage tool use for exploration and verification.
+2. If overuse persists, add a system instruction explicitly bounding tool calls (e.g., "You have a limited action budget of N tool calls. Use them efficiently.").
+
+### 15.9 Prompting changes for Gemini 3.x
+
+> "Precise instructions: Be concise. Gemini 3.x responds best to direct, clear instructions. Verbose or complex prompt engineering techniques designed for older models may cause the model to over-analyze."
+
+> "Output verbosity: By default, Gemini 3 and 3.1 is less verbose and prefers direct, efficient answers. If your use case requires a conversational tone, steer the model explicitly in your prompt."
+
+> "Context management: When working with large datasets... place your specific instructions or questions at the end of the prompt, after the data context."
+
+Practical effects on prompt-optimizer's checklist:
+
+- Item 3 (length): the ~3,000-token bloat threshold still applies; the Gemini 3.x guidance reinforces it.
+- Item 4 (examples): few-shot examples still help, but heavy chain-of-thought scaffolding ("think step by step in detail before...") risks over-analysis on 3.x. Lean on `thinking_level` instead.
+- Item 14 (escape hatches): still applies; conciseness is the explicit recommendation.
+
+### 15.10 Migration checklist when target is 3.5 Flash
+
+Recommend in Key Changes section when the target is Gemini 3.x:
+
+- Update model name: `gemini-3-flash-preview` → `gemini-3.5-flash`.
+- Remove `temperature`, `top_p`, `top_k` from all configs.
+- Replace `thinking_budget` with `thinking_level`.
+- Verify default `medium` thinking is acceptable for the task; test `low` for cost; reserve `high` for hardest cases.
+- Add `id` and matching `name` to all `FunctionResponse` parts; return one response per call.
+- Move multimodal content INSIDE function responses.
+- Move inline instructions to the END of function-response text separated by two newlines.
+- Test with thought preservation on — token usage may increase.
+- Place query at end of prompt for long-context inputs (Topic 14).
+- Update SDK to `google-genai` >= 2.0.0 (per Google's migration note for breaking changes; verify against current 2.3.0 floor for Interactions API).
+
+---
+
+## Topic 16: Thinking on the Interactions API (June 2026)
+
+Source: Gemini API "Gemini thinking": ai.google.dev/gemini-api/docs/thinking.md.txt (scrapling-verified 2026-06-24).
+
+### 16.1 Thinking is a first-class step type
+
+On the Interactions API, thinking appears as **dedicated `thought` steps** in `interaction.steps[]`, distinct from `model_output`, `function_call`, `function_result`, `user_input`, and built-in tool steps. Every `thought` step has:
+
+| Field | Required | Content |
+|---|---|---|
+| `signature` | Always present | Encrypted representation of the model's internal reasoning state. Maintains reasoning continuity across multi-turn flows. |
+| `summary` | Optional | Array of typed content blocks (text and/or images) summarizing the reasoning. May be empty depending on `thinking_summaries` config, request complexity, or content type. |
+
+A `thought` step may contain only a signature with no summary on simple requests, when `thinking_summaries: "none"` is set, or for content types that lack text summaries (e.g., image latents).
+
+### 16.2 Thought summaries are off by default
+
+By default only the final output is returned. Enable summaries with:
+
+```
+generation_config: { "thinking_summaries": "auto" }
+```
+
+When enabled, walk `interaction.steps[]` and select `step.type == "thought"`; iterate `step.summary[]` to surface reasoning. Always handle the empty-summary case.
+
+### 16.3 Streaming thought events
+
+SSE events for thinking use two delta types:
+
+| Delta type | Carries | Timing |
+|---|---|---|
+| `thought_summary` | Incremental text or image summary content | One or more deltas during reasoning |
+| `thought_signature` | The cryptographic signature | The last delta before `step.stop` |
+
+Real SSE shape: `event: step.start` opens a `thought` step; multiple `event: step.delta` carry `thought_summary` deltas; final `event: step.delta` carries `thought_signature`; `event: step.stop` closes; next `event: step.start` opens a `model_output` step; deltas of `type: "text"` carry the final answer; `event: interaction.completed` ends with `usage.total_thought_tokens` reported.
+
+### 16.4 thinking_level support per model (per Google's thinking page)
+
+| Model | Default | Levels supported |
+|---|---|---|
+| gemini-3.1-pro-preview | On (high) | low, medium, high |
+| gemini-3-flash-preview | On (high) | minimal, low, medium, high |
+| gemini-3-pro-preview | On (high) | low, high |
+| gemini-2.5-pro | On | low, medium, high |
+| gemini-2.5-flash | On | low, medium, high |
+| gemini-2.5-flash-lite | Off | low, medium, high |
+| gemini-3.5-flash (from Topic 15) | On (medium) | minimal, low, medium, high |
+
+**Open question — Gemma 4 on Interactions.** Gemma 4 (`gemma-4-31b-it`, `gemma-4-26b-a4b-it`) is NOT in the thinking page's supported-models table. The legacy probe data (Topic 9, May 6 2026) showed Gemma 4 rejects `thinkingLevel: "low"`/`"off"` and `thinkingBudget: 0` with 400, treats `thinkingLevel: "high"` as a silent no-op, and surfaces thinking unconditionally. Expected Interactions behavior: `thinking_level` is either ignored or returns 400. The reliable suppression mechanism remains `response_format` (schema collapse). Unprobed under Interactions wiring; pending re-probe.
+
+### 16.5 Signatures: stateful is automatic, stateless requires resend
+
+- **Stateful mode (recommended)**: `store: true` + `previous_interaction_id` in subsequent turns. The server manages all thought blocks and signatures. Caller does nothing regarding signatures.
+- **Stateless mode**: caller passes the full history of inputs and outputs in each request. MUST resend all `thought` blocks exactly as received. Removing or modifying them breaks reasoning continuity. When switching models within a session, still resend the previous model's thought blocks; the backend manages compatibility.
+- Built-in tools like Google Search carry their own distinct signatures on `google_search_call` / `google_search_result` blocks. In stateless mode these signatures must also be resent.
+
+### 16.6 Pricing surface
+
+Total response cost = output tokens + thought tokens. Read `interaction.usage.total_thought_tokens` to measure thinking spend. Note: Google bills the full thought tokens the model generated even though only the summary is surfaced via the API.
+
+### 16.7 Best practices for thinking models (from Google's page)
+
+- Review thought summaries to diagnose failures and improve prompts.
+- Control thinking budget via `thinking_level` (not by truncating outputs).
+- Simple tasks → `minimal` (fact retrieval, classification).
+- Moderate tasks → default (concept comparison, creative reasoning).
+- Complex tasks → `high` (advanced coding, math, multi-step planning).
 
 ---
 
@@ -1584,4 +1817,7 @@ When a prompt's wiring is visible (call-site config in the same artifact), scan 
 | Phil Schmid — Gemini 3 Prompting: Best Practices for General Usage | Blog | philschmid.de/gemini-3-prompt-practices | Nov 19, 2025 (scrapling-verified 2026-05-20) |
 | Gemini Interactions API overview (GA announcement) | Docs | ai.google.dev/gemini-api/docs/interactions-overview | Updated 2026-06-23 (scrapling-verified 2026-06-24) |
 | Migrate to Interactions API guide | Docs | ai.google.dev/gemini-api/docs/migrate-to-interactions.md.txt | 2026 (scrapling-verified 2026-06-24) |
-| Gemini Structured Outputs (Interactions version with REST curl) | Docs | ai.google.dev/gemini-api/docs/structured-output | Updated 2026-06-22 (scrapling-verified 2026-06-24) |
+| Gemini Structured Outputs (Interactions version with REST curl) | Docs | ai.google.dev/gemini-api/docs/structured-output.md.txt | Updated 2026-06-22 (scrapling-verified 2026-06-24) |
+| Gemini Long Context guide | Docs | ai.google.dev/gemini-api/docs/long-context.md.txt | 2026 (scrapling-verified 2026-06-24) |
+| What's new in Gemini 3.5 Flash | Docs | ai.google.dev/gemini-api/docs/whats-new-gemini-3.5.md.txt | 2026 (scrapling-verified 2026-06-24) |
+| Gemini thinking (Interactions version) | Docs | ai.google.dev/gemini-api/docs/thinking.md.txt | 2026 (scrapling-verified 2026-06-24) |

@@ -1,83 +1,113 @@
 # Gemma 4 API best practices
 
-Authoritative reference for the Generative Language REST API when targeting
-`gemma-4-31b-it` and `gemma-4-26b-a4b-it`. Probe-verified May 6 and May 12,
-2026. Scope: API call mechanics (request shape, parsing, retry, schema
-constraints). For prompt-text guidance, use the `prompt-optimizer` agent
-with `Target model: Gemma 4` declared; this file is the reference the
-agent reads to apply that target.
+Authoritative reference for the **Gemini Interactions API** when targeting
+`gemma-4-31b-it` and `gemma-4-26b-a4b-it`. Scope: API call mechanics
+(request shape, parsing, retry, schema constraints). For prompt-text
+guidance, use the `prompt-optimizer` agent with `Target model: Gemma 4`
+declared; this file is the reference the agent reads to apply that
+target.
 
-> **API surface note (June 2026).** All probe-verified rules in sections 1
-> through 14 below are scoped to the legacy `:generateContent` endpoint
-> (`generativelanguage.googleapis.com/v1beta/models/<model>:generateContent`).
-> Google declared the new **Interactions API**
-> (`generativelanguage.googleapis.com/v1beta/interactions`, accessed via
-> `client.interactions.create(...)` in `google-genai >= 2.3.0`) generally
-> available in June 2026 and lists both `gemma-4-31b-it` and
-> `gemma-4-26b-a4b-it` as supported models. `generateContent` "remains fully
-> supported" per the GA announcement, so these rules do not lapse — but the
-> Interactions API moves schema to top-level `response_format` instead of
-> `generationConfig.responseSchema`, returns a `steps[]` timeline instead of
-> `candidates[0].content.parts[]`, and exposes `previous_interaction_id` /
-> `store` / `background`. See section 15 for the surface-mapping rules; the
-> behavioral findings in sections 1-14 have NOT been re-probed on the new
-> surface, and rule 14's `parts[].thought = true` filter does not have a
-> verified analogue on Interactions yet.
+> **Surface scope.** All recommendations below are scoped to the
+> Interactions API (`generativelanguage.googleapis.com/v1beta/interactions`,
+> accessed via `client.interactions.create(...)` with `google-genai >= 2.3.0`
+> Python SDK or `@google/genai >= 2.3.0` JS SDK). The legacy
+> `:generateContent` endpoint is **retired for prompt-optimizer's
+> recommendations** — appearance of `generateContent`, `generationConfig.responseSchema`,
+> `responseMimeType`, `systemInstruction.parts[].text`, `contents: [{role, parts}]`,
+> or `candidates[0].content.parts[].thought` parsing in a prompt or call-site is
+> flagged as a migration defect (see Topic 13.8 in `PROMPT_RESEARCH.md`).
+> Empirical probes (May 6 and May 12, 2026) were performed under the legacy
+> wiring; the observed behaviors describe the Gemma 4 model and port to
+> the Interactions wiring at the schema/behavior layer. Re-probes under the
+> new wiring are pending; the rules below state the Interactions wiring
+> directly.
 
-## 1. Use `responseSchema` for any code-parsed output
+## 1. Use `response_format` for any code-parsed output
 
-Set `generationConfig.responseSchema` plus `responseMimeType:
-"application/json"` on every Gemma 4 call whose output is parsed by code.
-This is the **primary lever**, not a Tier 2 option.
+Set top-level `response_format` with `type: "text"`, `mime_type: "application/json"`,
+and a `schema` on every Gemma 4 call whose output is parsed by code. This is the
+**primary lever**, not a Tier 2 option.
 
-- Suppresses thinking mode: `finishReason=STOP`, `thoughtsTokenCount=0`,
-  MALFORMED rate 0%.
-- ~30 to 40x wall-clock speedup on short outputs (May 12 benchmark:
-  ~67s/call median down to 1 to 2s/call).
-- The only reliable thinking-suppression mechanism on this endpoint.
-  `thinkingLevel: "low"`/`"off"` and `thinkingBudget: 0` return HTTP 400;
-  `thinkingLevel: "high"` is a silent no-op.
-
-Minimal schema for a single-string output:
-```json
-{"type":"OBJECT","properties":{"output":{"type":"STRING"}},"required":["output"]}
+Canonical wiring (Python SDK):
+```python
+interaction = client.interactions.create(
+    model="gemma-4-31b-it",
+    input=prompt,
+    response_format={
+        "type": "text",
+        "mime_type": "application/json",
+        "schema": {"type": "object", "properties": {"output": {"type": "string"}}, "required": ["output"]}
+    }
+)
+text = interaction.output_text
 ```
 
-If reasoning is wanted, request a bounded `<reasoning>` field inside the
-schema rather than relying on `thought: true` parts.
+Canonical wiring (REST):
+```json
+POST https://generativelanguage.googleapis.com/v1beta/interactions
+{
+  "model": "gemma-4-31b-it",
+  "input": "...",
+  "response_format": {
+    "type": "text",
+    "mime_type": "application/json",
+    "schema": {"type": "object", "properties": {"output": {"type": "string"}}, "required": ["output"]}
+  }
+}
+```
 
-## 2. `26b-a4b` constraint: at most one unbounded STRING per OBJECT
+Behaviors observed under the legacy wiring (expected to port to Interactions):
+- Suppresses thinking emission: response collapses to a single `model_output`
+  step with no `thought` step preceding it. `usage.total_thought_tokens` drops
+  to 0. MALFORMED rate observed at 0% on `:generateContent` probes.
+- ~30 to 40x wall-clock speedup on short outputs (May 12 benchmark on
+  `:generateContent`: ~67s/call median down to 1 to 2s/call).
+- The only reliable thinking-suppression mechanism for Gemma 4. The
+  `thinking_level` parameter (Gemini 3.x knob) is not listed as supported
+  for Gemma 4 on Google's thinking page; legacy probes showed
+  `thinkingLevel: "low"`/`"off"` and `thinkingBudget: 0` returned HTTP 400
+  and `thinkingLevel: "high"` was a silent no-op. Expected Interactions
+  behavior: either 400 or silent no-op. The fix is `response_format`.
 
-`gemma-4-26b-a4b-it` fails under `responseSchema` whenever an OBJECT has
-two or more unbounded free-text STRING properties. Failure modes split
-between deterministic bigram/trigram loops to `MAX_TOKENS` (e.g.,
+If reasoning is wanted, request a bounded `reasoning` field inside the
+schema (Rule 3 property-order pattern) rather than enabling
+`thinking_summaries`. Gemma 4 is not in Google's supported-models table
+for thinking levels; rely on schema-driven reasoning instead.
+
+## 2. `26b-a4b` constraint: at most one unbounded `string` per `object`
+
+`gemma-4-26b-a4b-it` fails under `response_format` whenever an `object` has
+two or more unbounded free-text `string` properties. Failure modes split
+between deterministic bigram/trigram loops to the output limit (e.g.,
 `-classification-classification-...`, `0.0.0.0.0...`) and degenerate
 empty `" [] ```"` output. Same schema passes cleanly on `gemma-4-31b-it`.
 
-**Per-field `ARRAY[STRING]` wrapping does NOT rescue this.** Probe-tested
-May 12, 2026: wrapping the long STRING moves the loop to a sibling
-unbounded STRING; wrapping all of them shifts to HTTP 500 / empty array.
+**Per-field `array` of `string` wrapping does NOT rescue this.** Probe-tested
+May 12, 2026 on `:generateContent`: wrapping the long `string` moves the loop
+to a sibling unbounded `string`; wrapping all of them shifts to HTTP 500 /
+empty array. Schema-validator behavior is identical on Interactions, so the
+failure mode is expected to reproduce.
 
 **Verified workarounds when 26b-a4b is in the fallback chain:**
-1. **Caller-side `responseSchema` skip** on the model-name match for
+1. **Caller-side `response_format` skip** on the model-name match for
    `26b-a4b`. The model then emits free-form JSON inside the prompt's
    format scaffold, which it terminates correctly.
 2. **Prompt-level bounding plus a worked stop-example** on every
-   unbounded STRING field ("one short sentence; e.g., ..."). The 31b
+   unbounded `string` field ("one short sentence; e.g., ..."). The 31b
    path can self-terminate without explicit bounding; 26b-a4b cannot.
 
-**Safe schema shape on 26b-a4b:** exactly one unbounded STRING per OBJECT
-inside a top-level `ARRAY[OBJECT]` container (the `audit[].reason`
-pattern) has held in production. Enum-bounded STRINGs, MM:SS-bounded
-STRINGs, INTEGER, and BOOLEAN are unaffected.
+**Safe schema shape on 26b-a4b:** exactly one unbounded `string` per `object`
+inside a top-level `array` of `object` container (the `audit[].reason`
+pattern) has held in production. Enum-bounded strings, MM:SS-bounded
+strings, integer, and boolean are unaffected.
 
 Temperature step-down does not break this loop; the fix is structural.
 
-## 3. Property order in `responseSchema` controls generation order
+## 3. Property order in the schema controls generation order
 
-The order in which fields appear inside an OBJECT's `properties` dict
+The order in which fields appear inside an `object`'s `properties` dict
 determines the order Gemma 4 emits them in the response. Place any
-`reasoning` STRING field BEFORE the `verdict` enum it justifies, and
+`reasoning` `string` field BEFORE the `verdict` enum it justifies, and
 the model fills `reasoning` first, then commits to `verdict`, then (if
 present) writes a short `reason` tag. This makes the verdict an output
 of the reasoning rather than a post-hoc justification, and materially
@@ -86,26 +116,26 @@ to ~250 chars under this change alone on a warmup validator.
 
 The corresponding anti-pattern is `verdict, reasoning`: the model locks
 the verdict on the first token of the field, then inflates the
-following STRING to justify it. Schema-level length caps in the field
+following `string` to justify it. Schema-level length caps in the field
 `description` ("max 10 words") are not strongly enforced once the
 verdict has committed.
 
 **Application:**
 - For judge or audit schemas, order properties as
   `index, reasoning, verdict, reason` (or the equivalent for your
-  decision field). Define the reasoning STRING first.
+  decision field). Define the reasoning `string` first.
 - Keep `verdict` as a tight `enum` (e.g., `KEEP`/`DROP`) so it parses
   cleanly once committed.
 - Keep `reasoning` and `reason` separate when both an audit trail and a
   short downstream tag are needed; otherwise collapse into a single
   length-capped `reasoning` field.
-- This also interacts with rule 2 on `26b-a4b`: each OBJECT still gets
-  at most one unbounded STRING. A `reasoning` STRING placed first
+- This also interacts with rule 2 on `26b-a4b`: each `object` still gets
+  at most one unbounded `string`. A `reasoning` `string` placed first
   consumes that one slot, so any sibling `reason` should be enum-bounded
   or length-capped via a stop-example.
 - **Narrow schemas only.** Rule 4 overrides this pattern when the schema
-  already has >=4 mandatory nested OBJECTs: on `31b`, the reasoning
-  STRING crashes the request entirely. Move the reasoning surface to
+  already has >=4 mandatory nested `object`s: on `31b`, the reasoning
+  `string` crashes the request entirely. Move the reasoning surface to
   prompt-level prose or Python-side checks when the schema is wide.
 
 **Caveat:** Property-order honouring is empirical, not documented.
@@ -114,29 +144,29 @@ the desired generation order **and** add an explicit prompt instruction
 ("fill `reasoning` first, then commit `verdict`"). If a future Gemma 4
 update weakens the order behavior, the prompt instruction still holds.
 
-## 4. Wide schemas reject a top-level reasoning STRING on 31b
+## 4. Wide schemas reject a top-level reasoning `string` on 31b
 
 `gemma-4-31b-it` reliably crashes (alternating HTTP 400 INVALID_ARGUMENT
-and 500 INTERNAL, 0/4 success) when a `responseSchema` combines a
-top-level free-text `reasoning` STRING with many mandatory nested
-OBJECTs. Empirical bisect May 13, 2026 on a forensic signal schema at
-T=0.5: removing the reasoning STRING brought success to 4/4 on the same
-schema; removing the evidence OBJECTs while keeping the reasoning
-STRING left success at 2/4 (general backend baseline). The crash is
+and 500 INTERNAL, 0/4 success) when the schema combines a
+top-level free-text `reasoning` `string` with many mandatory nested
+`object`s. Empirical bisect May 13, 2026 on a forensic signal schema at
+T=0.5: removing the reasoning `string` brought success to 4/4 on the same
+schema; removing the evidence `object`s while keeping the reasoning
+`string` left success at 2/4 (general backend baseline). The crash is
 schema-specific, not backend flake.
 
 The mechanism appears to be response-budget overload: each mandatory
-evidence OBJECT must be emitted with default values even when its
-matching signal does not trigger, and a prose-populated STRING on top
+evidence `object` must be emitted with default values even when its
+matching signal does not trigger, and a prose-populated `string` on top
 pushes the response past an internal Gemma 4 limit, producing malformed
 output that the upstream validator rejects.
 
-**Threshold:** observed crash at 5 mandatory evidence OBJECTs plus 1
-reasoning STRING. Prudent safety margin: do not add a top-level
-reasoning STRING when the schema already has >=4 mandatory nested
-OBJECTs with multiple inner properties each. Schemas with <=3 nested
-OBJECTs (e.g., 3 `ARRAY[OBJECT]`s plus 1 nullable OBJECT) have carried
-a single bounded reasoning STRING without issue in production.
+**Threshold:** observed crash at 5 mandatory evidence `object`s plus 1
+reasoning `string`. Prudent safety margin: do not add a top-level
+reasoning `string` when the schema already has >=4 mandatory nested
+`object`s with multiple inner properties each. Schemas with <=3 nested
+`object`s (e.g., 3 `array` of `object` plus 1 nullable `object`) have carried
+a single bounded reasoning `string` without issue in production.
 
 **Workarounds when reasoning is wanted on a wide schema:**
 - Move reasoning to prompt-level prose instructions ahead of the JSON
@@ -144,8 +174,8 @@ a single bounded reasoning STRING without issue in production.
   appear in the parsed payload).
 - Move reasoning to Python-side deterministic checks after parsing.
 - Split into two calls: a narrow reasoning call that returns the
-  reasoning STRING, then a wide structured-output call that returns
-  the evidence OBJECTs.
+  reasoning `string`, then a wide structured-output call that returns
+  the evidence `object`s.
 
 **Bisect, do not retry.** When a schema-bearing call returns alternating
 400/500, the prior probability splits ~50/50 between backend flake and
@@ -155,42 +185,49 @@ without the comparative test wastes the same retry budget over and
 over.
 
 **Interaction with rule 3:** rule 3's reason-before-commit pattern
-requires a reasoning STRING in the schema. That pattern only applies
-to narrow schemas (<4 mandatory nested OBJECTs); for wide schemas use
+requires a reasoning `string` in the schema. That pattern only applies
+to narrow schemas (<4 mandatory nested `object`s); for wide schemas use
 the workarounds above.
 
 ## 5. Parse with `json.JSONDecoder().raw_decode()`, not `json.loads()`
 
-Even with `responseSchema`, Gemma 4 occasionally emits valid JSON
-followed by trailing text (~1 in 12 calls observed). Strict `json.loads`
-raises; `raw_decode` parses the first valid object and ignores the rest.
+Even with `response_format`, Gemma 4 occasionally emits valid JSON
+followed by trailing text (~1 in 12 calls observed under legacy wiring;
+expected to reproduce). Strict `json.loads` raises; `raw_decode` parses
+the first valid object and ignores the rest.
 
 ```python
-parsed, _ = json.JSONDecoder().raw_decode(raw_text)
+parsed, _ = json.JSONDecoder().raw_decode(interaction.output_text)
 ```
 
-## 6. Do not set `thinkingConfig.thinkingBudget` on Gemma 4
+## 6. Do not pass `thinking_level` or `thinking_budget` on Gemma 4
 
-Returns HTTP 400 `"Thinking budget is not supported for this model."`
-This parameter works on Gemini 2.5 Flash, not on Gemma 4. Cross-family
-code must branch on model name.
+Gemma 4 is NOT in Google's supported-models table for thinking levels
+(thinking page lists only Gemini 3.x and 2.5 families). Passing
+`generation_config.thinking_level` or `generation_config.thinking_budget`
+on a Gemma 4 call is expected to either return HTTP 400 or silent-no-op,
+matching the legacy `:generateContent` behavior. Branch on model family:
+pass `thinking_level` for Gemini 3.x targets only; rely on
+`response_format` (rule 1) for Gemma 4 thinking control.
 
-## 7. `maxOutputTokens` is a safety ceiling, not a thinking cap
+## 7. `max_output_tokens` is a safety ceiling, not a thinking cap
 
 Gemma 4 thinking expands to fill whatever budget is set (256 cap → ~300
 thinking tokens; 1024 cap → ~1150 overflowing the cap; 2048 cap → more).
 Lowering the cap converts `MALFORMED_RESPONSE` (long socket timeout,
 empty visible output) into `MAX_TOKENS` (fast fail), which is a cheaper
 failure mode, but it does not raise success rate. The actual
-thinking-suppression lever is `responseSchema` (rule 1). Set
-`maxOutputTokens` generously when `responseSchema` is in use.
+thinking-suppression lever is `response_format` (rule 1). Set
+`max_output_tokens` generously when `response_format` is in use.
 
 ## 8. Classify retries by failure signature
 
 Do not share one retry policy across these classes:
 
 - **HTTP 5xx (500/503 INTERNAL)** → fast exponential backoff, same
-  parameters, max 4 attempts. Baseline transient rate ~20%.
+  parameters, max 4 attempts. Baseline transient rate ~20% observed on
+  legacy probes; treat as the expected Interactions baseline pending
+  re-probe.
 - **HTTP 429 RATE_LIMIT_EXCEEDED** → read the response body before
   routing. Substring-check `error.details[].violations[].quotaId` for
   `"PerDay"`: present means RPD (hard exhaustion) and the chain should
@@ -202,19 +239,19 @@ Do not share one retry policy across these classes:
   1s + 10s + 30s overload schedule reaches the RPM clear window
   naturally.
 - **`MALFORMED_RESPONSE`** (empty visible output with large
-  `thought_chars`) → parameter changes (temperature step-down
-  1.0 → 0.85 → 0.75, or enable `responseSchema` if not already on),
+  `total_thought_tokens`) → parameter changes (temperature step-down
+  1.0 → 0.85 → 0.75, or enable `response_format` if not already on),
   max 3 attempts. Same call repeated will fail the same way.
 - **`MAX_TOKENS` with degenerate output on 26b-a4b** → structural fix
   per rule 2, not a retry. Repeating the call wastes budget.
 - **Alternating 400/500 on a schema-bearing call** → suspect rule 4
-  (wide-schema reasoning STRING overload on 31b). Bisect the schema
+  (wide-schema reasoning `string` overload on 31b). Bisect the schema
   before exhausting retries.
 
 ## 9. Schema-shape patterns for batch JSON output
 
 When the prompt produces a fixed JSON schema and code parses the result,
-two structural patterns matter beyond `responseSchema`:
+two structural patterns matter beyond `response_format`:
 
 **A. Lead with a literal JSON skeleton.** Place an `<output_shape>` block
 at the very top of the prompt showing the exact keys and value-object
@@ -237,28 +274,39 @@ throughout. Google's May 5, 2026 model card refresh documents the full
 recommended sampling configuration: `temperature=1.0`, `top_p=0.95`,
 `top_k=64`, applied uniformly across all Gemma 4 sizes and all use cases
 (including judge calls). Pass all three when constructing
-`generationConfig`; the earlier guidance to set `T=1.0` only is
+`generation_config`; the earlier guidance to set `T=1.0` only is
 incomplete.
+
+**Contrast with Gemini 3.x.** Google's Gemini 3.5 Flash guide says
+"`temperature`, `top_p`, `top_k`: we strongly recommend not changing the
+default values. Gemini 3's reasoning capabilities are optimized for the
+default settings. Remove these parameters from all requests." That
+guidance applies to Gemini 3.x models, NOT to Gemma 4. Cross-family code
+must branch on model family: pass the sampling triple for Gemma 4;
+remove it for Gemini 3.x.
 
 ## 11. Probe before recommending
 
 Google's documentation does not always reflect Gemma 4 behavior
-(`thinkingBudget` is documented for the Gemini 2.5 family but returns
-400 on Gemma 4; `responseSchema` documentation is ambiguous but works
-perfectly on 31b and works conditionally on 26b-a4b per rule 2).
+(`thinking_budget` is documented for the Gemini 3.x family but is
+expected to return 400 on Gemma 4; `response_format` documentation is
+ambiguous but works perfectly on 31b and works conditionally on 26b-a4b
+per rule 2).
 
 One HTTP probe distinguishes "feature documented" from "feature works on
 this model" and is free. If a recommendation depends on an API feature
-that has not been probed against the target variant, note that in the
-call site's deployment checklist.
+that has not been probed against the target variant under Interactions
+wiring, note that in the call site's deployment checklist.
 
 ## 12. Tool-calling: avoid 26b-a4b
 
-Known double tool-call bug on 26b-a4b. Both variants behave identically
-for thinking control and for single-STRING `responseSchema` mechanics,
-but they diverge on tool-calling and on multi-STRING schemas (rule 2).
+Known double tool-call bug on 26b-a4b observed under legacy wiring. Both
+variants behave identically for thinking control and for single-`string`
+`response_format` mechanics, but they diverge on tool-calling and on
+multi-`string` schemas (rule 2). Treat 26b-a4b as a code-parsed-JSON
+target; reach for 31b when tool-calling is required.
 
-## 13. Do not place `<|think|>` in `systemInstruction`
+## 13. Do not place `<|think|>` in `system_instruction`
 
 It is a no-op and elevates the transient 500 rate. Similarly,
 `<thinking>...</thinking>` XML scaffolds add prompt tokens with no
@@ -269,131 +317,74 @@ behavior change. Remove them from optimized prompts.
 guidance applies to the chat-template surface (HuggingFace Transformers,
 llama.cpp, MLX, Unsloth), where `apply_chat_template(messages,
 enable_thinking=True)` emits the actual special-token id into `input_ids`.
-On the Generative Language REST API surface, `systemInstruction.parts[].text`
-is plain text and the tokenizer does not register `"<|think|>"` as a
-plain-text special-token mapping; the string tokenizes as ordinary BPE
-pieces. The two surfaces are not equivalent. This rule is REST-API-scoped
-and stands; deployers using local chat-template paths should follow
-Google's chat-template doc directly. See PROMPT_RESEARCH.md "Gemma 4 May
-2026 Update: Deployment-Surface Distinction" for the full reconciliation.
+On the Gemini REST API surface (whether Interactions or legacy), the
+`system_instruction` field is plain text and the tokenizer does not
+register `"<|think|>"` as a plain-text special-token mapping; the string
+tokenizes as ordinary BPE pieces. The two surfaces are not equivalent.
+This rule is REST-API-scoped and stands; deployers using local chat-template
+paths should follow Google's chat-template doc directly. See
+`PROMPT_RESEARCH.md` "Gemma 4 May 2026 Update: Deployment-Surface
+Distinction" for the full reconciliation.
 
-## 14. Thinking surfaces structurally, not as text markers
+## 14. Thinking surfaces in `interaction.steps[]`, suppress via schema
 
-Gemma 4 thinking returns as `parts[].thought = true`, not as
-`<|channel>` text markers. Code parsers must filter `parts[].thought`
-rather than searching response text.
+On the Interactions API, model reasoning (when emitted) appears as a
+dedicated `thought` step in `interaction.steps[]` with a `signature`
+(always) and optional `summary` (only when `generation_config.thinking_summaries: "auto"`
+is set). The legacy `parts[].thought == true` filter is replaced by:
+
+```python
+for step in interaction.steps:
+    if step.type == "model_output":
+        for block in step.content:
+            if block.type == "text":
+                # final answer text
+```
+
+**For Gemma 4 specifically**, the reliable suppression mechanism is
+`response_format` (rule 1), which collapses the response to a single
+`model_output` step with no `thought` step. `thinking_summaries` and
+`thinking_level` are not listed as supported controls for Gemma 4 on
+Google's thinking page; probe before relying on them. When `response_format`
+is in use, the steps walk simplifies — there is just one `model_output`
+step — and `interaction.output_text` works as the shortcut.
+
+**Open question pending re-probe.** Under legacy wiring, Gemma 4
+unconditionally emitted thinking parts unless `responseSchema` was set.
+Under Interactions wiring, the expected behavior is parallel: no
+`response_format` → `thought` step(s) precede `model_output`; with
+`response_format` → single `model_output` step. Re-probe before
+production rollout.
 
 ## Cross-family: do not generalize from sibling Gemini models
 
-- **Gemini 2.5 Flash**: hides thinking by default (single-part response,
-  `thoughtsTokenCount` in metadata only). Accepts `thinkingBudget: 0` to
-  disable thinking entirely.
-- **Gemini 3.1 Flash Lite Preview**: does not think at all (no
-  `thoughtsTokenCount` on any response).
-- **`gemini-3-pro`**: 404 NOT_FOUND on the v1beta endpoint as of
-  May 6, 2026.
+- **Gemini 3.5 Flash** (`gemini-3.5-flash`): GA June 2026 on Interactions.
+  Defaults `thinking_level` to `medium` (down from `high` on 3 Flash Preview).
+  Supports `minimal | low | medium | high`. Do NOT pass `temperature`,
+  `top_p`, `top_k` (Gemini 3.x recommendation: remove these parameters).
+  See `GEMINI_3X_API_BEST_PRACTICES.md`.
+- **Gemini 3.1 Pro Preview** (`gemini-3.1-pro-preview`): defaults to
+  `high`, supports `low | medium | high`. No `minimal`.
+- **Gemini 3.1 Flash-Lite** (`gemini-3.1-flash-lite`): efficiency-tuned;
+  defaults to `minimal`. Supports the full level set.
+- **Gemini 3 Flash Preview** (`gemini-3-flash-preview`): defaults to `high`,
+  supports the full level set. Computer Use is supported on 3 Flash Preview
+  but NOT on 3.5 Flash.
+- **Gemini 2.5 family** (`gemini-2.5-pro`, `gemini-2.5-flash`,
+  `gemini-2.5-flash-lite`): supports `low | medium | high`. 2.5 Flash-Lite
+  defaults thinking OFF. Older Gemini 2.5 advice (e.g., `thinking_budget: 0`
+  disables thinking on 2.5 Flash) does not port to Gemma 4.
 
 Code that targets multiple Google models must branch on model family.
+A `Target model: Gemini 3.x` brief invokes `GEMINI_3X_API_BEST_PRACTICES.md`;
+a `Target model: Gemma 4` brief invokes this file.
 
 ## Verify after changes
 
-Sample N=12 calls per code path. Expect: `finishReason=STOP`,
-`thoughtsTokenCount=0` (or absent), median wall <5s, 100% schema-valid
-JSON via `raw_decode`. Non-zero `MALFORMED_RESPONSE` or thinking-token
-leak means rule 1 did not land. `MAX_TOKENS` with degenerate output on
-26b-a4b means rule 2 did not land. Alternating 400/500 on a
-schema-bearing call means rule 4 needs a bisect.
-
-## 15. Interactions API surface mapping (June 2026 GA, unprobed)
-
-The Interactions API is a parallel, additive surface that ships both Gemma
-4 variants as supported Models. None of sections 1-14's behavioral findings
-have been re-probed against `client.interactions.create(...)`; treat this
-section as a request-shape translation table plus an explicit list of
-open questions to verify before relying on legacy rules on the new surface.
-
-### 15.1 Where things move
-
-| Slot | `:generateContent` (legacy) | `interactions.create` (new) |
-|---|---|---|
-| Endpoint | `v1beta/models/<model>:generateContent` | `v1beta/interactions` (canonical per structured-output guide); `v1beta2/interactions` appears in the migration guide — try `v1beta` first |
-| SDK method | `client.models.generate_content(...)` | `client.interactions.create(...)` |
-| Min SDK | any `google-genai` / `@google/genai` | `google-genai >= 2.3.0`, `@google/genai >= 2.3.0` |
-| User input | `contents: [{role, parts: [{text}]}]` | `input: "..."` (string) or `input: [{type, ...}, ...]` |
-| System instruction | `systemInstruction.parts[].text` | `system_instruction` parameter (interaction-scoped) |
-| Schema | `generationConfig.responseSchema` + `generationConfig.responseMimeType: "application/json"` | Top-level `response_format: [{type: "text", mime_type: "application/json", schema: {...}}]` (single object or array) |
-| Response root | `response.candidates[0].content.parts[]` | `interaction.steps[]` with a `model_output` step whose `content[]` carries typed items |
-| Trailing text shortcut | concat `parts[].text` filtered by `thought == null` | `interaction.output_text` (joins **only trailing** TextContent items) |
-| Multi-turn | resend full `contents[]` | `previous_interaction_id=<prev.id>`; server holds history |
-| Tool list | `tools: [{"googleSearchRetrieval": {}}]` | `tools: [{"type": "google_search"}, {"type": "url_context"}, ...]` |
-| Streaming | `:streamGenerateContent` | `stream=True`; events `event_type=="step.delta"` (Python) / `type=="step.delta"` (JS), text in `event.delta.text` |
-| Long-running | not supported | `background=true` (incompatible with `store=false`) |
-| Storage | not stored | default `store=true`; opt out with `store=false` (which blocks `previous_interaction_id` and `background`) |
-
-### 15.2 What carries over unchanged (schema layer)
-
-The JSON Schema subset accepted by the Interactions `response_format[].schema`
-field is the same one accepted by legacy `responseSchema` plus explicit
-guarantees for string `format` (`date-time`/`date`/`time`), array
-`prefixItems`, and recursive `$ref: "#"`. Behavioral rules that are about
-**schema shape on Gemma 4** rather than API plumbing port over at the
-schema level:
-
-- Rule 2 (`26b-a4b`: at most one unbounded STRING per OBJECT) — applies if
-  the behavior reproduces on Interactions. Schema validator constraints are
-  unchanged; the failure mode is model behavior, not API.
-- Rule 3 (property order in `properties` controls generation order) —
-  applies at the schema level. Place `reasoning` STRING before `verdict`
-  enum the same way.
-- Rule 4 (wide schemas reject a top-level reasoning STRING on 31b) — same
-  schema shape, same behavior expected.
-- Rule 9 (top-level `ARRAY[OBJECT]` batch shape) — schema-level rule.
-
-### 15.3 What does NOT carry over verbatim (parsing layer)
-
-- **Rule 14 (`parts[].thought = true` filter).** The `parts[]` array is gone
-  on Interactions. The legacy thought-flag does not have a verified analogue
-  in `interaction.steps[]`. Open question: does Gemma 4 thinking appear as a
-  distinct step type (e.g., `model_thought`) or as a typed `content[]` item
-  inside `model_output`? Unknown. Do not transplant the legacy filter
-  pattern; introspect `steps[]` and report shape before recommending a
-  filter.
-- **Rule 1 (`responseSchema` is the only reliable thinking-suppressor).**
-  Whether top-level `response_format` produces the same single-non-thought
-  collapse and the same ~30-40x wall-clock speedup on Interactions is
-  unprobed. The wiring is `response_format`, not `responseSchema`; the
-  empirical claim must be re-measured.
-- **Rule 5 (`json.JSONDecoder().raw_decode()` for trailing garbage).**
-  Whether Gemma 4 occasionally appends trailing text after valid JSON on
-  Interactions is unprobed. The defensive parser is cheap; recommend it
-  on both surfaces until disproved.
-
-### 15.4 New failure modes specific to Interactions
-
-- **`output_text` truncation.** `interaction.output_text` joins only
-  trailing consecutive TextContent items. If Gemma 4 emits a thinking-shaped
-  preamble or interleaved tool output before the final answer, the
-  preamble's text content is dropped from `.output_text`. For any code path
-  that does not use `response_format`, iterate `steps[]` instead.
-- **History double-counting.** Passing both `previous_interaction_id` and a
-  hand-rolled history string inside `input` double-counts. Pick one.
-- **`store=false` lockout.** `store=false` blocks both `previous_interaction_id`
-  chains and `background=true`. Recommend `store=true` plus an explicit
-  `interactions.delete` cleanup for PII rather than `store=false` if
-  multi-turn is needed.
-- **Combined `response_format` + built-in tools is Gemini-3-only preview.**
-  Per the structured-output guide, mixing `response_format` with
-  `google_search` / `url_context` / `code_execution` / `file_search` /
-  `function_calling` is Gemini 3 series only. Gemma 4 cannot mix the two.
-
-### 15.5 Sources
-
-- Interactions API overview (GA, supported-models table including both Gemma
-  4 variants): `ai.google.dev/gemini-api/docs/interactions-overview`
-  (scrapling-verified 2026-06-24; page last updated 2026-06-23).
-- Migrate to Interactions API:
-  `ai.google.dev/gemini-api/docs/migrate-to-interactions.md.txt`
-  (scrapling-verified 2026-06-24; uses `v1beta2/interactions`).
-- Structured outputs (Interactions, REST curl uses `v1beta/interactions`):
-  `ai.google.dev/gemini-api/docs/structured-output` (scrapling-verified
-  2026-06-24; page last updated 2026-06-22).
+Sample N=12 calls per code path. Expect: `interaction.status == "completed"`,
+no `thought` step in `interaction.steps[]` (when `response_format` is set),
+`usage.total_thought_tokens == 0`, median wall <5s, 100% schema-valid JSON
+via `raw_decode` on `interaction.output_text`. Non-zero `total_thought_tokens`
+or a `thought` step preceding `model_output` means rule 1 did not land.
+`MAX_TOKENS` with degenerate output on 26b-a4b means rule 2 did not land.
+Alternating 400/500 on a schema-bearing call means rule 4 needs a bisect.

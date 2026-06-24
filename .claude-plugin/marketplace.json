@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "prompt-optimizer",
-  "description": "Scores and revises LLM prompts against a research-backed checklist. Primary focus is mitigating known failure modes on Gemma 4 31b via the Google Generative Language REST API and on DeepSeek V4 (V4-Pro, V4-Flash) via the DeepSeek API; also targets Gemini and Claude.",
+  "description": "Scores and revises LLM prompts against a research-backed checklist. Primary focus is mitigating known failure modes on Gemma 4 31b and Gemini 3.x (including 3.5 Flash GA) via the Gemini Interactions API, and on DeepSeek V4 (V4-Pro, V4-Flash) via the DeepSeek API; also targets Claude.",
   "owner": {
     "name": "dlxmax"
   },
@@ -9,8 +9,8 @@
     {
       "name": "prompt-optimizer",
       "source": "./",
-      "description": "Scores and revises LLM prompts against a research-backed checklist. Primary focus is mitigating known failure modes on Gemma 4 31b via the Google Generative Language REST API and on DeepSeek V4 (V4-Pro, V4-Flash) via the DeepSeek API; also targets Gemini and Claude.",
-      "version": "1.0.33",
+      "description": "Scores and revises LLM prompts against a research-backed checklist. Primary focus is mitigating known failure modes on Gemma 4 31b and Gemini 3.x (including 3.5 Flash GA) via the Gemini Interactions API, and on DeepSeek V4 (V4-Pro, V4-Flash) via the DeepSeek API; also targets Claude.",
+      "version": "1.0.34",
       "author": {
         "name": "dlxmax"
       },
@@ -29,6 +29,10 @@
         "gemma-4",
         "gemma",
         "gemini",
+        "gemini-3.5",
+        "gemini-3.5-flash",
+        "gemini-3.x",
+        "interactions-api",
         "claude",
         "deepseek",
         "deepseek-v4",
@@ -49,6 +53,10 @@
         "gemma-4",
         "gemma",
         "gemini",
+        "gemini-3.5",
+        "gemini-3.5-flash",
+        "gemini-3.x",
+        "interactions-api",
         "claude",
         "deepseek",
         "deepseek-v4",
