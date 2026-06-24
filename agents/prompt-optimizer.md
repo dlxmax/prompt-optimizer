@@ -186,7 +186,7 @@ Single-pass scoring is sufficient for this 15-item structural checklist when the
    8.3. Process-instruction preambles before second-pass review steps that read across earlier output (e.g., "the patchwork signature requires looking across two sections AFTER L1 evidence has accumulated"). Flattening to a conditional collapses the second pass into the first.
    8.4. Closing recall-posture override ("when a substantive signal is borderline-supported, emit it; downstream calls aggregate") when the prior pass under-recalled on borderline cases.
 
-   Apply 8.1-8.4 selectively per task, not as a package. Empirical risk profile, lowest to highest false-positive: 8.3 < 8.2 (signal-scoped) < 8.1 (low FP on lexical/syntactic signals, high FP on holistic-pattern signals) < 8.4 (over-fires on clean cases globally). When briefed on a regression cycle without per-signal A/B data, default to restoring 8.3, then 8.2 on signals that recalled empty, and treat 8.1 and 8.4 as opt-in with named-case justification. See PROMPT_RESEARCH.md Topic 6.
+   Apply 8.1-8.4 selectively per task, not as a package. Empirical risk profile, lowest to highest false-positive: 8.3 < 8.2 (signal-scoped) < 8.1 (low FP on lexical/syntactic signals, high FP on holistic-pattern signals) < 8.4 (over-fires on clean cases globally). When briefed on a regression cycle without per-signal A/B data, default to restoring 8.3, then 8.2 on signals that recalled empty, and treat 8.1 and 8.4 as opt-in with named-case justification.
 
 9. DeepSeek V4 strict-ordering vulnerability scan. Fires when both hold: (a) target is DeepSeek V4 (Pro or Flash), AND (b) the prompt enforces hard ordering, rotation, or closed-set membership (per-segment letter sequences, non-alphabetical orderings keyed to lookup tables, closed verb whitelists, exact-count outputs). When it fires, scan for three failure modes and add the matching mitigation to Key Changes:
 
@@ -194,7 +194,7 @@ Single-pass scoring is sufficient for this 15-item structural checklist when the
    9.2. Example tyranny. Given one concrete example, V4 copies literal values verbatim across other instances even when per-instance keys disagree. Fix: provide >=2 examples per pattern with distinct literal values, OR replace concrete values with placeholder tokens (`{L2}`) plus an explicit substitution rule.
    9.3. Lowest-cost completion. For length-bounded fields V4 defaults to the minimum or below; for closed-set whitelists V4 invents nearby items when no listed item fits. Fix: replace prose ranges with exact counts where possible, pad whitelists to cover the model's natural completion space.
 
-   Escalation cap: when a V4 violation resists >=3 rounds of prose escalation, do NOT recommend further escalation. Recommend deterministic post-processing in calling code, validator loosening, or A/B-loser acceptance. See PROMPT_RESEARCH.md Topic 12.
+   Escalation cap: when a V4 violation resists >=3 rounds of prose escalation, do NOT recommend further escalation. Recommend deterministic post-processing in calling code, validator loosening, or A/B-loser acceptance.
 
 10. Placeholder notation when introducing or rewriting variables. Fires when the revision introduces or rewrites a placeholder. XML tags are for structure (`<example>`, `<context>`), not substitution.
 
@@ -203,8 +203,6 @@ Single-pass scoring is sufficient for this 15-item structural checklist when the
    10.3. Name placeholders by what fills them (line position, role, type), not positionally (`{var1}`, `{var2}`).
    10.4. Do not use `<|name|>` for ordinary substitution; reserved by Gemma 4's tokenizer for special tokens (`<|image|>`, `<|audio|>`).
    10.5. When a placeholder appears inside a few-shot example, append a literal-emission guard: "Substitute the actual value before emitting; do not emit the literal `{placeholder}` in the output."
-
-   See PROMPT_RESEARCH.md Topic 5.
 
 11. Gemma 4 schema-padding scan. Fires when both hold: (a) target is Gemma 4, AND (b) the prompt or its `response_format.schema` declares a count constraint on a list-shaped slot (`minItems`, `"at least N"`, `"exactly N"`, `"N to M items"`, `"list 3 signals"`). When it fires:
 
@@ -222,7 +220,7 @@ Single-pass scoring is sufficient for this 15-item structural checklist when the
    12.4. Diagnostic: parent+child pair from different families on a DEMOTE path means parent-committed-too-early in schema property order. Reorder before iterating prose. If the optimizer sees prompt text but not the schema object, flag the property-order check as a deployer-side follow-up and quote the inferred parent/child field names.
    12.5. Does not apply to DeepSeek V4 targets. V4 silently drops schema property-order constraints. For V4, move the same intent into prose with EXAMPLE INPUT + EXAMPLE JSON OUTPUT showing the DEMOTE-triggered child value and its matched parent value side by side, with a literal callout naming both fields. The schema-order recommendation is a Gemma 4 anti-pattern when applied to V4.
 
-13. Gemini API legacy-form migration scan. Fires when the prompt under review, its call-site, or examples reference retired `generateContent` wiring. The Gemini Interactions API is the sole recommended surface as of June 2026; legacy forms are a **migration defect** to flag in Key Changes with the Interactions equivalent named. Skip when no legacy forms appear AND the prompt does not target a Gemini-family model.
+13. Gemini API legacy-form migration scan. Fires when the prompt under review, its call-site, or examples reference retired `generateContent` wiring. The Gemini Interactions API is the sole recommended surface; legacy forms are a **migration defect** to flag in Key Changes with the Interactions equivalent named. Skip when no legacy forms appear AND the prompt does not target a Gemini-family model.
 
    13.1. Endpoint and SDK migration:
 
@@ -243,7 +241,7 @@ Single-pass scoring is sufficient for this 15-item structural checklist when the
 
 14. Gemini 3.x parameter-removal scan. Fires when target is Gemini 3.5 Flash, Gemini 3.1 Pro Preview, Gemini 3.1 Flash-Lite, Gemini 3 Flash Preview, or Gemini 3 Pro Preview (or `Target model: Gemini 3.x`).
 
-   14.1. Strip sampling parameters. Google's 3.5 Flash guide: "we strongly recommend not changing the default values" for `temperature`, `top_p`, `top_k`, and "Remove these parameters from all requests." Flag for removal. To force determinism, write a system instruction with explicit rules. Does NOT apply to Gemma 4 (Gemma 4 uses T=1.0, top_p=0.95, top_k=64 per the May 5, 2026 model card; cross-family code must branch on model family).
+   14.1. Strip sampling parameters. Google's 3.5 Flash guide: "we strongly recommend not changing the default values" for `temperature`, `top_p`, `top_k`, and "Remove these parameters from all requests." Flag for removal. To force determinism, write a system instruction with explicit rules. Does NOT apply to Gemma 4 (Gemma 4 uses T=1.0, top_p=0.95, top_k=64; cross-family code must branch on model family).
    14.2. Replace `thinking_budget` with `thinking_level: "minimal" | "low" | "medium" | "high"`. Mutually exclusive in a single request: passing both returns HTTP 400. 3.5 Flash defaults to `medium` (down from `high` on 3 Flash Preview); verify the default fits the task before overriding.
    14.3. Function-calling strict response matching. Every `function_result` includes the `call_id` from the corresponding `function_call`; `name` matches; exactly one result per call. Multimodal content goes INSIDE the function-result `result[]` array, not as a sibling part. Inline instructions append to the END of function-result text separated by two newlines, not as separate parts.
    14.4. Prompt brevity. "Gemini 3.x responds best to direct, clear instructions. Verbose or complex prompt engineering techniques designed for older models may cause the model to over-analyze." Drop chain-of-thought scaffolding ("think step by step in detail before answering"); use `thinking_level`. Item 4 still applies; the change is to drop reasoning preambles, not examples.
@@ -315,7 +313,7 @@ Apply only when `Target model: DeepSeek V4` is declared. Before scoring items 13
 
 JSON-mode hang scan (Tier-1 V4 prompt defect): when downstream is code-parsed JSON and the deployer uses `response_format={"type": "json_object"}`, scan system and user messages for the literal word "json". Absence causes the model to emit unbounded whitespace to `max_tokens`, presenting as a hang. Fix: add the literal token "json" to the system prompt AND include a concrete EXAMPLE INPUT + EXAMPLE JSON OUTPUT block; the example also mitigates V4 JSON mode's empty-content failure. V4 has no `responseSchema` analogue, so the prompt is the only schema-enforcement surface.
 
-Schema-intervention anti-pattern scan: V4 silently drops schema-level constraints even when the SDK accepts the field. Refuse these phrases in your own Key Changes draft: "add field X before Y for property-order emission", "make field X required to force emission", "add an enum constraint to bound output", "constrain via nested OBJECT shape", "position field BEFORE Y in schema". For V4, all behavioral steering goes in prose: directive text, EXAMPLE INPUT + EXAMPLE JSON OUTPUT, concrete rubric language. See PROMPT_RESEARCH.md Topic 12.
+Schema-intervention anti-pattern scan: V4 silently drops schema-level constraints even when the SDK accepts the field. Refuse these phrases in your own Key Changes draft: "add field X before Y for property-order emission", "make field X required to force emission", "add an enum constraint to bound output", "constrain via nested OBJECT shape", "position field BEFORE Y in schema". For V4, all behavioral steering goes in prose: directive text, EXAMPLE INPUT + EXAMPLE JSON OUTPUT, concrete rubric language.
 
 Soft-preference vulnerability (item 15 conditional): apply the Gemma 4 block's soft-preference rule (scan list "favor X over Y", "prefer X", "lean toward Z", "by default emit X", "in general we want"; harden into observable criterion + explicit refusal branch). V4 has no `responseSchema` second layer, so delimiter + data-only directive + concrete-criterion chain is the entire defense; scope tighter than on Gemma 4.
 
