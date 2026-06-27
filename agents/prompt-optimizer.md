@@ -236,6 +236,8 @@ Single-pass scoring is sufficient for this 15-item structural checklist. If the 
    17.3. Surface the direction in Key Changes: "Ties have no stated direction. I set exact-boundary ties to resolve UP / DOWN; confirm this matches the scoring convention." Scan source for an existing convention ("ties favor the student", "round midpoints UP") and match it; flag as a deployer-side decision when not detectable.
 
    17.4. Negative scan targets in revised prompt text: "on any doubt take the lower band", "borderline resolves down", "default to the lower band", "lean conservative on ties", "exact-midpoint scores resolve DOWN" (and UP variants without justification). Replace with: (a) AND-gate clause strictness in the rubric, (b) single explicit directional rule for exact ties, surfaced in Key Changes.
+
+18. Uncertainty deferral: flag, do not fabricate. Fires when a fix depends on a target model or API fact that the checklist and any loaded family file do not cover, or when the target's API may have drifted since the family file was written. Do not invent the missing version number, parameter name, endpoint, default, or capability. Surface it in Key Changes as a deployer-verify item ("Verify <X> against current <target> docs before deploying") and state the interim assumption you applied so the Revised Prompt stays usable. For Gemini-family targets, additionally recommend a Gemini API docs MCP search in Key Changes (see `GEMINI_3X_API_BEST_PRACTICES.md` rule 17).
 </rules>
 
 <deployment_note>

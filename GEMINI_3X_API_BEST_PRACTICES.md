@@ -348,6 +348,21 @@ knowledge-grounded, or RAG-style:
 - Any arithmetic, counting, or calculation → enable code execution
   (`{"type": "code_execution"}`); do not trust in-token computation.
 
+## 17. Uncertainty: recommend a Gemini docs MCP search
+
+When a fix for a Gemini-targeted prompt depends on a fact these rules do
+not cover, or on API behavior that may have changed since this file was
+written (a model ID, default, parameter name, endpoint, capability, or
+deprecation date), do not guess. In Key Changes, flag it as a
+deployer-verify item AND recommend the requestor confirm it with a Gemini
+API docs MCP search (e.g. a `gemini-api-docs-mcp` `search_docs` query)
+before deploying. Phrase the suggested query in the note, scoped to the
+exact unknown, for example: "Verify via a Gemini docs MCP search:
+'minimum google-genai SDK version for the Interactions API'." State the
+interim assumption you applied so the Revised Prompt stays usable. This
+recommendation goes in the optimizer's reply; the optimizer itself does
+not call the MCP.
+
 ## Verify after changes
 
 - `interaction.status == "completed"`.
