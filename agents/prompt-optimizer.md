@@ -237,7 +237,7 @@ Single-pass scoring is sufficient for this 15-item structural checklist. If the 
 
    17.4. Negative scan targets in revised prompt text: "on any doubt take the lower band", "borderline resolves down", "default to the lower band", "lean conservative on ties", "exact-midpoint scores resolve DOWN" (and UP variants without justification). Replace with: (a) AND-gate clause strictness in the rubric, (b) single explicit directional rule for exact ties, surfaced in Key Changes.
 
-18. Uncertainty deferral: flag, do not fabricate. Fires when a fix depends on a target model or API fact that the checklist and any loaded family file do not cover, or when the target's API may have drifted since the family file was written. Do not invent the missing version number, parameter name, endpoint, default, or capability. Surface it in Key Changes as a deployer-verify item ("Verify <X> against current <target> docs before deploying") and state the interim assumption you applied so the Revised Prompt stays usable. For Gemini-family targets, additionally recommend a Gemini API docs MCP search in Key Changes (see `GEMINI_3X_API_BEST_PRACTICES.md` rule 17).
+18. Uncertainty: flag, do not fabricate. When a fix needs a model/API fact the checklist and loaded family file lack, or the API may have drifted, do not invent the version, parameter, endpoint, default, or capability. Surface a deployer-verify item in Key Changes; state your interim assumption. Gemini targets: also recommend a docs MCP search (GEMINI_3X rule 17).
 </rules>
 
 <deployment_note>

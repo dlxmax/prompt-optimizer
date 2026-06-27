@@ -46,10 +46,9 @@ workloads to Gemini 2.5 Flash (thinking off) or Gemini Robotics-ER 1.6.
 ## 2. Strip `temperature`, `top_p`, `top_k` from every request body
 
 Gemini 3.x reasoning is optimized for default sampling. Remove
-`temperature`, `top_p`, and `top_k` from all request bodies. This applies
-to **every Gemini 3.x model** including 3.5 Flash, 3.1 Pro, 3.1 Flash-Lite,
-and 3 Flash Preview. To force determinism, write a system
-instruction with explicit rules; do not set temperature.
+`temperature`, `top_p`, and `top_k` from every request body on **every
+Gemini 3.x model**. To force determinism, write a system instruction with
+explicit rules; do not set temperature.
 
 Branch on model family in cross-family code: Gemma 4 uses T=1.0,
 top_p=0.95, top_k=64; Gemini 3.x uses model defaults with the sampling
@@ -186,21 +185,16 @@ result_text = f"{json.dumps(result)}\n\n<extra instructions here>"
 
 ## 10. Long-context: place query at the end, anchored to the context
 
-When working with large datasets (entire books, codebases, or long
-videos), place specific instructions or questions at the end of the
-prompt, after the data context. Anchor the model's reasoning by starting
-the question with a phrase like "Based on the preceding information...".
-For long total context, putting the query/question at the end after all
-other context measurably improves performance.
+For large context (entire books, codebases, long videos), place the
+query/question at the END after the data; ending with the query
+measurably improves performance. Apply this shape:
 
-Apply this shape:
-
-- Place governing directives (role, output schema, refusal rules) at the START.
-- Place the large context block (data, transcripts, codebases) in the MIDDLE.
-- Place the user's specific query/question at the END, anchored with "Based on
+- Governing directives (role, output schema, refusal rules) at the START.
+- Large context block (data, transcripts, codebases) in the MIDDLE.
+- The user's specific query/question at the END, anchored with "Based on
   the preceding information..." or a domain-specific equivalent.
 - Repeat the governing directive at the very end as a recency reminder
-  (the universal start-and-end rule for governing directives still holds).
+  (universal start-and-end rule still holds).
 
 ## 11. Prompting changes for 3.x
 
@@ -216,16 +210,13 @@ Enforce these converged 3.x prompting rules:
   prefer direct, efficient answers. When a conversational tone is
   required, steer explicitly ("Explain this as a friendly, talkative
   assistant"); do not rely on defaults to produce conversational output.
-- **Consistent structure:** XML XOR Markdown for section delimiters.
-  Pick one and stay with it. If mixed, convert the minority style to the
-  dominant one. Anti-pattern: do NOT wrap already-Markdown-delimited
-  sections (`## 1. Foo`, `## 2. Bar`) in per-section XML tags
-  (`<rule_1>`, `<rule_2>`) "for scope" — the Markdown header already
-  delimits; the XML wrapper duplicates section delimitation and creates
-  the mix this rule prohibits. Meta blocks that wrap the whole document
-  (`<role>`, `<scope>`, `<closing_reminder>`) are not section delimiters
-  and may coexist with a Markdown-dominant body. Variable-substitution
-  conventions (curly braces) are unrelated to this rule.
+- **Consistent structure:** XML XOR Markdown for section delimiters. Pick
+  one; convert the minority style to the dominant one. Anti-pattern: do
+  NOT wrap already-Markdown-delimited sections (`## 1. Foo`) in per-section
+  XML tags (`<rule_1>`) "for scope" — the header already delimits, so the
+  wrapper creates the mix this rule prohibits. Whole-document meta blocks
+  (`<role>`, `<scope>`) are not section delimiters and may coexist with a
+  Markdown body. Curly-brace substitution conventions are unrelated.
 - **Critical-instructions placement:** place persona, behavioral
   constraints, and output format requirements in the System Instruction
   (Interactions `system_instruction` parameter) OR at the very beginning
@@ -348,20 +339,15 @@ knowledge-grounded, or RAG-style:
 - Any arithmetic, counting, or calculation → enable code execution
   (`{"type": "code_execution"}`); do not trust in-token computation.
 
-## 17. Uncertainty: recommend a Gemini docs MCP search
+## 17. Uncertainty: recommend a docs MCP search
 
-When a fix for a Gemini-targeted prompt depends on a fact these rules do
-not cover, or on API behavior that may have changed since this file was
-written (a model ID, default, parameter name, endpoint, capability, or
-deprecation date), do not guess. In Key Changes, flag it as a
-deployer-verify item AND recommend the requestor confirm it with a Gemini
-API docs MCP search (e.g. a `gemini-api-docs-mcp` `search_docs` query)
-before deploying. Phrase the suggested query in the note, scoped to the
-exact unknown, for example: "Verify via a Gemini docs MCP search:
-'minimum google-genai SDK version for the Interactions API'." State the
-interim assumption you applied so the Revised Prompt stays usable. This
-recommendation goes in the optimizer's reply; the optimizer itself does
-not call the MCP.
+When a fix depends on an uncovered or possibly-drifted Gemini fact (model
+ID, default, parameter, endpoint, capability, deprecation date), do not
+guess. In Key Changes, flag a deployer-verify item and recommend the
+requestor confirm via a `gemini-api-docs-mcp` `search_docs` query scoped
+to the unknown (e.g. "minimum google-genai SDK version for the
+Interactions API"); state your interim assumption. The optimizer
+recommends the search, it does not call the MCP.
 
 ## Verify after changes
 

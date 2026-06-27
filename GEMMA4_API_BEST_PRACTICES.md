@@ -399,8 +399,8 @@ Applies on Gemma 4 prompts processing user-submitted content (item 15 conditiona
 - **Gemini 3.1 Flash-Lite** (`gemini-3.1-flash-lite`): efficiency-tuned;
   defaults to `minimal`. Supports the full level set.
 - **Gemini 3 Flash Preview** (`gemini-3-flash-preview`): defaults to `high`,
-  supports the full level set. Computer Use is supported on 3 Flash Preview
-  but NOT on 3.5 Flash.
+  supports the full level set. Preview alt for Computer Use; 3.5 Flash is
+  the recommended Computer Use model.
 - **Gemini 2.5 family** (`gemini-2.5-pro`, `gemini-2.5-flash`,
   `gemini-2.5-flash-lite`): supports `low | medium | high`. 2.5 Flash-Lite
   defaults thinking OFF. Older Gemini 2.5 advice (e.g., `thinking_budget: 0`
