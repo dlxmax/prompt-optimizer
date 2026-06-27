@@ -132,13 +132,13 @@ cp DEEPSEEK_V4_API_BEST_PRACTICES.md ~/.claude/
 
 ### Auto-Invocation (Optional)
 
-Add this line to `~/.claude/rules/agents.md` under "Automatic Agent Invocation":
+Add an entry to your agent-invocation rules so Claude reaches for the optimizer automatically whenever prompt work comes up. On the common rules layout, add this under `## Immediate Agent Usage` in `~/.claude/rules/common/agents.md`, continuing the existing numbering:
 
 ```
-6. Writing or revising an LLM prompt → **prompt-optimizer**
+5. Writing or revising an LLM prompt - Use **prompt-optimizer** agent
 ```
 
-This makes Claude invoke the optimizer automatically whenever prompt work comes up.
+Adjust the path, heading, and number to match wherever your setup lists agent-invocation triggers.
 
 ## Usage
 
