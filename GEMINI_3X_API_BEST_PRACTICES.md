@@ -12,8 +12,9 @@ imperative to the optimizer, not as vendor-doc paraphrase.
 <scope>
 Authoritative reference for the **Gemini Interactions API** when targeting
 the Gemini 3.x family: `gemini-3.5-flash` (GA, default for new
-production work), `gemini-3.1-pro-preview`, `gemini-3.1-flash-lite`,
-`gemini-3-flash-preview`, and `gemini-3-pro-preview`. Scope: API call
+production work), `gemini-3.1-pro-preview`, `gemini-3.1-flash-lite`, and
+`gemini-3-flash-preview`. (`gemini-3-pro-preview` shut down 2026-03-09 —
+treat as a legacy string; migrate to `gemini-3.1-pro-preview`.) Scope: API call
 mechanics, parameter defaults, thinking control, function-calling
 patterns, prompt-shape guidance specific to 3.x. For Gemma 4 targets read
 `GEMMA4_API_BEST_PRACTICES.md`; for DeepSeek V4 targets read
@@ -21,10 +22,10 @@ patterns, prompt-shape guidance specific to 3.x. For Gemma 4 targets read
 
 **Surface scope.** Scope every recommendation below to the
 Interactions API (`generativelanguage.googleapis.com/v1beta/interactions`,
-accessed via `client.interactions.create(...)` with `google-genai >= 2.0.0`
-Python SDK or `@google/genai >= 2.0.0` JS SDK; the general Interactions
-minimum is 2.3.0). Treat the legacy `:generateContent` endpoint as retired
-for prompt-optimizer's recommendations.
+accessed via `client.interactions.create(...)` with `google-genai >= 2.3.0`
+Python SDK or `@google/genai >= 2.3.0` JS SDK). Treat the legacy
+`:generateContent` endpoint as retired for prompt-optimizer's
+recommendations.
 </scope>
 
 ## 1. Model selection
@@ -34,8 +35,7 @@ for prompt-optimizer's recommendations.
 | `gemini-3.5-flash` | medium | minimal, low, medium, high | Agentic execution, coding, long-horizon tasks at scale (GA, recommended). |
 | `gemini-3.1-pro-preview` | high | low, medium, high | Highest-quality reasoning. No `minimal`. |
 | `gemini-3.1-flash-lite` | minimal | minimal, low, medium, high | Low-cost, high-volume tasks not needing 3.5 Flash's reasoning depth. |
-| `gemini-3-flash-preview` | high | minimal, low, medium, high | Computer Use workloads (3.5 Flash does NOT support Computer Use). |
-| `gemini-3-pro-preview` | high | low, high | Hardest reasoning tasks. No `minimal` or `medium`. |
+| `gemini-3-flash-preview` | high | minimal, low, medium, high | Preview alt for Computer Use; 3.5 Flash is the recommended Computer Use model. |
 
 3.5 Flash supports 1M input tokens / 65k output tokens / Batch API /
 Context Caching / Google Search / Google Maps grounding / File Search /
@@ -48,7 +48,7 @@ workloads to Gemini 2.5 Flash (thinking off) or Gemini Robotics-ER 1.6.
 Gemini 3.x reasoning is optimized for default sampling. Remove
 `temperature`, `top_p`, and `top_k` from all request bodies. This applies
 to **every Gemini 3.x model** including 3.5 Flash, 3.1 Pro, 3.1 Flash-Lite,
-3 Flash Preview, and 3 Pro Preview. To force determinism, write a system
+and 3 Flash Preview. To force determinism, write a system
 instruction with explicit rules; do not set temperature.
 
 Branch on model family in cross-family code: Gemma 4 uses T=1.0,
@@ -204,9 +204,7 @@ Apply this shape:
 
 ## 11. Prompting changes for 3.x
 
-Canonical reference: Google's prompt design strategies page
-(`ai.google.dev/gemini-api/docs/prompting-strategies.md.txt`) plus the
-3.5 Flash prompting best-practices section. Enforce the converged rules:
+Enforce these converged 3.x prompting rules:
 
 - **Precise instructions:** be concise. Gemini 3.x responds best to
   direct, clear instructions. Verbose or complex prompt engineering
@@ -303,10 +301,10 @@ upgraded to 3.5 Flash:
 - Test with thought preservation on; token usage increases per turn.
 - Place query at end of prompt for long-context inputs.
 - Drop chain-of-thought scaffolding from prompts; lean on `thinking_level`.
-- Update SDK to `google-genai` >= 2.0.0 (>= 2.3.0 for the general
-  Interactions floor).
-- Stay on Gemini 3 Flash Preview for Computer Use workloads; 3.5 Flash
-  does not support Computer Use.
+- Update SDK to `google-genai` / `@google/genai` >= 2.3.0 (Interactions
+  API floor).
+- Computer Use is supported on 3.5 Flash, the recommended Computer Use
+  model; 3 Flash Preview remains a supported preview alternative.
 
 ## 15. Agentic workflows: port the 9-point planning template
 
@@ -319,10 +317,36 @@ precision and grounding, (7) completeness, (8) persistence and patience,
 (9) inhibit-response gate.
 
 When the prompt is intended for an agentic workflow but lacks an
-equivalent planning structure, port the 9-point template into the system
-instruction. The template body lives at
-`ai.google.dev/gemini-api/docs/prompting-strategies.md.txt`; cite the
-URL rather than inlining the full template.
+equivalent planning structure, port the 9 dimensions above into the
+system instruction as a numbered planning block the model must complete
+before any tool call or user response. Each dimension is one numbered
+directive; the inhibit-response gate (9) goes last.
+
+## 16. Gemini 3 Flash freshness, grounding, and tool enablement
+
+**Flash system-instruction clauses** (Gemini 3 Flash family; absent by
+default, each high-ROI for the matching failure mode). Recommend in Key
+Changes when the prompt targets Flash AND the task is time-sensitive,
+knowledge-grounded, or RAG-style:
+
+- **Current-day clause** (time-sensitive queries, tool-call freshness):
+  instruct the model to follow the provided current date and year when
+  forming search queries, and state the year explicitly (it is 2026).
+  Flash otherwise defaults to stale assumptions about "now."
+- **Knowledge-cutoff clause** (facts near the boundary): state the
+  knowledge cutoff is January 2025 so the model defers to grounding for
+  post-cutoff facts instead of answering from parametric memory.
+- **Strict-grounding clause** (RAG / context-only answering): instruct the
+  model to rely ONLY on facts in the provided context, never its own
+  knowledge or inference, to treat anything not in the context as
+  unsupported, and to state when the answer is not present. Single
+  highest-leverage clause for hallucination-sensitive grounded deployments.
+
+**Tool enablement** (general 3.x; recommend by task type in Key Changes):
+- Recent or obscure facts → enable Google Search grounding
+  (`{"type": "google_search"}`).
+- Any arithmetic, counting, or calculation → enable code execution
+  (`{"type": "code_execution"}`); do not trust in-token computation.
 
 ## Verify after changes
 

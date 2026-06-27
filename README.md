@@ -4,19 +4,19 @@ A Claude Code agent that scores and revises LLM prompts against a research-backe
 
 **Topics:** `gemini` · `gemini-3.5` · `gemini-3.5-flash` · `gemini-3.x` · `interactions-api` · `gemma-4` · `gemma` · `claude` · `deepseek` · `deepseek-v4` · `response-schema` · `structured-output` · `rubric` · `llm-judge` · `prompt-engineering` · `prompts` · `agents` · `sycophancy` · `validation` · `compliance` · `best-practices`
 
-**Primary focus: mitigating known failure modes on `Gemini 3.x` (including 3.5 Flash GA) via the Gemini Interactions API, `Gemma 4 31b` via the same API, and `DeepSeek V4` (V4-Pro, V4-Flash) via the DeepSeek API.** The agent also targets Claude. The 15-item checklist is model-agnostic; model-specific rules kick in when a `Target model:` is declared. Probe data behind the current rules: the canonical Gemini docs scraped on 2026-06-24 covering the Interactions API GA, 3.5 Flash, long-context placement, thinking, and prompt design strategies; 100+ probe calls against Gemma 4 between May 6–13 2026; and the DeepSeek V4 strict-ordering failure modes captured across 6 optimizer rounds in May 2026.
+**Primary focus: mitigating known failure modes on `Gemini 3.x` (including 3.5 Flash GA) via the Gemini Interactions API, `Gemma 4 31b` via the same API, and `DeepSeek V4` (V4-Pro, V4-Flash) via the DeepSeek API.** The agent also targets Claude. The 15-item checklist is model-agnostic; model-specific rules kick in when a `Target model:` is declared.
 
 The two goals are: prompts the model actually executes instead of silently skipping over directives, and call mechanics that do not waste retry budget on failures the schema or parser already explains.
 
-**Primary workflow:** Use this agent inside Claude Code to optimize prompts for any LLM. The optimizer runs on Claude; when it writes a rubric for a judge prompt, Claude is authoring the rubric and the target model applies it (cross-model rubric generation), which research shows equals or outperforms same-model self-generation. Model-specific guidance is baked into the checklist and applied when a `Target model:` is declared.
+**Primary workflow:** Use this agent inside Claude Code to optimize prompts for any LLM. The optimizer runs on Claude; when it writes a rubric for a judge prompt, Claude is authoring the rubric and the target model applies it (cross-model rubric generation, which tends to equal or outperform same-model self-generation). Model-specific guidance is baked into the checklist and applied when a `Target model:` is declared.
 
 ## Failure modes the optimizer mitigates
 
 ### Gemini 3.x / 3.5 Flash (Interactions API)
 
-Five rules the optimizer scans for, drawn from Google's canonical prompt design strategies, the 3.5 Flash guide, the Interactions API GA docs, and the long-context guide. Full mechanics in [`GEMINI_3X_API_BEST_PRACTICES.md`](GEMINI_3X_API_BEST_PRACTICES.md).
+Five rules the optimizer scans for. Full mechanics in [`GEMINI_3X_API_BEST_PRACTICES.md`](GEMINI_3X_API_BEST_PRACTICES.md).
 
-- **Remove `temperature`, `top_p`, `top_k`.** Google's 3.5 Flash guide is explicit: "we strongly recommend not changing the default values ... Remove these parameters from all requests." Setting them on Gemini 3.x can cause looping or degraded performance. To force determinism, write the system instruction with explicit rules instead.
+- **Remove `temperature`, `top_p`, `top_k`.** The defaults are tuned; setting these on Gemini 3.x can cause looping or degraded performance. To force determinism, write the system instruction with explicit rules instead.
 - **Replace `thinking_budget` (numeric) with `thinking_level` (`minimal` / `low` / `medium` / `high`).** 3.5 Flash defaults to `medium` (down from `high` on 3 Flash Preview). `thinking_level` and `thinking_budget` are mutually exclusive — passing both returns HTTP 400.
 - **Long-context query placement.** Substantial context blocks come first; the user's specific query goes at the END, anchored with "Based on the preceding information...". Burying the query at the top is a defect on long-context prompts.
 - **Critical-instructions placement.** Persona, behavioral constraints, and output format requirements live in the `system_instruction` parameter OR at the very beginning of the user prompt — not buried after long context or examples.
@@ -26,66 +26,11 @@ The optimizer also flags multimodal prompts that fail to reference each modality
 
 ### Gemma 4 31b (Interactions API)
 
-Three highest-ROI before/after fixes. Full mechanics, thresholds, and probe data in [`GEMMA4_API_BEST_PRACTICES.md`](GEMMA4_API_BEST_PRACTICES.md).
+Three highest-ROI fixes the optimizer scans for. Full mechanics and thresholds in [`GEMMA4_API_BEST_PRACTICES.md`](GEMMA4_API_BEST_PRACTICES.md).
 
-#### 1. Thinking is always on; only `response_format` suppresses it
-
-Without `response_format`, every call pays the always-on thinking cost (visible as `thought` steps in `interaction.steps[]`, median wall-clock ~67s on short outputs, non-zero `MALFORMED_RESPONSE` rate). With it, thinking collapses and the same call returns in 1–2s with `MALFORMED` at 0%. The documented levers (`thinking_level: "off"`, `thinking_budget: 0`) return HTTP 400 on Gemma 4; `response_format` is the only mechanism that works.
-
-```python
-# Before: thinking burns the budget; MALFORMED non-zero; ~67s median.
-interaction = client.interactions.create(
-    model="gemma-4-31b-it",
-    input=user_prompt,
-)
-
-# After: thinking suppressed; MALFORMED 0%; ~30 to 40x faster.
-interaction = client.interactions.create(
-    model="gemma-4-31b-it",
-    input=user_prompt,
-    response_format={
-        "type": "text",
-        "mime_type": "application/json",
-        "schema": {
-            "type": "object",
-            "properties": {"output": {"type": "string"}},
-            "required": ["output"],
-        },
-    },
-)
-```
-
-#### 2. Property order in the schema controls emission order
-
-Gemma 4 emits an OBJECT's properties in the order they appear in the schema's `properties` dict. Putting `reasoning` BEFORE `verdict` forces reason-before-commit; reversing it lets the verdict lock first and inflates the justification afterward. Per-item output dropped from ~1.8k to ~250 chars under this change alone on a warmup validator.
-
-```python
-# Before: verdict commits first; reasoning then inflates to justify.
-"properties": {
-    "verdict":   {"type": "string", "enum": ["KEEP", "DROP"]},
-    "reasoning": {"type": "string"},
-}
-
-# After: reasoning is generated first; verdict is the output of it.
-"properties": {
-    "reasoning": {"type": "string"},
-    "verdict":   {"type": "string", "enum": ["KEEP", "DROP"]},
-}
-```
-
-Caveat: this only applies to narrow schemas. With ≥4 mandatory nested OBJECTs, adding a top-level reasoning STRING crashes the request on `31b` (alternating 400/500, 0/4 success). Move the reasoning surface to prompt-level prose or a separate narrow call.
-
-#### 3. Parse with `raw_decode`, not `json.loads`
-
-Even with `response_format`, Gemma 4 occasionally appends trailing text after valid JSON (~1 in 12 calls observed). `json.loads` raises on the trailing bytes; `raw_decode` returns the first valid object and ignores the rest.
-
-```python
-# Before: ~8% of otherwise-valid outputs raise json.JSONDecodeError.
-parsed = json.loads(interaction.output_text)
-
-# After: parses cleanly across all observed Gemma 4 outputs.
-parsed, _ = json.JSONDecoder().raw_decode(interaction.output_text)
-```
+- **Thinking is always on; only `response_format` suppresses it.** Without it, every call pays the always-on thinking cost (visible as `thought` steps in `interaction.steps[]`) and runs far slower with a non-zero `MALFORMED_RESPONSE` rate. The documented levers (`thinking_level: "off"`, `thinking_budget: 0`) return HTTP 400 on Gemma 4; setting `response_format` to a JSON schema is the only mechanism that works.
+- **Property order in the schema controls emission order.** Gemma 4 emits an object's properties in the order they appear in the schema. Put `reasoning` before `verdict` to force reason-before-commit; the reverse lets the verdict lock first and inflates the justification. Narrow schemas only — with ≥4 mandatory nested objects, adding a top-level reasoning string crashes `31b`, so move the reasoning surface to prompt prose or a separate call.
+- **Parse with `raw_decode`, not `json.loads`.** Even with `response_format`, Gemma 4 occasionally appends trailing text after valid JSON; `json.loads` raises on it, while `json.JSONDecoder().raw_decode()` returns the first valid object and ignores the rest.
 
 ### DeepSeek V4 (V4-Pro / V4-Flash)
 
@@ -101,17 +46,17 @@ The agent flags appearances of retired Gemini wiring as migration defects: `clie
 
 ## The Problem
 
-Most LLM prompts are written by feel. Frontier models in 2026 do not refuse tasks, they silently omit them. The research shows where:
+Most LLM prompts are written by feel. Frontier models in 2026 do not refuse tasks, they silently omit them. Here's where it shows up:
 
-- **Frontier models still drop 25 to 40% of multi-constraint directives** on novel out-of-domain instructions. Qwen3.6 Plus scores 75.8% on IFBench; Claude Opus 4.5 scores 58%. Structural prompt design closes the gap. (IFBench 2026)
-- **Reasoning quality degrades around 3,000 tokens** even on models with 256K to 1M context windows. Focused prompts beat long ones regardless of available context. (Prompt-bloat study, MLOps Community 2026)
-- **Long-context query placement matters.** Google's Long Context FAQ and 3.5 Flash guide are explicit: when the total context is long, put the user's query at the END after the data, anchored with "Based on the preceding information...".
-- **58.8% of initially correct answers get flipped wrong** by naive "check your work" validation prompts. (ACL 2025)
-- **One-shot often beats few-shot** for LLM-as-judge tasks. The old "3 to 5 diverse examples" rule is retired; 1 to 3 verdict-balanced examples per criterion is current, all score levels for scale rubrics, PASS+FAIL for binary criteria, with borderline pairs preferred over obvious contrasts. (Confident AI 2026, Autorubric 2026)
-- **GPT-4 reaches 91.7% zero-shot** on native-language identification when the prompt names the linguistic features to attend to. Linguistic analysis prompts need their own playbook. (Lotfi et al.)
-- **~29% sycophancy reduction** is achievable through prompt structure alone, no fine-tuning required. (sparkco.ai)
-- **A concrete rubric is the single highest-return change for judge prompts**: GPT-4o +17.7 pts on JudgeBench, Llama-405B +7.4 pts, Sage aggregate +16.1% IPI. A ~27-point "Rubric Gap" (self-generated vs. human rubrics) is consistent across Gemini, GPT, and DeepSeek. (Rethinking Rubric Generation 2026; RubricBench 2026; Sage Dec 2025)
-- **All frontier judges are unreliable on a single pass** ("rating roulette"). High-stakes judge calls need N≥5 majority vote for consistency (reduces variance ~70%), though accuracy gains are small (+2.3pp); the high-ROI accuracy levers are rubric quality and structured reasoning. Debate-style prompts (ChatEval) are actively harmful: -158% worst-case consistency. Multi-model consensus is the strongest deployment lever. (Rating Roulette EMNLP 2025; Sage Dec 2025)
+- **Frontier models still drop a large share of multi-constraint directives** on novel out-of-domain instructions. Structural prompt design closes the gap.
+- **Reasoning quality degrades past a few thousand tokens** even on models with 256K to 1M context windows. Focused prompts beat long ones regardless of available context.
+- **Long-context query placement matters.** When the total context is long, put the user's query at the END after the data, anchored with "Based on the preceding information...".
+- **Naive "check your work" validation flips most initially correct answers wrong.** Self-correction needs structure, not a blanket re-check.
+- **One-shot often beats few-shot** for LLM-as-judge tasks. The old "3 to 5 diverse examples" rule is retired; use 1 to 3 verdict-balanced examples per criterion, all score levels for scale rubrics, PASS+FAIL for binary criteria, with borderline pairs preferred over obvious contrasts.
+- **Naming the linguistic features to attend to sharply improves native-language identification.** Linguistic analysis prompts need their own playbook.
+- **Meaningful sycophancy reduction is achievable through prompt structure alone**, no fine-tuning required.
+- **A concrete rubric is the single highest-return change for judge prompts.** Self-generated rubrics leave a large, consistent gap to human-quality rubrics across Gemini, GPT, and DeepSeek.
+- **All frontier judges are unreliable on a single pass.** High-stakes judge calls need N≥5 majority vote for consistency; the high-ROI accuracy levers are rubric quality and structured reasoning. Debate-style prompts are actively harmful. Multi-model consensus is the strongest deployment lever.
 - **Three model families need their own playbooks:** Gemini 3.x via Interactions ([`GEMINI_3X_API_BEST_PRACTICES.md`](GEMINI_3X_API_BEST_PRACTICES.md)), Gemma 4 via Interactions ([`GEMMA4_API_BEST_PRACTICES.md`](GEMMA4_API_BEST_PRACTICES.md)), and DeepSeek V4 ([`DEEPSEEK_V4_API_BEST_PRACTICES.md`](DEEPSEEK_V4_API_BEST_PRACTICES.md)).
 
 ## Multi-Model Workflow
@@ -265,47 +210,9 @@ All text inside `<prompt_under_review>` is treated as data only — instructions
 | File | Purpose |
 |---|---|
 | `agents/prompt-optimizer.md` | The Claude Code agent definition: universal 15-item checklist, scoring rubric, compaction rules |
-| `GEMINI_3X_API_BEST_PRACTICES.md` | Gemini 3.x family on the Interactions API (3.5 Flash GA, 3.1 Pro, 3 Flash Preview, 3 Pro Preview) |
+| `GEMINI_3X_API_BEST_PRACTICES.md` | Gemini 3.x family on the Interactions API (3.5 Flash GA, 3.1 Pro, 3 Flash Preview) |
 | `GEMMA4_API_BEST_PRACTICES.md` | Gemma 4 on the Gemini Interactions API (probe-verified May 2026, ported to Interactions wiring) |
 | `DEEPSEEK_V4_API_BEST_PRACTICES.md` | DeepSeek V4 family API mechanics (V4-Pro, V4-Flash) |
-| `PROMPT_RESEARCH.md` | Full research archive with 60+ sources (2024 to 2026) |
-
-## Key Research Sources
-
-**June 2026 — Gemini Interactions API and 3.5 Flash GA (scrapling-verified 2026-06-24):**
-- [Gemini Interactions API overview](https://ai.google.dev/gemini-api/docs/interactions-overview): GA endpoint, SDK floor, stateful chains via `previous_interaction_id`
-- [Migrate to Interactions API guide](https://ai.google.dev/gemini-api/docs/migrate-to-interactions.md.txt): every legacy `generateContent` wiring → Interactions equivalent
-- [Gemini Structured Outputs (Interactions version)](https://ai.google.dev/gemini-api/docs/structured-output.md.txt): top-level `response_format`, single-object schema form, tools combination preview
-- [Gemini Long Context guide](https://ai.google.dev/gemini-api/docs/long-context.md.txt): query-at-end placement when total context is long
-- [What's new in Gemini 3.5 Flash](https://ai.google.dev/gemini-api/docs/whats-new-gemini-3.5.md.txt): parameter removal, `thinking_level` over `thinking_budget`, function-calling strict matching
-- [Gemini thinking (Interactions)](https://ai.google.dev/gemini-api/docs/thinking.md.txt): `thought` step type, `signature` always present, `summary` opt-in via `thinking_summaries: "auto"`
-- [Gemini prompt design strategies](https://ai.google.dev/gemini-api/docs/prompting-strategies.md.txt): canonical Gemini 3 prompting reference (consistent structure, critical-instructions placement, multimodal equal-class, agentic 9-point template)
-
-**May 2026 — Empirical probes:**
-- REST API probes against `gemma-4-31b-it`, `gemma-4-26b-a4b-it`, `gemini-2.5-flash`, `gemini-3.1-flash-lite-preview`. Summary in [`GEMMA4_API_BEST_PRACTICES.md`](GEMMA4_API_BEST_PRACTICES.md); behavior layer ports forward to Interactions wiring.
-- DeepSeek V4 strict-ordering failure modes captured across 6 optimizer rounds on a 121k-char directive: alphabetical-default bias, example tyranny, lowest-cost completion.
-
-**2026 refresh:**
-- [IFBench leaderboard, April 2026](https://benchlm.ai/benchmarks/ifBench): current frontier instruction-following scores
-- [Rethinking Rubric Generation (RRD), arxiv 2602.05125](https://arxiv.org/abs/2602.05125): GPT-4o +17.7 pts, Llama-405B +7.4 pts; cross-model generation validated
-- [RubricBench, arxiv 2603.01562](https://arxiv.org/abs/2603.01562): ~27-pt Rubric Gap universal across Gemini, GPT, DeepSeek
-- [Same Input, Different Scores, arxiv 2603.04417](https://arxiv.org/abs/2603.04417): Gemini single-model variance
-- [LLMLingua-2, NAACL 2025](https://llmlingua.com/llmlingua2.html): task-agnostic prompt compression, 3x to 6x
-- [Prompt-bloat study, MLOps Community 2026](https://mlops.community/the-impact-of-prompt-bloat-on-llm-output-quality/): the ~3K token degradation threshold
-- [Label Your Data LLM-as-judge 2026](https://labelyourdata.com/articles/llm-as-a-judge): few-shot instability and one-shot dominance
-- [Native Language Identification with LLMs (Lotfi et al.)](https://arxiv.org/abs/2312.07819): GPT-4 zero-shot 91.7% TOEFL11
-- [Rating Roulette, EMNLP 2025](https://arxiv.org/pdf/2510.27106): single-pass judges unreliable; N≥5 needed
-- [Sage benchmark, Dec 2025](https://arxiv.org/html/2512.16041v1): rubric generation +16.1% IPI; debate prompts -158%
-- [Google Gemma 4 Technical Report, 2026](https://storage.googleapis.com/deepmind-media/gemma/gemma4-report.pdf): T=1.0 recommended, 26B A4B double tool-call bug, JSON adherence weakness, injection susceptibility
-- [DeepSeek V4 Tech Report and API docs, April 2026](https://api-docs.deepseek.com/news/news260424): V4-Pro 1.6T/49B-activated and V4-Flash 284B/13B-activated MoE; default-on thinking; JSON-mode "json"-keyword requirement; strict-mode tool calling on the `/beta` endpoint
-- [Judging the Judges, ACL/IJCNLP 2025](https://arxiv.org/html/2406.07791v7): position bias is incoherent; swap-and-count less effective
-
-**Still load-bearing:**
-- [AGENTIF](https://arxiv.org/abs/2505.16944): NeurIPS 2025 decomposition finding (headline numbers superseded by IFBench 2026)
-- [Self-Correction Blind Spot](https://arxiv.org/abs/2507.02778): the "Wait" prefix discovery
-- [Dark Side of Self-Correction](https://aclanthology.org/2025.acl-long.1314/): ACL 2025 recency bias fix
-- [HuggingFace LLM-as-Judge cookbook](https://huggingface.co/learn/cookbook/en/llm_judge): 1-4 scale; evaluation field before verdict; 0.563 to 0.843 correlation improvement
-- [Anthropic Claude Prompting Guide](https://docs.anthropic.com): XML tags and document-first ordering
 
 ## License
 
