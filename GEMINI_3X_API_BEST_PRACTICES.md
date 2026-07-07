@@ -274,28 +274,12 @@ interaction = client.interactions.create(
 )
 ```
 
-## 14. Migration checklist when moving to 3.5 Flash
+## 14. Migration content moved
 
-Recommend in the optimizer's Key Changes section when the target is being
-upgraded to 3.5 Flash:
-
-- Update model name (e.g., `gemini-3-flash-preview` → `gemini-3.5-flash`).
-- Remove `temperature`, `top_p`, `top_k`.
-- Replace `thinking_budget` (numeric) with `thinking_level` (string enum).
-- Verify default `medium` thinking fits the task. Test `low` for cost;
-  reserve `high` for hardest cases.
-- Add `id` and matching `name` to all `function_result` parts; return one
-  response per call.
-- Move multimodal content INSIDE function responses, not as sibling parts.
-- Append inline instructions to the END of function-response text separated
-  by two newlines.
-- Test with thought preservation on; token usage increases per turn.
-- Place query at end of prompt for long-context inputs.
-- Drop chain-of-thought scaffolding from prompts; lean on `thinking_level`.
-- Update SDK to `google-genai` / `@google/genai` >= 2.3.0 (Interactions
-  API floor).
-- Computer Use is supported on 3.5 Flash, the recommended Computer Use
-  model; 3 Flash Preview remains a supported preview alternative.
+Legacy `generateContent` wiring scans and the 3.5 Flash upgrade checklist
+live in `GEMINI_MIGRATION.md`. Load that file when legacy forms appear;
+it is a one-time-per-prompt reference, not part of this file's
+frequent-load shape.
 
 ## 15. Agentic workflows: port the 9-point planning template
 
@@ -318,7 +302,8 @@ directive; the inhibit-response gate (9) goes last.
 **Flash system-instruction clauses** (Gemini 3 Flash family; absent by
 default, each high-ROI for the matching failure mode). Recommend in Key
 Changes when the prompt targets Flash AND the task is time-sensitive,
-knowledge-grounded, or RAG-style:
+knowledge-grounded, RAG-style, or a grading/judge task over submitted
+work:
 
 - **Current-day clause** (time-sensitive queries, tool-call freshness):
   instruct the model to follow the provided current date and year when
@@ -327,11 +312,14 @@ knowledge-grounded, or RAG-style:
 - **Knowledge-cutoff clause** (facts near the boundary): state the
   knowledge cutoff is January 2025 so the model defers to grounding for
   post-cutoff facts instead of answering from parametric memory.
-- **Strict-grounding clause** (RAG / context-only answering): instruct the
-  model to rely ONLY on facts in the provided context, never its own
-  knowledge or inference, to treat anything not in the context as
-  unsupported, and to state when the answer is not present. Single
-  highest-leverage clause for hallucination-sensitive grounded deployments.
+- **Strict-grounding clause** (RAG / context-only answering; grading and
+  judge prompts over a submission): instruct the model to rely ONLY on
+  facts in the provided context or submission, never its own knowledge or
+  inference, to treat anything not in the context as unsupported, and to
+  state when the answer or evidence is not present. Single
+  highest-leverage clause for hallucination-sensitive grounded
+  deployments, including rubric graders whose comments must be anchored
+  in the student's text.
 
 **Tool enablement** (general 3.x; recommend by task type in Key Changes):
 - Recent or obscure facts → enable Google Search grounding
@@ -365,4 +353,5 @@ This file is imperative reference for the prompt-optimizer agent when
 `Target model: Gemini 3.x` is declared. Apply every numbered rule to the
 prompt under review, cite rule numbers in Key Changes, and treat the
 Interactions API as the sole supported surface. Legacy `:generateContent`
-wiring is a migration defect to flag, not a fallback to accept.
+wiring is a migration defect: load `GEMINI_MIGRATION.md` and flag it
+with the Interactions equivalent named.

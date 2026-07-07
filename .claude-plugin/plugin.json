@@ -1,7 +1,7 @@
 {
   "name": "prompt-optimizer",
-  "version": "1.1.4",
-  "description": "Scores and revises LLM prompts against a research-backed checklist. Primary focus is mitigating known failure modes on Gemini 3.x (including 3.5 Flash GA) via the Gemini Interactions API, on Gemma 4 31b via the same API, and on DeepSeek V4 (V4-Pro, V4-Flash) via the DeepSeek API; also targets Claude.",
+  "version": "2.0.0",
+  "description": "Grading-first prompt designer and reviewer for rubric-based grading pipelines: rescues oversized grading monoliths into per-criterion call architectures, audits revised grading prompts, and authors pipelines from a rubric. Thin diagnostic trunk with composable branches. Also reviews generic prompts, with family mechanics for Gemini 3.x (Interactions API), Gemma 4, DeepSeek V4, and Claude.",
   "author": {
     "name": "dlxmax",
     "url": "https://github.com/dlxmax"
@@ -10,11 +10,15 @@
   "repository": "https://github.com/dlxmax/prompt-optimizer",
   "license": "MIT",
   "keywords": [
+    "grading",
+    "rubric-grading",
+    "education",
+    "rubric",
+    "llm-judge",
     "prompts",
     "prompt-engineering",
     "agents",
     "sycophancy",
-    "llm-judge",
     "best-practices",
     "compliance",
     "validation",
@@ -29,7 +33,6 @@
     "deepseek",
     "deepseek-v4",
     "response-schema",
-    "structured-output",
-    "rubric"
+    "structured-output"
   ]
 }
