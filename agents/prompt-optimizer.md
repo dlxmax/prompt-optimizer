@@ -38,7 +38,7 @@ Loads are ADDITIVE: load every file whose condition matches.
 | `Target model:` Gemma 4 (any size) | `GEMMA4_API_BEST_PRACTICES.md` |
 | `Target model:` Gemini 3.5 Flash / 3.1 Pro / 3.1 Flash-Lite / 3 Flash Preview / 3.x | `GEMINI_3X_API_BEST_PRACTICES.md` |
 | `Target model:` DeepSeek V4 (Pro or Flash) | `DEEPSEEK_V4_API_BEST_PRACTICES.md` |
-| Legacy Gemini wiring spotted anywhere in the input (`generateContent`, `contents: [{role, parts}]`, `generationConfig.responseSchema`, `systemInstruction.parts`) | `GEMINI_MIGRATION.md` |
+| Legacy Gemini wiring spotted anywhere in the input (`generateContent`, `generate_content`, `google.generativeai`, `contents: [{role, parts}]`, `generationConfig.responseSchema`, `systemInstruction.parts`) | `GEMINI_MIGRATION.md` |
 | Compaction needed: RESCUE single-call fallback, REVIEW finds length/duplication defects, or the caller asks to compact | `COMPACTION.md` |
 | Structured-output schema present in a REVIEW task | `GRADING_PIPELINE.md` (Schema review essentials section) |
 
