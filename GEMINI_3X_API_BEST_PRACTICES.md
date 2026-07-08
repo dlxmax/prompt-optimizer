@@ -51,8 +51,9 @@ Gemini 3.x reasoning is optimized for default sampling. Remove
 Gemini 3.x model**. To force determinism, write a system instruction with
 explicit rules; do not set temperature.
 
-Branch on model family in cross-family code: Gemma 4 uses T=1.0,
-top_p=0.95, top_k=64; Gemini 3.x uses model defaults with the sampling
+Branch on model family in cross-family code: Gemma 4 uses T=1.0 and
+top_p=0.95 (the Interactions `generation_config` rejects `top_k`; see
+GEMMA4 rule 10); Gemini 3.x uses model defaults with the sampling
 triple absent from the request body; many older Gemini 2.5 deployments
 set the sampling triple explicitly and must be migrated.
 

@@ -260,18 +260,23 @@ echo or "do not restart the object" guard at the end is fine; full
 re-specification is what backfires. This is a Gemma 4-specific exception
 to the universal start-and-end repetition rule.
 
-## 10. Use T=1.0, top_p=0.95, top_k=64; do not use T=0
+## 10. Use T=1.0 and top_p=0.95; do not use T=0
 
-T=0 is not recommended on Gemma 4. The recommended sampling
-configuration is `temperature=1.0`, `top_p=0.95`, `top_k=64`, applied
-uniformly across all Gemma 4 sizes and all use cases (including judge
-calls). Pass all three when constructing `generation_config`; setting
-only `T=1.0` is incomplete.
+T=0 is not recommended on Gemma 4. The recommended sampling values are
+`temperature=1.0`, `top_p=0.95`, `top_k=64`, applied uniformly across
+all Gemma 4 sizes and all use cases (including judge calls).
+
+**Surface caveat.** The Interactions API `generation_config` has no
+`top_k` parameter: sending it returns 400 `Unknown parameter 'top_k'`
+(verified live on `gemma-4-31b-it`, 2026-07-08). On Interactions
+wiring, pass `temperature=1.0` and `top_p=0.95` and leave top_k to the
+server default. The full triple applies only to surfaces that accept
+it (legacy `generateContent`, local runtimes' samplers).
 
 **Contrast with Gemini 3.x.** Gemini 3.x reasoning is optimized for the
 default settings; remove `temperature`, `top_p`, `top_k` from all
 Gemini 3.x requests. Cross-family code must branch on model family:
-pass the sampling triple for Gemma 4; remove it for Gemini 3.x.
+pass the Gemma sampling values for Gemma 4; remove them for Gemini 3.x.
 
 ## 11. Probe before recommending
 
