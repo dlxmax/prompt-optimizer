@@ -1,6 +1,6 @@
 {
   "name": "prompt-optimizer",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Grading-first prompt designer and reviewer for rubric-based grading pipelines: rescues oversized grading monoliths into per-criterion call architectures, audits revised grading prompts, and authors pipelines from a rubric. Thin diagnostic trunk with composable branches. Also reviews generic prompts, with family mechanics for Gemini 3.x (Interactions API), Gemma 4, DeepSeek V4, and Claude.",
   "author": {
     "name": "dlxmax",

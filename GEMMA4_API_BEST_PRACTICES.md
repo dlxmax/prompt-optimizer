@@ -337,19 +337,9 @@ Expected behavior parallel: no `response_format` → `thought` step(s)
 precede `model_output`; with `response_format` → single `model_output`
 step. Probe before production rollout.
 
-## 15. Recall-sensitive scan extension for closed-set forensic checklists
+## 15. Forensic closed-set scan extension moved
 
-Fires when the prompt is a recall-sensitive closed-set scan (model walks a fixed list of N signals/categories and emits findings per item; AI-detection scans, L1 marker detection, multi-criterion forensic checklists). When it fires, these four constructs are added to the optimizer's compaction preserve-list:
-
-15.1. "Rationale:" clauses on each signal definition. Without them, Gemma at T=1.0 reads the signal name and moves on without scanning.
-
-15.2. PASS-by-example density of >=2 PASS examples on signals where the prior pass's `findings[]` recall was measurably empty. Keep density at 1 on signals that recalled fine.
-
-15.3. Process-instruction preambles before second-pass review steps that read across earlier output (e.g., "the patchwork signature requires looking across two sections AFTER L1 evidence has accumulated"). Flattening to a conditional collapses the second pass into the first.
-
-15.4. Closing recall-posture override ("when a substantive signal is borderline-supported, emit it; downstream calls aggregate") when the prior pass under-recalled on borderline cases.
-
-Apply 15.1-15.4 selectively per task, not as a package. Empirical risk profile, lowest to highest false-positive: 15.3 < 15.2 (signal-scoped) < 15.1 (low FP on lexical/syntactic signals, high FP on holistic-pattern signals) < 15.4 (over-fires on clean cases globally). When briefed on a regression cycle without per-signal A/B data, default to restoring 15.3, then 15.2 on signals that recalled empty, and treat 15.1 and 15.4 as opt-in with named-case justification.
+The recall-sensitive closed-set scan extension (15.1-15.4: rationale clauses, PASS-example density, process-instruction preambles, recall-posture override) lives in `GEMMA4_FORENSIC_SCANS.md`. Load that file when the prompt walks a fixed list of N signals/categories and emits findings per item (AI-detection scans, L1 marker detection, multi-criterion forensic checklists); it is not part of this file's grading-load shape.
 
 ## 16. Content-axis schema binding for count-constrained slots
 
