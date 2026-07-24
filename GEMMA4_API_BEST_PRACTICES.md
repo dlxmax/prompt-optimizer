@@ -384,22 +384,19 @@ Applies on Gemma 4 prompts processing user-submitted content (item 15 conditiona
 
 ## Cross-family: do not generalize from sibling Gemini models
 
-- **Gemini 3.5 Flash** (`gemini-3.5-flash`): GA on Interactions. Defaults
-  `thinking_level` to `medium` (down from `high` on 3 Flash Preview).
-  Supports `minimal | low | medium | high`. Do NOT pass `temperature`,
-  `top_p`, `top_k` (Gemini 3.x recommendation: remove these parameters).
-  See `GEMINI_3X_API_BEST_PRACTICES.md`.
-- **Gemini 3.1 Pro Preview** (`gemini-3.1-pro-preview`): defaults to
-  `high`, supports `low | medium | high`. No `minimal`.
-- **Gemini 3.1 Flash-Lite** (`gemini-3.1-flash-lite`): efficiency-tuned;
-  defaults to `minimal`. Supports the full level set.
-- **Gemini 3 Flash Preview** (`gemini-3-flash-preview`): defaults to `high`,
-  supports the full level set. Preview alt for Computer Use; 3.5 Flash is
-  the recommended Computer Use model.
-- **Gemini 2.5 family** (`gemini-2.5-pro`, `gemini-2.5-flash`,
-  `gemini-2.5-flash-lite`): supports `low | medium | high`. 2.5 Flash-Lite
-  defaults thinking OFF. Older Gemini 2.5 advice (e.g., `thinking_budget: 0`
-  disables thinking on 2.5 Flash) does not port to Gemma 4.
+Gemini 3.x models (`gemini-3.6-flash`, `gemini-3.5-flash`,
+`gemini-3.5-flash-lite`, `gemini-3.1-pro-preview`, `gemini-3.1-flash-lite`,
+`gemini-3-flash-preview`) do NOT share Gemma 4's fixed sampling: they use
+per-model `thinking_level` defaults and drop the sampling triple entirely
+from the request body, versus Gemma 4's T=1.0/top_p=0.95 fixed sampling
+(rule 10) and `response_format`-suppresses-always-on-thinking behavior.
+Older Gemini 2.5 advice (e.g., `thinking_budget: 0` disables thinking on
+2.5 Flash) does not port to Gemma 4 either. For current Gemini model IDs,
+defaults, and parameter mechanics, invoke the `gemini-interactions-api`
+skill or see `GEMINI_3X_API_BEST_PRACTICES.md`; do not hand-copy
+model-specific figures from this cross-family note — it exists to warn
+against assuming behavior transfers between families, not to be a second
+source of truth for Gemini facts.
 
 Code that targets multiple Google models must branch on model family.
 A `Target model: Gemini 3.x` brief invokes `GEMINI_3X_API_BEST_PRACTICES.md`;

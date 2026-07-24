@@ -1,7 +1,7 @@
 # Grading pipeline reference
 
 <role>
-Reference for the prompt-optimizer agent. Load for RESCUE, AUDIT, and AUTHOR tasks. The G-checklist is the audit rubric for AUDIT and the build specification for RESCUE and AUTHOR. Apply every item; cite item numbers (G1-G10) in findings and Key Changes.
+Reference for the prompt-optimizer agent. Load for RESCUE, AUDIT, and AUTHOR tasks whose domain is GRADING: a judge/rubric-scoring prompt producing a numeric level or score. The G-checklist is the audit rubric for AUDIT and the build specification for RESCUE and AUTHOR. Apply every item; cite item numbers (G1-G10) in findings and Key Changes. When the caller also wants PQS-style structured feedback text (not a bare comment string), `FEEDBACK_GENERATION.md` loads additively for the feedback field alongside this file's scoring artifacts.
 </role>
 
 ## G-checklist
@@ -100,8 +100,9 @@ Adjust `minimum`/`maximum` to the upstream scale. `propertyOrdering` orders emis
 1. Before deployment, dry-run the pipeline on a small human-graded set per assignment type.
 2. Compare per-criterion agreement with the human grades; expect and correct harsh bias on mechanics-type criteria.
 3. Compare score distributions, not only agreement: flag variance compression.
-4. Apply at most one rubric-wording refinement round; further rounds overfit to the validation set.
-5. Re-run the dry run after any wording change to templates or descriptors.
+4. When the target is `gemini-3.5-flash-lite` at its default `thinking_level: "minimal"`, diagnose before assuming a rubric-wording problem: vague or evidence-thin comments, ignored AND-gated clauses, or unstable levels across reruns on the same submission point to insufficient reasoning depth, not bad wording. Test `thinking_level: "low"` (escalate to `medium`/`high` only if `low` still underperforms) and re-run the dry run before spending the wording-refinement round on item 5 (`GEMINI_3X_API_BEST_PRACTICES.md` rule 8).
+5. Apply at most one rubric-wording refinement round; further rounds overfit to the validation set.
+6. Re-run the dry run after any wording change to templates or descriptors.
 
 ## Output skeletons
 

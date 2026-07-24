@@ -1,113 +1,50 @@
-# Gemini 3.x API best practices
+# Gemini 3.x prompt-content best practices
 
 <role>
 Reference material for the prompt-optimizer agent. Load when `Target model:`
-declares `Gemini 3.5 Flash`, `Gemini 3.1 Pro Preview`, `Gemini 3.1 Flash-Lite`,
-`Gemini 3 Flash Preview`, `Gemini 3 Pro Preview`, or `Gemini 3.x`. Apply every
-numbered rule below to the prompt under review; cite rule numbers in the
-optimizer's Key Changes for deployer verification. Treat every directive as
-imperative to the optimizer, not as vendor-doc paraphrase.
+declares `Gemini 3.6 Flash`, `Gemini 3.5 Flash`, `Gemini 3.5 Flash-Lite`,
+`Gemini 3.1 Pro Preview`, `Gemini 3.1 Flash-Lite`, `Gemini 3 Flash Preview`,
+`Gemini 3 Pro Preview`, or `Gemini 3.x`. Apply every numbered rule below to
+the prompt under review; cite rule numbers in the optimizer's Key Changes
+for deployer verification.
+
+This file covers **prompt content only**: how to word and structure a
+prompt or system instruction so a Gemini 3.x model performs well. It does
+NOT cover API call mechanics (model IDs, defaults, pricing, parameter
+wiring, request/response shape, SDK versions) — that is the
+`gemini-interactions-api` skill's job (rule 1), and it stays current across
+model releases in a way a hand-maintained file cannot.
 </role>
 
 <scope>
-Authoritative reference for the **Gemini Interactions API** when targeting
-the Gemini 3.x family: `gemini-3.5-flash` (GA, default for new
-production work), `gemini-3.1-pro-preview`, `gemini-3.1-flash-lite`, and
-`gemini-3-flash-preview`. (`gemini-3-pro-preview` shut down 2026-03-09 —
-treat as a legacy string; migrate to `gemini-3.1-pro-preview`.) Scope: API call
-mechanics, parameter defaults, thinking control, and prompt-shape guidance
-for single-shot 3.x prompts, the shape every grading and structured-output
-call uses. Tool-use, function-calling, agentic, and multi-turn mechanics
-live in `GEMINI_3X_TOOLS.md` (see Moved content below). For Gemma 4 targets
-read `GEMMA4_API_BEST_PRACTICES.md`; for DeepSeek V4 targets read
-`DEEPSEEK_V4_API_BEST_PRACTICES.md`.
-
-**Surface scope.** Scope every recommendation below to the
-Interactions API (`generativelanguage.googleapis.com/v1beta/interactions`,
-accessed via `client.interactions.create(...)` with `google-genai >= 2.3.0`
-Python SDK or `@google/genai >= 2.3.0` JS SDK). Treat the legacy
-`:generateContent` endpoint as retired for prompt-optimizer's
-recommendations.
+The Gemini 3.x family: `gemini-3.6-flash`, `gemini-3.5-flash`,
+`gemini-3.5-flash-lite`, `gemini-3.1-pro-preview`, `gemini-3.1-flash-lite`,
+and `gemini-3-flash-preview`. (`gemini-3-pro-preview` shut down 2026-03-09
+— treat as a legacy string; migrate to `gemini-3.1-pro-preview`.) Model
+selection, current defaults/pricing, and every API-mechanics fact are the
+`gemini-interactions-api` skill's job, not this file's (rule 1). For Gemma
+4 targets read `GEMMA4_API_BEST_PRACTICES.md`; for DeepSeek V4 targets
+read `DEEPSEEK_V4_API_BEST_PRACTICES.md`.
 </scope>
 
-## 1. Model selection
+## 1. API mechanics are the gemini-interactions-api skill's job, not this file's
 
-| Model ID | Default thinking | Levels supported | Best for |
-|---|---|---|---|
-| `gemini-3.5-flash` | medium | minimal, low, medium, high | Coding, long-horizon tasks at scale (GA, recommended). |
-| `gemini-3.1-pro-preview` | high | low, medium, high | Highest-quality reasoning. No `minimal`. |
-| `gemini-3.1-flash-lite` | minimal | minimal, low, medium, high | Low-cost, high-volume tasks not needing 3.5 Flash's reasoning depth. |
-| `gemini-3-flash-preview` | high | minimal, low, medium, high | Preview tier; prefer 3.5 Flash for new work. |
+Never answer from this file, training data, or memory for: current model
+IDs/pricing/defaults, parameter wiring (`temperature`/`top_p`/`top_k`
+removal, `thinking_level` vs `thinking_budget`, `response_format` schema
+wiring, tools-array shape), function-calling response matching,
+multi-turn/thought-preservation mechanics, streaming, or SDK/migration
+facts. In Key Changes, recommend the requestor invoke the
+`gemini-interactions-api` skill before writing or reviewing any call-site
+code — it fetches the current hosted docs page for the matching feature,
+so it stays accurate across model releases. If the skill is unavailable,
+fall back to a `gemini-api-docs-mcp` `search_docs` query scoped to the
+unknown, and state your interim assumption either way. Legacy
+`generateContent` wiring additionally loads `GEMINI_MIGRATION.md`
+(cross-family migration facts the skill doesn't cover; same skill-first
+policy applies there).
 
-3.5 Flash supports 1M input tokens / 65k output tokens / Batch API /
-Context Caching. Image segmentation is NOT supported in Gemini 3.x; route
-segmentation workloads to Gemini 2.5 Flash (thinking off) or Gemini
-Robotics-ER 1.6.
-
-## 2. Strip `temperature`, `top_p`, `top_k` from every request body
-
-Gemini 3.x reasoning is optimized for default sampling. Remove
-`temperature`, `top_p`, and `top_k` from every request body on **every
-Gemini 3.x model**. To force determinism, write a system instruction with
-explicit rules; do not set temperature.
-
-Branch on model family in cross-family code: Gemma 4 uses T=1.0 and
-top_p=0.95 (the Interactions `generation_config` rejects `top_k`; see
-GEMMA4 rule 10); Gemini 3.x uses model defaults with the sampling
-triple absent from the request body; many older Gemini 2.5 deployments
-set the sampling triple explicitly and must be migrated.
-
-## 3. Use `thinking_level`, not `thinking_budget`
-
-`thinking_budget` (numeric) is still accepted for backward compatibility
-but is no longer recommended. Use `thinking_level` (string enum):
-
-```python
-generation_config = {"thinking_level": "medium"}
-```
-
-Values: `"minimal"`, `"low"`, `"medium"` (default on 3.5 Flash), `"high"`.
-`thinking_level` and `thinking_budget` are **mutually exclusive in the
-same request**: passing both returns HTTP 400.
-
-When to use which level:
-
-| Level | When |
-|---|---|
-| `minimal` | Chat-like use cases, quick factual answers, simple tool calls. |
-| `low` | Code/agentic tasks needing fewer steps; analysis and writing that need some thinking. |
-| `medium` (default) | Best quality for most tasks; complex code and agentic use cases. |
-| `high` | Complex reasoning, hard math, hardest code/agent tasks. Allows extended thoughts and function calls. |
-
-The default on 3.5 Flash is **`medium`**, changed from `high` on 3 Flash
-Preview. Verify the prior default does not carry over before overriding.
-
-## 4. Structured output: wire `response_format`
-
-For any code-parsed output (every grading call), set top-level
-`response_format` on the request:
-
-```python
-interaction = client.interactions.create(
-    model="gemini-3.1-flash-lite",
-    input=prompt,
-    response_format={
-        "type": "text",
-        "mime_type": "application/json",
-        "schema": {...},
-    },
-)
-parsed = interaction.output_text
-```
-
-The `schema` value is JSON Schema: `required`, `enum`, numeric bounds,
-and `propertyOrdering` are honored. `propertyOrdering` orders emission,
-not cognition: keep the reason-first prose directive alongside it. The
-schema constrains syntax, not semantics; code-side validation stays the
-semantic layer. Combining `response_format` with built-in tools is a
-3.x-only preview covered in `GEMINI_3X_TOOLS.md` (T8).
-
-## 5. Long-context: place query at the end, anchored to the context
+## 2. Long-context: place query at the end, anchored to the context
 
 For large context (entire books, codebases, long videos, student
 submissions), place the query/question at the END after the data; ending
@@ -120,7 +57,7 @@ with the query measurably improves performance. Apply this shape:
 - Repeat the governing directive at the very end as a recency reminder
   (universal start-and-end rule still holds).
 
-## 6. Prompting changes for 3.x
+## 3. Prompting changes for 3.x
 
 Enforce these converged 3.x prompting rules:
 
@@ -128,8 +65,8 @@ Enforce these converged 3.x prompting rules:
   direct, clear instructions. Verbose or complex prompt engineering
   techniques designed for older models cause the model to over-analyze
   on 3.x. Drop chain-of-thought scaffolding like
-  "think step by step in detail before answering"; use `thinking_level`
-  instead.
+  "think step by step in detail before answering"; recommend the caller
+  tune `thinking_level` instead (mechanics: see rule 1).
 - **Output verbosity:** Gemini 3 and 3.1 are less verbose by default and
   prefer direct, efficient answers. When a conversational tone is
   required, steer explicitly ("Explain this as a friendly, talkative
@@ -143,22 +80,21 @@ Enforce these converged 3.x prompting rules:
   Markdown body. Curly-brace substitution conventions are unrelated.
 - **Critical-instructions placement:** place persona, behavioral
   constraints, and output format requirements in the System Instruction
-  (Interactions `system_instruction` parameter) OR at the very beginning
-  of the user prompt; do not bury them after long context or examples.
-  The start-and-end recency rule for the governing directive still
-  applies as a closing reminder.
+  OR at the very beginning of the user prompt; do not bury them after
+  long context or examples. The start-and-end recency rule for the
+  governing directive still applies as a closing reminder.
 - **Multimodal equal-class:** when the prompt accepts images, audio, or
   video alongside text, reference each modality explicitly in the
   instructions; do not name only the text input when an image is also
   passed.
 - **Thinking-boost lever (narrow fallback):** for heavy reasoning where
-  `thinking_level: "high"` is not enough, the clause "Think very hard
-  before answering" improves performance at the cost of extra
-  thinking tokens. Deploy only after `thinking_level: "high"` has been
-  tried and named insufficient; do not deploy as default scaffolding.
-- **Context management:** see rule 5 above.
+  the highest `thinking_level` is not enough, the clause "Think very hard
+  before answering" improves performance at the cost of extra thinking
+  tokens. Deploy only after the highest level has been tried and named
+  insufficient; do not deploy as default scaffolding.
+- **Context management:** see rule 2 above.
 
-## 7. Gemini 3 Flash freshness and grounding clauses
+## 4. Gemini 3 Flash freshness and grounding clauses
 
 **Flash system-instruction clauses** (Gemini 3 Flash family; absent by
 default, each high-ROI for the matching failure mode). Recommend in Key
@@ -171,8 +107,9 @@ work:
   forming search queries, and state the year explicitly (it is 2026).
   Flash otherwise defaults to stale assumptions about "now."
 - **Knowledge-cutoff clause** (facts near the boundary): state the
-  knowledge cutoff is January 2025 so the model defers to grounding for
-  post-cutoff facts instead of answering from parametric memory.
+  knowledge cutoff so the model defers to grounding for post-cutoff facts
+  instead of answering from parametric memory (confirm the current
+  cutoff via rule 1 if in doubt — it moves with each model release).
 - **Strict-grounding clause** (RAG / context-only answering; grading and
   judge prompts over a submission): instruct the model to rely ONLY on
   facts in the provided context or submission, never its own knowledge or
@@ -182,45 +119,90 @@ work:
   deployments, including rubric graders whose comments must be anchored
   in the student's text.
 
-## 8. Uncertainty: recommend a docs MCP search
+## 5. Reduce tool-call overuse with two levers in order
 
-When a fix depends on an uncovered or possibly-drifted Gemini fact (model
-ID, default, parameter, endpoint, capability, deprecation date), do not
-guess. In Key Changes, flag a deployer-verify item and recommend the
-requestor confirm via a `gemini-api-docs-mcp` `search_docs` query scoped
-to the unknown (e.g. "minimum google-genai SDK version for the
-Interactions API"); state your interim assumption. The optimizer
-recommends the search, it does not call the MCP.
+1. **Lower the thinking level** (mechanics: rule 1). Higher thinking
+   levels encourage tool use for exploration and verification.
+2. **Add a system instruction** explicitly bounding tool calls. Example:
+   "You have a limited action budget of N tool calls. Use them
+   efficiently."
+
+## 6. Agentic workflows: port the 9-point planning template
+
+When the prompt drives an agentic workflow (the model reasons, plans,
+and executes tasks across tool calls), use a 9-point system-instruction
+template covering: (1) logical dependencies and constraints, (2) risk
+assessment, (3) abductive reasoning and hypothesis exploration, (4)
+outcome evaluation and adaptability, (5) information availability, (6)
+precision and grounding, (7) completeness, (8) persistence and patience,
+(9) inhibit-response gate.
+
+When the prompt is intended for an agentic workflow but lacks an
+equivalent planning structure, port the 9 dimensions above into the
+system instruction as a numbered planning block the model must complete
+before any tool call or user response. Each dimension is one numbered
+directive; the inhibit-response gate (9) goes last.
+
+## 7. Tool enablement by task type
+
+Recommend in Key Changes by task type:
+
+- Recent or obscure facts → enable Google Search grounding.
+- Any arithmetic, counting, or calculation → enable code execution; do
+  not trust in-token computation.
+
+(Exact tool-declaration syntax is call-site mechanics: rule 1.)
+
+## 8. Flash-Lite's `minimal` default may need escalation
+
+`gemini-3.5-flash-lite` defaults `thinking_level` to `minimal` (current
+default value: rule 1). This is an empirical quality judgment, not an API
+mechanic, so it lives here rather than being deferred: `minimal` is tuned
+for high-volume extraction, routing, and classification, and can
+underperform on any task requiring multi-step judgment — nuanced
+rubric-criterion grading, multi-clause AND-gated descriptors, or anything
+else where the model needs to weigh evidence rather than pattern-match.
+When a prompt targeting `gemini-3.5-flash-lite` fails to produce the
+desired result at the default, recommend the caller test
+`thinking_level: "low"` before concluding the prompt itself is at fault;
+raise further to `medium`/`high` only if `low` still underperforms. Do
+not treat repeated escalation as a signal to abandon the model — it's a
+signal the task needs more than `minimal` gives it. See
+`GRADING_PIPELINE.md` Artifact 5 for the calibration-checklist version of
+this same diagnostic branch.
 
 ## Moved content
 
 Second-level routing; loads are additive to this file:
 
-- **`GEMINI_MIGRATION.md`** — legacy `generateContent` wiring scans and
-  the 3.5 Flash upgrade checklist. Load when legacy forms appear anywhere
-  in the input; one-time-per-prompt reference.
-- **`GEMINI_3X_TOOLS.md`** — function-calling mechanics, built-in and
-  combined tools, structured output + tools, tool-call budgeting,
-  multi-turn thought preservation, thinking-summary and streaming
-  parsing, and the agentic 9-point planning template. Load when the
-  prompt drives tool use, function calling, or an agentic workflow, or
-  its call-site wires multi-turn history or thinking-summary parsing.
+- **`GEMINI_MIGRATION.md`** — cross-family migration facts the
+  `gemini-interactions-api` skill doesn't cover (tools + response_format
+  scope across families, Gemma 4 schema-shape porting, prefilled
+  model-turn validation). Load when legacy `generateContent` forms appear
+  anywhere in the input; one-time-per-prompt reference.
 
 ## Verify after changes
 
-- `interaction.status == "completed"`.
-- Sampling triple is NOT in the request body.
-- `thinking_level` is set or default `medium` is acceptable.
-- `interaction.output_text` (or `steps[]` walk for interleaved output) is
-  parseable.
-- `interaction.usage.total_thought_tokens` is recorded for cost tracking.
+- No API-mechanics claim (model ID, parameter, endpoint, request/response
+  shape) was answered from this file instead of the skill (rule 1).
+- Long-context prompts end on the query, not the data (rule 2).
+- Chain-of-thought scaffolding is replaced with a `thinking_level`
+  recommendation, not left in place (rule 3).
+- Flash grounding/freshness clauses are present when the task is
+  time-sensitive, knowledge-grounded, or a grading/judge task over
+  submitted work (rule 4).
+- Agentic system instructions carry the 9-point planning block when the
+  workflow is agentic (rule 6).
+- `gemini-3.5-flash-lite` targets with multi-step judgment tasks (rubric
+  grading, AND-gated descriptors) get a `thinking_level: "low"` test
+  recommendation, not a silent default-`minimal` assumption (rule 8).
 
 ## Closing directive recap
 
 This file is imperative reference for the prompt-optimizer agent when
-`Target model: Gemini 3.x` is declared. Apply every numbered rule to the
-prompt under review, cite rule numbers in Key Changes, and treat the
-Interactions API as the sole supported surface. Legacy `:generateContent`
-wiring is a migration defect: load `GEMINI_MIGRATION.md` and flag it
-with the Interactions equivalent named. Tool-using, agentic, and
-multi-turn prompts additionally load `GEMINI_3X_TOOLS.md`.
+`Target model: Gemini 3.x` is declared, scoped to prompt content only.
+Apply every numbered rule to the prompt under review and cite rule
+numbers in Key Changes. For every API-mechanics, model-selection, or
+migration fact, recommend the `gemini-interactions-api` skill (rule 1)
+instead of answering from this file or from memory. Legacy
+`:generateContent` wiring additionally loads `GEMINI_MIGRATION.md`.

@@ -1,7 +1,7 @@
 {
   "name": "prompt-optimizer",
-  "version": "2.1.2",
-  "description": "Grading-first prompt designer and reviewer for rubric-based grading pipelines: rescues oversized grading monoliths into per-criterion call architectures, audits revised grading prompts, and authors pipelines from a rubric. Thin diagnostic trunk with composable branches. Also reviews generic prompts, with family mechanics for Gemini 3.x (Interactions API), Gemma 4, DeepSeek V4, and Claude.",
+  "version": "3.1.0",
+  "description": "Education-domain prompt designer and reviewer across three domains: rubric-based grading, feedback-comment generation (PQS/ghost-guard), and lesson/worksheet/exam authoring. Rescues oversized monoliths into per-criterion or per-section call architectures, audits revised prompts, and authors pipelines from a rubric or spec. Thin diagnostic trunk with composable branches. Also reviews generic prompts, with family mechanics for Gemini 3.x (prompt-content only; defers API mechanics and model selection to the gemini-interactions-api skill), Gemma 4, DeepSeek V4, and Claude.",
   "author": {
     "name": "dlxmax",
     "url": "https://github.com/dlxmax"
@@ -12,6 +12,10 @@
   "keywords": [
     "grading",
     "rubric-grading",
+    "feedback-generation",
+    "lesson-planning",
+    "worksheet-generation",
+    "exam-generation",
     "education",
     "rubric",
     "llm-judge",
@@ -23,8 +27,11 @@
     "compliance",
     "validation",
     "gemini",
+    "gemini-3.6",
+    "gemini-3.6-flash",
     "gemini-3.5",
     "gemini-3.5-flash",
+    "gemini-3.5-flash-lite",
     "gemini-3.x",
     "interactions-api",
     "gemma-4",
