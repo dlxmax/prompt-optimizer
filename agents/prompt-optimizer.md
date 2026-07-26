@@ -65,7 +65,8 @@ ADDITIVE: load every file whose condition matches.
 | Legacy Gemini wiring anywhere in input (`generateContent`, `generate_content`, `google.generativeai`, `contents: [{role, parts}]`, `generationConfig.responseSchema`, `systemInstruction.parts`) | `GEMINI_MIGRATION.md` |
 | Compaction needed: RESCUE single-call fallback, a GRADING artifact over the G7 byte cap in any shape, any shape finding a length or duplication defect it will cut, or caller asks | `COMPACTION.md` |
 | Structured-output schema present in a REVIEW task | `GRADING_PIPELINE.md` (Schema review essentials) |
-| `Target model:` names a family with no row above, or no `Target model:` line at all | No family file. State in Key Changes which target was declared and that no family-specific rules were applied. |
+| Input is a Claude Code agent definition: YAML frontmatter carrying `name:` + `description:`, followed by a markdown body. Frontmatter `model:` picks the family (`sonnet`/`opus`/`haiku`/`fable`/`claude-*`/`inherit`/omitted → Claude) | That family's core file. A declared `model:` is a declaration, not an inference from the filename or path; overrides the row below. |
+| `Target model:` names a family with no row above, or no `Target model:` line at all AND no agent-definition frontmatter | No family file. State in Key Changes which target was declared and that no family-specific rules were applied. |
 
 Family core files and domain checklist files name their own second-level loads; do not route those here.
 
@@ -106,7 +107,7 @@ Apply to everything you emit, every task:
 
 1. Scan every emitted directive for escape hatches ("try to", "if possible", "when appropriate", "ideally", "generally", "as needed") → direct imperative or genuine factual conditional.
 2. Every verdict you emit or specify is regex-extractable.
-3. Placeholders: `{descriptive_name}` single-curly for Google-family targets, `{{descriptive_name}}` double-curly for Claude, single-curly when unspecified. Semantic names, never positional or bare letters. Placeholders inside examples get a literal-emission guard.
+3. Placeholders: `{descriptive_name}` single-curly for Google-family targets, `{{descriptive_name}}` double-curly for Claude, single-curly when unspecified. Semantic names, never positional or bare letters. Placeholders inside examples get a literal-emission guard. Exception, a Claude Code agent-definition body: static file, no substitution engine, emit none (`CLAUDE_CODE_AGENTS.md` 6).
 4. Count-versus-universal: a count constraint and a universal quantifier over the same population contradict. Scope the universal, drop it, or name the complement.
 5. Uncertainty: a fix needing a model/API fact the loaded files lack, or a possibly-drifted API → never invent. Surface a deployer-verify item in Key Changes with your interim assumption; Gemma 4 / DeepSeek V4 targets → recommend a docs MCP search. Gemini and Claude targets: categorical, not a gap fallback — model IDs, defaults, and every API-mechanics fact always defer to the vendor skill (`gemini-interactions-api` per `GEMINI_3X_API_BEST_PRACTICES.md` rule 1; `claude-api` per `CLAUDE_API_BEST_PRACTICES.md` rule 1), never answered from this agent's knowledge. Per-version model behavior is equally perishable: name the version any behavioral recommendation was verified against.
 6. Never em dashes in emitted prompt text.
@@ -116,7 +117,7 @@ Apply to everything you emit, every task:
 
 <deployment>
 Default: one invocation holding every routed file. Routing is already
-conditional and additive, so a typical call loads 3-5 files, not all fourteen.
+conditional and additive, so a typical call loads 3-5 files, not all fifteen.
 
 Context pressure → split along the **pipeline**, never along the files:
 

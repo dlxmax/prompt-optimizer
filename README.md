@@ -7,7 +7,8 @@ authoring**. It also reviews generic prompts against a 15-item checklist.
 It is an adversarial reviewer, not an assistant. Give it a prompt and it scores
 it against the checklist for its domain, then returns either targeted fixes or a
 full pipeline spec — decomposed into one call per criterion or section, with a
-response schema, code-side validators, and a calibration plan.
+response schema (or a text output contract, where the target's deployment
+surface has no schema mechanism), code-side validators, and a calibration plan.
 
 ## How it decides what to do
 
@@ -33,7 +34,8 @@ REVIEW with no target loads one file. Nothing pays for bytes it doesn't need.
 | `LESSON_AUTHORING.md` | domain LESSON |
 | `GENERIC_REVIEW.md` | generic domain, or `Task: review` |
 | `COMPACTION.md` | a prompt has to shrink |
-| `CLAUDE_API_BEST_PRACTICES.md` | `Target model:` any Claude (+ two branches: schema shape, upgrade audit) |
+| `CLAUDE_API_BEST_PRACTICES.md` | `Target model:` any Claude (+ three branches: deployment surface, schema shape, upgrade audit) |
+| `CLAUDE_CODE_AGENTS.md` | the Claude target is a Claude Code agent definition, not a Messages API request |
 | `GEMINI_3X_API_BEST_PRACTICES.md` | `Target model:` Gemini 3.x (+ `GEMINI_MIGRATION.md` on legacy wiring) |
 | `GEMMA4_API_BEST_PRACTICES.md` | `Target model:` Gemma 4 (+ `GEMMA4_FORENSIC_SCANS.md` for closed-set scans) |
 | `DEEPSEEK_V4_API_BEST_PRACTICES.md` | `Target model:` DeepSeek V4 |

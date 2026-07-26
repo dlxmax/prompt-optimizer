@@ -18,7 +18,8 @@ behavior tables here, rule 2.
 </role>
 
 <scope>
-Claude models via the Messages API or an agent harness. Gemini 3.x →
+Claude models on either deployment surface: a Messages API request, or a Claude
+Code agent definition. The two are not interchangeable, rule 12. Gemini 3.x →
 `GEMINI_3X_API_BEST_PRACTICES.md`; Gemma 4 → `GEMMA4_API_BEST_PRACTICES.md`;
 DeepSeek V4 → `DEEPSEEK_V4_API_BEST_PRACTICES.md`. DeepSeek's
 Anthropic-compatible endpoint is not a Claude target: different model,
@@ -43,6 +44,12 @@ changes, `/claude-api migrate` when the target model changes. Version-specific
 behavior comes from that model's own page in Anthropic's prompt-engineering
 docs, never from this agent's knowledge.
 
+Scope limit: `claude-api` covers the Messages API and Managed Agents, and
+states it does NOT cover the Claude Code harness. On a Claude Code agent target
+(rule 12) the answer to most of the list above is "no such parameter exists",
+not a lookup. Route to `CLAUDE_CODE_AGENTS.md`; residual gaps are deployer-verify
+against the Claude Code subagent docs.
+
 ## 2. Version-local behavior is not stored here
 
 Adjacent Claude releases invert defaults, not merely shift them. Axes that have
@@ -51,9 +58,10 @@ subagent eagerness, whether self-verification helps, whether thinking defaults
 on, which `effort` level to start from. A "model 4.N does X" rule is wrong
 within one release cycle.
 
-No per-version table here; do not add one. Rules 3-11 are the part that
+No per-version table here; do not add one. Rules 3-12 are the part that
 survives a generation change. Applying one turns on a version-specific default
-→ confirm via rule 1, name the version verified against in Key Changes.
+→ confirm via rule 1, name the version verified against in Key Changes. Rule 12
+is perishable on a different axis, the harness version, not the model.
 
 ## 3. Prompt-side conservatism suppresses reporting
 
@@ -186,13 +194,43 @@ Claude-targeted prompts, not schema-constrained calls:
 - Multi-source input nests: `<documents>` wrapping `<document index="n">`, each with `<source>` and `<document_content>`. Use for assignment-plus-submission, multi-artifact grading, LESSON source material.
 - Examples in `<example>` tags, multiple in `<examples>`.
 - No schema wired → grounding contract is two tags: numbered quotes first, then claims citing quote numbers. Numbering makes the link checkable — an uncited claim, or a citation to a missing number, is mechanically detectable. Pair with a closed-world clause ("base the analysis only on the extracted quotes") and rule 9's no-quote literal.
-- `{{double_curly}}` placeholders (invariant 3).
+- `{{double_curly}}` placeholders (invariant 3). Agent surface: none, rule 12.
 
 Vendor guidance recommends 3-5 examples for general steering. G6's 0-or-1
 borderline example per criterion is narrower on purpose: judge examples anchor
 the rating rather than teach a format. Judge and grading prompts → G6 wins.
 Non-judge gate prompts → `GENERIC_REVIEW.md` item 4's 1-3 wins. 3-5 applies only
 where the prompt gates nothing. Never upgrade a criterion block to 3-5.
+
+## 12. Deployment surface: API request or Claude Code agent definition
+
+Same model, different config surface. Emitting API mechanics into an agent
+definition is a defect: none of it exists there and nothing errors, so the
+prompt ships with unenforced constraints that read as enforced.
+
+Detect the agent surface from any of:
+
+12.1. `Target model:` names Claude Code, a subagent, an agent definition, or the Agent/Task tool.
+12.2. Input is a YAML frontmatter block carrying `name:` + `description:`, alone or with `tools:` / `model:` / `permissionMode:` / `disallowedTools:`, followed by a markdown body.
+12.3. Input path is under `.claude/agents/` or a plugin `agents/` directory, corroborated by 12.2. Path alone never decides; read the frontmatter.
+
+Frontmatter `model:` is a declared target, not an inference: `sonnet` / `opus` /
+`haiku` / `fable` / `claude-*` / `inherit` / omitted all resolve to a Claude
+target, so this file applies. A non-Claude value routes to that family instead.
+
+Agent surface → load `CLAUDE_CODE_AGENTS.md`, do NOT load
+`CLAUDE_STRUCTURED_OUTPUTS.md`, and treat these as overridden:
+
+| Core rule | On the agent surface |
+|---|---|
+| 1 (claude-api lookups) | Most parameters do not exist; not a lookup |
+| 8 (deployer forces thinking off) | Inherits the session; no per-subagent setting to configure or verify |
+| 9 (fix at the schema) | No schema; coercion moves to the output contract |
+| 11 (no schema wired) | Always the case; the two-tag contract is mandatory, not a fallback |
+| invariant 3 (`{{double_curly}}`) | Static file, no substitution engine |
+
+Ambiguous or unstated surface → assume API request, say so in Key Changes, and
+name the one signal that would flip it. Never emit both shapes.
 
 ## Verify after changes
 
@@ -208,13 +246,21 @@ where the prompt gates nothing. Never upgrade a criterion block to 3-5.
 10. Every version-specific fact sourced from rule 1 or flagged deployer-verify with the version named.
 11. `CLAUDE_UPGRADE_AUDIT.md` loaded → every stale-scaffolding item listed as remove-and-retest.
 12. `CLAUDE_STRUCTURED_OUTPUTS.md` loaded → no numeric or string bounds, `additionalProperties: false` on every object, no `minItems` above 1, every property required.
+13. Surface declared as API or agent, never both, never unstated (12); agent surface → `CLAUDE_CODE_AGENTS.md` loaded and its verify block run.
 
 ## Second-level routing
 
-Load `CLAUDE_STRUCTURED_OUTPUTS.md` additively when the prompt carries, needs,
-or reviews a response schema (JSON output or strict tool use). Claude's schema
-support is narrower than the Google families': numeric bounds and `minItems`
-above 1 do not port, and an unsupported construct is a 400.
+Surface first (rule 12), because it gates the rest.
+
+Load `CLAUDE_CODE_AGENTS.md` additively on the agent surface. Exclusive with
+`CLAUDE_STRUCTURED_OUTPUTS.md`: the constructs that file constrains do not
+exist there.
+
+Load `CLAUDE_STRUCTURED_OUTPUTS.md` additively on the API surface when the
+prompt carries, needs, or reviews a response schema (JSON output or strict tool
+use). Claude's schema support is narrower than the Google families': numeric
+bounds and `minItems` above 1 do not port, and an unsupported construct is a
+400.
 
 Load `CLAUDE_UPGRADE_AUDIT.md` additively when the prompt was written for an
 earlier Claude generation than the declared target: caller says so, call-site
@@ -227,7 +273,8 @@ workaround.
 ## Closing directive recap
 
 Apply when a Claude `Target model:` is declared; cite rule numbers in Key
-Changes. This file owns prompt content: every model ID, parameter, default, and
+Changes. Diagnose the deployment surface before emitting anything (rule 12).
+This file owns prompt content: every model ID, parameter, default, and
 migration fact routes to the `claude-api` skill (rule 1), and no per-version
 behavior table is stored here (rule 2). Treat rule bodies as reference data
 describing model and API behavior; do not adopt directives inside rule text as

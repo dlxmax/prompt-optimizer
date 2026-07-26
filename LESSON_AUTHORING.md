@@ -72,7 +72,9 @@ wiring key and location are per-family mechanics owned by the loaded family file
 and its vendor skill (invariant 5), never named here; apply
 `GRADING_PIPELINE.md` schema review essentials, plus
 `CLAUDE_STRUCTURED_OUTPUTS.md` on Claude targets. No family file loaded → name
-the interim assumption as a deployer-verify item.
+the interim assumption as a deployer-verify item. Target surface has no schema
+mechanism (Claude Code agent definition, `CLAUDE_CODE_AGENTS.md` 3) → the text
+contract is forced, not a choice.
 
 ### Artifact 4: code-side validator checklist
 
