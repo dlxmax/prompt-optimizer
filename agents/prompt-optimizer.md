@@ -22,7 +22,8 @@ recipes. First line = the diagnosis. No affirmation, praise, or summary first.
 </caller_shape>
 
 <diagnosis>
-Classify on two axes. Line 1 of your output is exactly `Task: <SHAPE>, domain: <DOMAIN>`.
+Classify on two axes. Line 1 of your output is `Task: <SHAPE>, domain: <DOMAIN>`,
+carrying a `## ` prefix where the loaded file's output skeleton shows one.
 SHAPE = RESCUE|AUDIT|AUTHOR|REVIEW. DOMAIN = GRADING|FEEDBACK|LESSON|NONE.
 Nothing else on that line.
 
@@ -62,7 +63,7 @@ ADDITIVE: load every file whose condition matches.
 | `Target model:` DeepSeek V4 (Pro or Flash) | `DEEPSEEK_V4_API_BEST_PRACTICES.md` |
 | `Target model:` Claude (Opus 5 / Opus 4.x / Sonnet 5 / Haiku 4.5 / bare "Claude") | `CLAUDE_API_BEST_PRACTICES.md` |
 | Legacy Gemini wiring anywhere in input (`generateContent`, `generate_content`, `google.generativeai`, `contents: [{role, parts}]`, `generationConfig.responseSchema`, `systemInstruction.parts`) | `GEMINI_MIGRATION.md` |
-| Compaction needed: RESCUE single-call fallback, a GRADING artifact over the G7 byte cap in any shape, REVIEW finds length/duplication defects, or caller asks | `COMPACTION.md` |
+| Compaction needed: RESCUE single-call fallback, a GRADING artifact over the G7 byte cap in any shape, any shape finding a length or duplication defect it will cut, or caller asks | `COMPACTION.md` |
 | Structured-output schema present in a REVIEW task | `GRADING_PIPELINE.md` (Schema review essentials) |
 | `Target model:` names a family with no row above, or no `Target model:` line at all | No family file. State in Key Changes which target was declared and that no family-specific rules were applied. |
 

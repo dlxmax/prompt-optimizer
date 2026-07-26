@@ -8,9 +8,13 @@ detection, multi-criterion forensic checklists). Extends
 `GEMMA4_API_BEST_PRACTICES.md` — load that core file first; its rules apply
 too. Rubric-grading prompts do not load this file: a rubric criterion call
 judges one criterion against level descriptors, it does not walk a signal
-checklist for recall. G6's 0-or-1-example cap governs rubric criteria, not scan
-signals: 15.2 applies to signals only and never overrides G6 on a criterion in
-the same prompt. Numbering continues the core file's sequence: this file
+checklist for recall. 15.2 governs scan signals only. Everything else in the
+same prompt keeps the loaded checklist file's example cap and never inherits
+15.2: `GRADING_PIPELINE.md` G6 on a rubric criterion, `GENERIC_REVIEW.md` item
+4 on a `Task: review` route. Zero examples on a signal list scores `[x]`
+against that cap; raising density is an Optional Enhancement needing
+per-signal recall data, never a body default.
+Numbering continues the core file's sequence: this file
 owns rule 15 and its 15.x sub-rules; cite them in Key Changes.
 </role>
 

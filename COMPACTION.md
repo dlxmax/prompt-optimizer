@@ -3,7 +3,11 @@
 <role>
 Reference for prompt-optimizer. Load when a prompt must shrink: RESCUE
 single-call fallback, a GRADING artifact over the G7 byte cap in any shape,
-REVIEW finding length/duplication defects, or explicit caller request. Run pipeline in order, then gates, then re-verify placement.
+any shape finding a length or duplication defect it will cut, or explicit
+caller request. A duplicate deleted without the anchor test below is the
+failure mode this file exists to prevent, so the shape does not gate the load.
+Run pipeline in order, then gates, then re-verify placement. Cite as
+`COMPACTION.md step N`, `preserve-list <letter>`, or `gate N`.
 </role>
 
 ## Compaction pipeline

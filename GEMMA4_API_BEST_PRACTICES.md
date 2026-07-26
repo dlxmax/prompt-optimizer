@@ -44,6 +44,12 @@ structured-output page is written for Gemini models throughout, and Google's
 Gemma hosted-API page omits structured output from Gemma 4's feature list.
 Re-probe after any Gemma release.
 
+All three members are load-bearing. `mime_type` without `schema` returns
+prose, not JSON. The schema holds under pressure: a prompt demanding an
+off-enum verdict, a spelled-out integer, and an extra top-level field was
+refused 5/5. `type` is a content type, not a format flag; `type:
+"json_schema"` 400s.
+
 Canonical wiring (Python SDK):
 ```python
 interaction = client.interactions.create(
@@ -149,9 +155,14 @@ nested `object`s); wide schemas take the workarounds above.
 
 ## 5. Parse with `json.JSONDecoder().raw_decode()`, not `json.loads()`
 
-Even under `response_format`, Gemma 4 occasionally emits valid JSON followed by
-trailing text (~1 in 12 calls). Strict `json.loads` raises; `raw_decode` parses
-the first valid object and ignores the rest.
+Even under `response_format`, Gemma 4 emits a schema-valid object then a stray
+``` closer. `raw_decode` takes the first object and ignores the rest.
+
+Common, not marginal: n=24 over four prompt styles, `json.loads` 14/24 vs
+leading-object extraction 24/24. Worst where the prompt mentions code fences
+(5/6). Prose does not fix it. "Never emit backticks" scored 3/6, no better
+than silence, because the closer lands after the constrained span. Parser
+rule, never a wording rule.
 
 ```python
 parsed, _ = json.JSONDecoder().raw_decode(interaction.output_text)
@@ -212,10 +223,12 @@ T=0 is not recommended on Gemma 4. On Interactions pass exactly
 (judge calls included); leave top_k to the server default. Rule 8's MALFORMED
 temperature step-down is the only sanctioned deviation.
 
-**No `top_k`.** Interactions `generation_config` rejects it: 400 `Unknown
-parameter 'top_k'` (verified live on `gemma-4-31b-it`, 2026-07-08). A prompt or
-call site carrying `top_k=64` is a generateContent-era carry-over to strip; the
-full triple applies only to local runtimes' samplers.
+**`top_k`: accepted, not recommended.** `generation_config: {"temperature":
+1.0, "top_p": 0.95, "top_k": 40}` returns 200 on `gemma-4-31b-it`. Strip a
+carried-over `top_k=64` on the paragraph above, not on an error.
+`generation_config` validates key and range: unknown key, camelCase `topK`,
+and `top_k=-5` each 400. This rule previously read the opposite and the API
+changed under it, so re-probe rather than trusting the sign.
 
 
 ## 11. Unprobed feature: flag, never assert
