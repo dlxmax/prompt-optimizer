@@ -19,7 +19,11 @@ behavior tables here, rule 2.
 
 <scope>
 Claude models on either deployment surface: a Messages API request, or a Claude
-Code agent definition. The two are not interchangeable, rule 12. Gemini 3.x →
+Code agent definition. The two are not interchangeable, rule 12.
+
+Other families are out of scope here and their files are never loaded alongside
+this one: a Claude target reads this file only. Redirects, for a non-Claude
+target that reached this file by mistake: Gemini 3.x →
 `GEMINI_3X_API_BEST_PRACTICES.md`; Gemma 4 → `GEMMA4_API_BEST_PRACTICES.md`;
 DeepSeek V4 → `DEEPSEEK_V4_API_BEST_PRACTICES.md`. DeepSeek's
 Anthropic-compatible endpoint is not a Claude target: different model,
