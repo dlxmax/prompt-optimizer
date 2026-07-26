@@ -44,11 +44,10 @@ structured-output page is written for Gemini models throughout, and Google's
 Gemma hosted-API page omits structured output from Gemma 4's feature list.
 Re-probe after any Gemma release.
 
-All three members are load-bearing. `mime_type` without `schema` returns
-prose, not JSON. The schema holds under pressure: a prompt demanding an
-off-enum verdict, a spelled-out integer, and an extra top-level field was
-refused 5/5. `type` is a content type, not a format flag; `type:
-"json_schema"` 400s.
+All 3 members load-bearing. `mime_type` w/o `schema` -> prose. Schema holds
+under pressure: off-enum verdict + spelled-out int + extra field demanded,
+refused 5/5. `type` = content type, not format flag; `type: "json_schema"`
+-> 400.
 
 Canonical wiring (Python SDK):
 ```python
@@ -65,7 +64,7 @@ text = interaction.output_text
 ```
 
 Observed:
-- Suppresses thinking emission: response collapses to a single `model_output` step, no preceding `thought` step. `usage.total_thought_tokens` → 0. MALFORMED rate → 0%.
+- Zeroes thinking: `total_thought_tokens` → 0, MALFORMED → 0%. The `thought` step STAYS in `steps[]`, empty. Never assert `len(steps)==1` or `steps[0]=='model_output'`; branch on `total_thought_tokens`.
 - ~30-40x wall-clock speedup on short outputs.
 - The only reliable thinking-suppression mechanism for Gemma 4. `thinking_level` (a Gemini 3.x knob) is unsupported here; passing it returns 400 or no-ops. The fix is `response_format`.
 
@@ -73,28 +72,23 @@ Reasoning wanted → request a bounded `reasoning` field inside the schema (rule
 3 property-order pattern). `thinking_summaries` is not a Gemma 4 control (rule
 14); never offer it as the alternative.
 
-## 2. `26b-a4b` constraint: at most one unbounded `string` per `object`
+## 2. `26b-a4b` multi-`string` degeneration: did not reproduce
 
-`gemma-4-26b-a4b-it` fails under `response_format` whenever an `object` has two
-or more unbounded free-text `string` properties. Failure modes split between
-deterministic bigram/trigram loops to the output limit
-(`-classification-classification-...`, `0.0.0.0.0...`) and degenerate `"
-[] ```"` output. Same schema passes cleanly on `gemma-4-31b-it`.
+Historic: `gemma-4-26b-a4b-it` under `response_format` looped
+(`-classification-classification-...`, `0.0.0.0.0...`) or emitted degenerate
+`"[] ```"` whenever an `object` carried >=2 unbounded `string` properties; 31b
+passed the same schema. Workarounds were a caller-side `response_format` skip
+and prompt-level bounding + stop-example.
 
-**Per-field `array` of `string` wrapping does NOT rescue this.** Wrapping the
-long `string` moves the loop to a sibling unbounded `string`; wrapping all of
-them shifts to HTTP 500 / empty array. Reproduces on Interactions.
+Re-ran n=6/cell: 26b 2 unbounded 5/6, 1 `string` 6/6, 2 bounded 5/6; 31b 6/6
+on all three. Every failure was a transport timeout, never the 500/empty-array
+signature, and the bounded workaround failed at the SAME rate as the unbounded
+shape, so `string` count is not the variable. 26b runs ~1/6 timeouts regardless
+of schema shape. n=6 per cell, so an effect below that resolution survives.
 
-**Verified workarounds when 26b-a4b is in the fallback chain:**
-1. **Caller-side `response_format` skip** on model-name match for `26b-a4b`. Model then emits free-form JSON inside the prompt's format scaffold, which it terminates correctly.
-2. **Prompt-level bounding + a worked stop-example** on every unbounded `string` field ("one short sentence; e.g., ..."). The 31b path self-terminates without explicit bounding; 26b-a4b cannot.
-
-**Safe shape on 26b-a4b:** exactly one unbounded `string` per `object` inside a
-top-level `array` of `object` container (the `audit[].reason` pattern) holds in
-production. Enum-bounded strings, MM:SS-bounded strings, integer, boolean
-unaffected.
-
-Temperature step-down does not break the loop; the fix is structural.
+Treat 26b-a4b as mildly less reliable than 31b, not as multi-`string`-unsafe.
+Do not spend prompt budget on per-field bounding for this reason alone.
+Re-probe before reinstating the one-unbounded-`string`-per-`object` rule.
 
 ## 3. Property order in the schema controls generation order
 
@@ -113,8 +107,7 @@ verdict has committed.
 - Judge/audit schemas: order `index, reasoning, verdict, reason` (or equivalent decision field). Reasoning `string` defined first.
 - Keep `verdict` a tight `enum` (`KEEP`/`DROP`) so it parses cleanly once committed.
 - Keep `reasoning` and `reason` separate where both an audit trail and a short downstream tag are needed; else collapse to one length-capped `reasoning`.
-- Interacts with rule 2 on `26b-a4b`: one unbounded `string` per `object`. A first-position `reasoning` `string` consumes that slot → any sibling `reason` must be enum-bounded or length-capped via stop-example.
-- **Narrow schemas only.** Rule 4 overrides where the schema already has >=4 mandatory nested `object`s: on `31b` the reasoning `string` crashes the request. Wide schema → move the reasoning surface to prompt-level prose or Python-side checks.
+- Applies at any schema width. Rules 2 and 4, which used to restrict this to narrow schemas and to one unbounded `string` per `object`, no longer reproduce.
 
 **Caveat:** property-order honouring is empirical, not documented. Belt-and-
 braces: order the `properties` dict in the desired generation order AND add an
@@ -122,26 +115,27 @@ explicit prompt instruction ("fill `reasoning` first, then commit `verdict`").
 A future update weakening order behavior leaves the prompt instruction
 standing.
 
-## 4. Wide schemas reject a top-level reasoning `string` on 31b
+## 4. Wide-schema + reasoning `string` crash: did not reproduce
 
-`gemma-4-31b-it` reliably crashes (alternating 400 INVALID_ARGUMENT and 500
-INTERNAL, 0/4 success) where the schema combines a top-level free-text
-`reasoning` `string` with many mandatory nested `object`s. Removing the
-reasoning `string` → 4/4 on the same schema; removing the evidence `object`s
-while keeping the reasoning `string` → 2/4 (general backend baseline). Crash is
-schema-specific, not backend flake.
+Historic: `gemma-4-31b-it` crashed (alternating 400 INVALID_ARGUMENT / 500
+INTERNAL, 0/4) where a schema combined a top-level free-text `reasoning`
+`string` with many mandatory nested `object`s. Threshold recorded at 5 objects
++ 1 string; backend baseline recorded at 2/4.
 
+Re-ran that exact bisect, 4 variants x 4 attempts, 5 mandatory top-level nested
+`object`s of 3 inner properties each:
 
-**Threshold:** crash observed at 5 mandatory evidence `object`s + 1 reasoning
-`string`. Safety margin: no top-level reasoning `string` where the schema
-already has >=4 mandatory nested `object`s with multiple inner properties each.
-<=3 nested `object`s (3 `array` of `object` + 1 nullable `object`) carry a
-single bounded reasoning `string` fine.
+| variant | then | now |
+|---|---|---|
+| 5 obj + reasoning | 0/4 | **4/4** |
+| 5 obj, no reasoning | 4/4 | 3/4 (one transport timeout) |
+| 0 obj + reasoning | 2/4 | 4/4 |
+| 3 obj + reasoning | ok | 4/4 |
 
-**Workarounds when reasoning is wanted on a wide schema:**
-- Move reasoning to prompt-level prose ahead of the JSON output (model still self-audits; the audit just does not enter the parsed payload).
-- Move reasoning to Python-side deterministic checks after parsing.
-- Split into two calls: narrow reasoning call returning the `string`, then wide structured-output call returning the evidence `object`s.
+Crash is gone and the old 2/4 baseline is now 4/4. A top-level reasoning
+`string` on a wide schema is currently fine, so rule 3's reason-before-commit
+is NOT restricted to narrow schemas. Do not split calls or move reasoning to
+prose on this rule's authority. Re-probe before reinstating any of it.
 
 **Bisect, do not retry.** Alternating 400/500 on a schema-bearing call splits
 ~50/50 between backend flake and schema rejection. Four schema variants x four
@@ -149,9 +143,8 @@ attempts (16 calls, ~5 minutes) makes the answer obvious. Concluding "API
 instability" without the comparative test burns the same retry budget
 repeatedly.
 
-**Interaction with rule 3:** rule 3's reason-before-commit needs a reasoning
-`string` in the schema, so it applies to narrow schemas only (<4 mandatory
-nested `object`s); wide schemas take the workarounds above.
+**Interaction with rule 3:** none while the crash does not reproduce. Rule 3's
+reason-before-commit applies at any schema width.
 
 ## 5. Parse with `json.JSONDecoder().raw_decode()`, not `json.loads()`
 
@@ -196,21 +189,21 @@ Never share one retry policy across these classes:
 - **HTTP 5xx (500/503 INTERNAL)** → fast exponential backoff, same parameters, max 4 attempts. Baseline transient rate ~20%; the expected Interactions baseline.
 - **HTTP 429 RATE_LIMIT_EXCEEDED** → read the body before routing. Substring-check `error.details[].violations[].quotaId` for `"PerDay"`: present = RPD (hard exhaustion), advance the chain permanently; absent = RPM (transient, ~60s window), stay on the same model with backoff. Status code alone does not distinguish. Free Gemma 4 31b is 15 RPM, so a naive "429 means exhausted, advance" handler permanently knocks the model out after a 60s burst; the standard 1s + 10s + 30s schedule reaches the RPM clear window naturally.
 - **`MALFORMED_RESPONSE`** (empty visible output, large `total_thought_tokens`) → parameter changes (temperature 1.0 → 0.85 → 0.75, or enable `response_format` if off), max 3 attempts. The same call repeated fails the same way.
-- **`MAX_TOKENS` with degenerate output on 26b-a4b** → structural fix per rule 2, not a retry. Repeating wastes budget.
-- **Alternating 400/500 on a schema-bearing call** → suspect rule 4 (wide-schema reasoning `string` overload on 31b). Bisect the schema before exhausting retries.
+- **`MAX_TOKENS` with degenerate output on 26b-a4b** → rule 2's loop no longer reproduces; treat as a normal retry, and re-probe rule 2 if it recurs.
+- **Alternating 400/500 on a schema-bearing call** → rule 4's crash no longer reproduces, so do not assume a schema fault. Bisect anyway before exhausting retries; the bisect is cheap and settles it.
 
 ## 9. Schema-shape patterns for batch JSON output
 
 Prompt produces a fixed JSON schema and code parses it → two structural
 patterns beyond `response_format`:
 
-**A. Lead with a literal JSON skeleton.** `<output_shape>` block at the very
+9.1. **Lead with a literal JSON skeleton.** `<output_shape>` block at the very
 top showing exact keys and value-object shape for this call. A schema buried
 late produces shape drift on Gemma 4 (bare-list output, missing top-level keys
 in batch grading). Build the skeleton from the call's actual inputs where keys
 vary across batches.
 
-**B. Emit the full schema spec exactly once.** Never restate the field-by-field
+9.2. **Emit the full schema spec exactly once.** Never restate the field-by-field
 contract at both start and end: on Gemma 4 this triggers a restart-loop bug
 (`{Q31: {{Q31: {...`). A brief shape echo or "do not restart the object" guard
 at the end is fine; full re-specification backfires. Gemma 4-specific exception
@@ -223,12 +216,11 @@ T=0 is not recommended on Gemma 4. On Interactions pass exactly
 (judge calls included); leave top_k to the server default. Rule 8's MALFORMED
 temperature step-down is the only sanctioned deviation.
 
-**`top_k`: accepted, not recommended.** `generation_config: {"temperature":
-1.0, "top_p": 0.95, "top_k": 40}` returns 200 on `gemma-4-31b-it`. Strip a
-carried-over `top_k=64` on the paragraph above, not on an error.
-`generation_config` validates key and range: unknown key, camelCase `topK`,
-and `top_k=-5` each 400. This rule previously read the opposite and the API
-changed under it, so re-probe rather than trusting the sign.
+**`top_k` accepted, still not recommended.** `gc: {temperature:1.0,
+top_p:0.95, top_k:40}` -> 200 on 31b. Strip carried-over `top_k=64` per para
+above, not on an error. `gc` validates key+range: unknown key | camelCase
+`topK` | `top_k=-5` -> 400. This rule read the opposite before; API changed
+under it. Re-probe, do not trust the sign.
 
 
 ## 11. Unprobed feature: flag, never assert
@@ -244,8 +236,9 @@ and recommend a docs MCP search.
 Double tool-call bug on 26b-a4b: documented, surface not named, never re-probed
 on Interactions. Per surface provenance treat it as unverified here and flag
 deployer-verify (rule 11). Both variants behave identically for thinking control
-and single-`string` `response_format` mechanics; they diverge on multi-`string`
-schemas (rule 2, Interactions-probed). Treat 26b-a4b as a code-parsed-JSON
+and `response_format` mechanics. The multi-`string` divergence (rule 2) no
+longer reproduces; 26b-a4b now differs only by a ~1/6 timeout rate at n=6.
+Treat 26b-a4b as a code-parsed-JSON
 target; tool-calling required → 31b, and route tool wiring to the
 `gemini-interactions-api` skill.
 
@@ -271,11 +264,12 @@ Reasoning, when emitted, arrives as a `thought` step before `model_output` in
 `gemini-interactions-api` skill; do not restate them here.
 
 **Gemma 4 specifically**: the reliable suppression mechanism is
-`response_format` (rule 1), collapsing the response to a single `model_output`
-step with no `thought` step. `thinking_level` is rejected (rule 6);
-`thinking_summaries` has no Gemma 4 probe, so never recommend it (rule 11). Under `response_format`
-the steps walk simplifies to one `model_output` step and
-`interaction.output_text` works as the shortcut.
+`response_format` (rule 1). It empties the `thought` step, it does not remove
+it: `steps[]` stays `['thought','model_output']` with
+`total_thought_tokens == 0`. `thinking_level` is rejected (rule 6);
+`thinking_summaries` has no Gemma 4 probe, so never recommend it (rule 11).
+`interaction.output_text` still works as the shortcut, but code walking
+`steps[]` must not assume a single step.
 
 
 ## 15. Forensic closed-set scan extension moved
@@ -361,13 +355,14 @@ this file.
 
 ## Verify after changes
 
-Sample N=12 calls per code path. Expect `interaction.status == "completed"`, no
-`thought` step in `interaction.steps[]` (where `response_format` is set),
-`usage.total_thought_tokens == 0`, median wall <5s, 100% schema-valid JSON via
-`raw_decode` on `interaction.output_text`. Non-zero `total_thought_tokens` or a
-`thought` step preceding `model_output` → rule 1 did not land. `MAX_TOKENS`
-with degenerate output on 26b-a4b → rule 2 did not land. Alternating 400/500 on
-a schema-bearing call → rule 4 needs a bisect.
+Sample N=12 calls per code path. Expect `status == "completed"`,
+`usage.total_thought_tokens == 0` where `response_format` is set, median wall
+<5s, 100% schema-valid JSON via `raw_decode`. Non-zero `total_thought_tokens`
+→ rule 1 did not land. An empty `thought` step in `steps[]` is normal and is
+NOT a failure signal. `MAX_TOKENS`
+with degenerate output on 26b-a4b, or alternating 400/500 on a schema-bearing
+call → rules 2 and 4 are stale-marked, so bisect and re-probe rather than
+applying their old structural fixes.
 
 ## Closing reminder
 

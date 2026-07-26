@@ -68,12 +68,12 @@ Shape:
 
 ## 3. Prompting changes for 3.x
 
-- **Precise instructions:** be concise. 3.x responds best to direct, clear instructions; verbose prompt-engineering techniques built for older models make it over-analyze. Drop chain-of-thought scaffolding ("think step by step in detail before answering"); recommend tuning `thinking_level` instead (mechanics: rule 1).
-- **Output verbosity:** 3.x is less verbose by default, preferring direct answers (observed on 3 and 3.1; re-confirm per release). Conversational tone required → steer explicitly ("Explain this as a friendly, talkative assistant"); never rely on defaults for it.
-- **Consistent structure:** XML XOR Markdown for section delimiters. Pick one; convert the minority style. Anti-pattern: wrapping already-Markdown-delimited sections (`## 1. Foo`) in per-section XML tags (`<rule_1>`) "for scope" — the header already delimits, so the wrapper creates the mix this rule prohibits. Whole-document meta blocks (`<role>`, `<scope>`) are not section delimiters and may coexist with a Markdown body. Curly-brace substitution conventions are unrelated.
-- **Critical-instructions placement:** persona, behavioral constraints, output format go in the System Instruction OR at the very beginning of the user prompt; never buried after long context or examples. Start-and-end recency rule still applies as a closing reminder.
-- **Multimodal equal-class:** prompt accepts images, audio, or video alongside text → reference each modality explicitly in the instructions; never name only the text input when an image is also passed.
-- **Thinking-boost lever (narrow fallback):** heavy reasoning where the highest `thinking_level` is not enough → "Think very hard before answering" improves performance at the cost of thinking tokens. Only after the highest level has been tried and named insufficient. Never default scaffolding.
+- **Precise instructions:** be concise. Verbose prompt-engineering built for older models → over-analysis. Drop CoT scaffolding ("think step by step in detail before answering"); tune `thinking_level` instead (mechanics: rule 1).
+- **Output verbosity:** 3.x terse by default (observed on 3, 3.1; re-confirm per release). Conversational tone → steer explicitly ("Explain this as a friendly, talkative assistant"). Never rely on the default.
+- **Consistent structure:** XML XOR Markdown for section delimiters. Pick one, convert the minority. Anti-pattern: per-section XML (`<rule_1>`) wrapping already-Markdown sections (`## 1. Foo`) "for scope" — the header already delimits, so the wrapper creates the prohibited mix. Whole-document meta blocks (`<role>`, `<scope>`) are not section delimiters and may coexist with a Markdown body. Curly-brace substitution is unrelated.
+- **Critical-instructions placement:** persona | behavioral constraints | output format → System Instruction, or the very start of the user prompt. Never after long context or examples. Start-and-end recency still applies as a closing reminder.
+- **Multimodal equal-class:** image/audio/video passed alongside text → reference each modality explicitly. Never name only the text input.
+- **Thinking-boost lever (narrow fallback):** highest `thinking_level` tried and named insufficient → "Think very hard before answering" buys performance with thinking tokens. Never default scaffolding.
 - **Context management:** rule 2.
 
 ## 4. Gemini 3 Flash freshness and grounding clauses
@@ -90,8 +90,8 @@ provided context or judges submitted work. Recommend in Key Changes:
 
 ## 5. Reduce tool-call overuse, two levers in order
 
-1. **Lower the thinking level** (mechanics: rule 1). Higher levels encourage tool use for exploration and verification.
-2. **System instruction bounding tool calls**: "You have a limited action budget of {tool_call_budget} tool calls. Use them efficiently." Substitute the real number before emitting; never emit the literal `{tool_call_budget}`.
+5.1. **Lower the thinking level** (mechanics: rule 1). Higher levels encourage tool use for exploration and verification.
+5.2. **System instruction bounding tool calls**: "You have a limited action budget of {tool_call_budget} tool calls. Use them efficiently." Substitute the real number before emitting; never emit the literal `{tool_call_budget}`.
 
 ## 6. Agentic workflows: port the 9-point planning template
 
@@ -165,7 +165,7 @@ map to the current successor, put the re-test in Key Changes.
 
 **Cross-cutting patterns (durable across generations):**
 
-- **Rankings are task-specific, not global.** The same model won an extraction task and was dropped from a grading-tier task in one codebase; the same model won binary screening and lost tier-granular classification on the same data. Never port a win across task types without re-testing; never emit a family-wide "this model is good/bad" verdict from one task's result.
+- **Rankings are task-specific, not global.** One model won extraction and was dropped from grading-tier in the same codebase; another won binary screening and lost tier-granular classification on the same data. Never port a win across task types without re-testing. Never emit a family-wide good/bad verdict from one task.
 - **Lite-tier models tend toward surface-pattern matching over semantic judgment** on tasks needing discrimination between real and superficially similar content — recall gaps on implicit evidence in grading, surface-feature gaming in item construction. Mitigate with an explicit enumeration/scan requirement (forces the surface-vs-semantic gap into a checkable list, per `FEEDBACK_GENERATION.md` F3), but budget a second-order cost: piling scan requirements onto a small model crowds out attention for other prompt-carried rules. A fix genuinely competing with another rule for attention → move the competing rule code-side rather than adding prompt text.
 - **Bigger/smarter is not automatically better**, and may not be worth its cost: one documented finding rejected a heavier reasoning model because it shared the same constrained quota bucket with no quality edge on that task, while being slower. Check quota-sharing AND task-relevant quality gain before recommending a tier step-up.
 - **A single clean benchmark run is the upper tail of variance**, not a stable baseline, at default sampling. Treat one clean result as optimistic; recommend a small multi-run check before declaring a winner, especially on a close call.

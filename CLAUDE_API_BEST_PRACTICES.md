@@ -108,8 +108,8 @@ to fix the first failure can silently override a count constraint elsewhere.
 Lowering `effort` cuts thinking, not output length. Two lengths, two
 instructions:
 
-1. **Conversational response.** One conciseness directive, repeated as a short reminder near the end of a long prompt (`GENERIC_REVIEW.md` item 3).
-2. **Written deliverable.** Anything written to a file runs long and pads with filler sections independently of the first. LESSON prompts emitting a material to disk state what it must cover and that padding is a defect.
+6.1. **Conversational response.** One conciseness directive, repeated as a short reminder near the end of a long prompt (`GENERIC_REVIEW.md` item 3).
+6.2. **Written deliverable.** Anything written to a file runs long and pads with filler sections independently of the first. LESSON prompts emitting a material to disk state what it must cover and that padding is a defect.
 
 ## 7. Calibrate imperative force where it drives triggering
 

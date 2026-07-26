@@ -49,7 +49,8 @@ Code-parsed JSON output → disable thinking:
 extra_body={"thinking": {"type": "disabled"}}
 ```
 
-`type` accepts `enabled` (default) or `disabled`. No "low"/"medium" level:
+`type` accepts `adaptive` | `enabled` | `disabled`; a bad value 400s listing
+those three. No "low"/"medium" level:
 `reasoning_effort` takes only `high` or `max`; `low`/`medium` silently remap to
 `high`; `xhigh` remaps to `max`. Agent harnesses (Claude Code, OpenCode) get
 effort auto-promoted to `max`, which turns on the built-in thoroughness
@@ -69,7 +70,7 @@ the EXAMPLE JSON OUTPUT. Never leave a grading call with neither.
 `response_format={"type": "json_object"}` is V4's only JSON-shape enforcement;
 no `responseSchema` analogue on the native API. Two prompt-text requirements:
 
-- System OR user message MUST contain the literal word "json". Without it the model emits unending whitespace until `max_tokens` and the request appears to hang.
+- System OR user message MUST contain the literal word "json". Without it: HTTP 400, `Prompt must contain the word 'json' in some form to use 'response_format' of type 'json_object'`. Fails fast now; the old whitespace-until-`max_tokens` hang no longer reproduces, so do not budget a timeout for it.
 - Include a concrete JSON example block. Docs prescribe "modify the prompt" for occasional empty content; an EXAMPLE INPUT + EXAMPLE JSON OUTPUT reduces the empty-response rate.
 
 JSON mode binds no schema. Carry the schema in prose, validate parsed output
@@ -119,9 +120,10 @@ constraints:
 
 Strict-mode schema rules (prompt-design constraints, not just mechanics):
 
-- Every `object` MUST set `additionalProperties: false` and list every property in `required`. No "optional field" concept.
-- `string` accepts `pattern` and `format` (`email`, `hostname`, `ipv4`, `ipv6`, `uuid`); rejects `minLength`, `maxLength`.
-- `array` rejects `minItems`, `maxItems`.
+- Every `object` MUST list every property in `required`. No "optional field" concept: a property absent from `required` → 400 `Required properties must match all properties in the object`. This is the one hard schema rejection.
+- `additionalProperties: false` is convention, not enforced: omitting it returns 200.
+- `minLength`, `maxLength`, `minItems`, `maxItems`, `minimum`, `pattern`, `format`, `anyOf` are all ACCEPTED (200). Acceptance is not enforcement, and enforcement is untested — keep length and count constraints in the prompt body and validate caller-side regardless.
+- Forced `tool_choice` + default thinking → 400 `Thinking mode does not support this tool_choice`. Strict tool calls need `thinking: {"type": "disabled"}` (rule 1).
 - Supported: `object`, `string`, `number`, `integer`, `boolean`, `array`, `enum`, `anyOf`, plus `$ref`/`$def` for reuse and recursion.
 - Max 128 functions per call.
 
@@ -185,11 +187,15 @@ capabilities:
 | `citations`, `is_error` | Ignored |
 | `thinking.budget_tokens` | Ignored; only `output_config.effort` works |
 | `image`, `document`, `search_result`, `web_search_tool_result`, `mcp_tool_use`, `mcp_tool_result`, `container_upload`, `code_execution_tool_result`, `server_tool_use` | Not supported |
-| Unknown `model` value | Silently mapped to `deepseek-v4-flash` |
+| Recognized-elsewhere `model` value (`deepseek-chat`, `claude-sonnet-4-5`) | Silently mapped to `deepseek-v4-flash`, 200 |
+| Unrecognized `model` string (`deepseek-v9-turbo`) | 400 naming the two valid ids |
 
-Load-bearing gotcha: the unknown-model silent remap — any invented variant
-degrades silently to Flash. Validate the model string against an allowlist
-(`deepseek-v4-pro`, `deepseek-v4-flash`) before dispatch.
+Load-bearing gotcha: the remap is silent for any model id that looks real,
+including Claude ids on this compat surface — point Claude-targeted code here
+and it answers as DeepSeek Flash with a 200. Only arbitrary strings 400.
+Validate against an allowlist (`deepseek-v4-pro`, `deepseek-v4-flash`) before
+dispatch; a successful response is not evidence you reached the model you asked
+for.
 
 JSON-shape enforcement needed → OpenAI-compatible endpoint, not this one.
 
