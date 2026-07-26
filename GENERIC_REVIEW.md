@@ -124,6 +124,7 @@ text with targeted fixes inline.
 
 ## Deployment note
 
-Single-invocation use against >=16k context is canonical. Chained sub-agent
-deployment → split scorer (checklist + verdict rubric) from reviser (revision
-procedure + rules), family file as a conditional third call.
+Single-invocation use against >=16k context is canonical. Under context
+pressure, split by pipeline phase per the trunk's `<deployment>` block —
+scorer (checklist + verdict rubric) then reviser (revision procedure + rules),
+family file conditional. Never one reference file per parallel agent.

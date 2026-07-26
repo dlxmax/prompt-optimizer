@@ -71,6 +71,8 @@ The agent file is a small diagnostic trunk. It classifies each call on the three
 
 Model-family files are second-level: the family core file, not the trunk, names any further load condition (e.g. Gemma's forensic-scan extension). No call pays for bytes a different domain or a different model family would need.
 
+**Why one context rather than one agent per file.** A typical call loads 3-5 files, and their value is concentrated in the *interactions*: a Claude schema-shape rule invalidates a `GRADING_PIPELINE.md` artifact; a family rule that deletes prompt-side self-checks must not delete a code-side validator; a family example-count recommendation loses to the judge-specific cap. An agent holding one file cannot see the rule it contradicts, so every finding that matters would have to be re-derived at merge time by an agent that no longer has the files — and parallel edits to the same schema collide. Under real context pressure the split is by **pipeline phase** (diagnose+score, then revise+emit), each phase holding its full rule set; the legitimate fan-out is over the *work product* (one call per rubric criterion), which is what the Pipeline Spec already prescribes. The per-file split was tried at v2.1.0 and reverted at v3.1.0.
+
 ## Model-family files
 
 Applied additively on top of whichever domain/shape matched, when a `Target model:` is declared:
