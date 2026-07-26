@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "prompt-optimizer",
-  "description": "Education-domain prompt designer and reviewer across three domains: rubric-based grading, feedback-comment generation (PQS/ghost-guard), and lesson/worksheet/exam authoring. Rescues oversized monoliths into per-criterion or per-section call architectures, audits revised prompts, and authors pipelines from a rubric or spec. Thin diagnostic trunk with composable branches. Also reviews generic prompts, with family mechanics for Gemini 3.x (prompt-content only; defers API mechanics and model selection to the gemini-interactions-api skill), Gemma 4, DeepSeek V4, and Claude.",
+  "description": "Education-domain prompt designer and reviewer across three domains: rubric-based grading, feedback-comment generation (PQS/ghost-guard), and lesson/worksheet/exam authoring. Rescues oversized monoliths into per-criterion or per-section call architectures, audits revised prompts, and authors pipelines from a rubric or spec. Thin diagnostic trunk with composable branches. Also reviews generic prompts, with family files for Claude (canonical target Opus 5, plus a model-upgrade audit), Gemini 3.x, Gemma 4, and DeepSeek V4; Claude and Gemini API mechanics defer to the claude-api and gemini-interactions-api skills.",
   "owner": {
     "name": "dlxmax"
   },
@@ -9,8 +9,8 @@
     {
       "name": "prompt-optimizer",
       "source": "./",
-      "description": "Education-domain prompt designer and reviewer across three domains: rubric-based grading, feedback-comment generation (PQS/ghost-guard), and lesson/worksheet/exam authoring. Rescues oversized monoliths into per-criterion or per-section call architectures, audits revised prompts, and authors pipelines from a rubric or spec. Thin diagnostic trunk with composable branches. Also reviews generic prompts, with family mechanics for Gemini 3.x (prompt-content only; defers API mechanics and model selection to the gemini-interactions-api skill), Gemma 4, DeepSeek V4, and Claude.",
-      "version": "3.2.0",
+      "description": "Education-domain prompt designer and reviewer across three domains: rubric-based grading, feedback-comment generation (PQS/ghost-guard), and lesson/worksheet/exam authoring. Rescues oversized monoliths into per-criterion or per-section call architectures, audits revised prompts, and authors pipelines from a rubric or spec. Thin diagnostic trunk with composable branches. Also reviews generic prompts, with family files for Claude (canonical target Opus 5, plus a model-upgrade audit), Gemini 3.x, Gemma 4, and DeepSeek V4; Claude and Gemini API mechanics defer to the claude-api and gemini-interactions-api skills.",
+      "version": "4.0.0",
       "author": {
         "name": "dlxmax"
       },
@@ -48,7 +48,12 @@
         "deepseek",
         "deepseek-v4",
         "response-schema",
-        "structured-output"
+        "structured-output",
+        "claude-opus-5",
+        "claude-api",
+        "opus-5",
+        "abstention",
+        "model-upgrade-audit"
       ],
       "category": "workflow",
       "tags": [
@@ -82,7 +87,12 @@
         "deepseek",
         "deepseek-v4",
         "response-schema",
-        "structured-output"
+        "structured-output",
+        "claude-opus-5",
+        "claude-api",
+        "opus-5",
+        "abstention",
+        "model-upgrade-audit"
       ],
       "strict": false
     }
