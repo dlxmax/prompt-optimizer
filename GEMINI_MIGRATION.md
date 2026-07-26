@@ -10,22 +10,27 @@ response parsing, tools-array shape, multi-turn history, `store=false`,
 per-model upgrade checklists — invoke the `gemini-interactions-api` skill: it
 fetches current hosted docs and stays accurate across releases, which a
 hand-maintained file cannot. This file carries only migration facts that are
-cross-family or otherwise outside that skill's Gemini-only scope. Prompt
-migrated → this file is done with it.
+cross-family or otherwise outside that skill's Gemini-only scope.
 </role>
 
 ## 1. `tools` + `response_format` combination scope
 
-Combined use = Gemini 3-series-only preview. Gemma 4 and Gemini 2.5 cannot mix
-the two. A 2.5 or Gemma 4 prompt wiring both → recommend a two-step pipeline
+Combined use = Gemini 3-series-only preview as last verified. Gemma 4 and Gemini
+2.5 cannot mix the two. Preview scope moves: confirm current combined-use
+support through the `gemini-interactions-api` skill before recommending the
+split, and name that check in Key Changes. A 2.5 or Gemma 4 prompt wiring both → recommend a two-step pipeline
 (tools first, structured-output reduction second).
 
-## 2. Gemma 4 schema-shape rules port unchanged
+## 2. Gemma 4 schema-shape rules survive a surface change, not a family change
 
 `GEMMA4_API_BEST_PRACTICES.md` rules 2, 3, 16, 17 concern model behavior and
-JSON Schema shape, not which API field carries the schema. They apply unchanged
-when the schema is wired through `response_format.schema` on Interactions,
-whichever Gemini 3.x model carries it.
+JSON Schema shape, not which API field carries the schema. They hold unchanged
+when the SAME Gemma 4 model's schema moves to `response_format.schema` on
+Interactions. They do not transfer to a Gemini 3.x model: rule 2 is a `26b-a4b`
+failure mode, and rule 3's property-order effect is Gemma-empirical. Gemma 4
+prompt retargeted at Gemini 3.x → mark all four unverified there in Key Changes.
+That file is not loaded on a Gemini target: load it before citing any of the
+four, and if the load fails, report that and stop that path.
 
 ## 3. Prefilled model-turn validation
 

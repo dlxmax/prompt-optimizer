@@ -6,8 +6,10 @@ model (`Claude Opus 5`, `Claude Opus 4.x`, `Claude Sonnet 5`, `Claude Haiku
 4.5`, bare `Claude`). Apply every numbered rule; cite rule numbers in Key
 Changes.
 
-Canonical target: **Claude Opus 5**. Earlier Claude generation → rules still
-apply, and `CLAUDE_UPGRADE_AUDIT.md` loads first.
+Canonical target: **Claude Opus 5**. Earlier Claude generation → every rule
+still applies. That alone does not load `CLAUDE_UPGRADE_AUDIT.md`; it fires on
+its own trigger below, a prompt written for a generation earlier than the
+declared target.
 
 Prompt content only. API mechanics (model IDs, `effort`, thinking config,
 structured-output wiring, prefill support, sampling parameters, context window,
@@ -26,8 +28,7 @@ capability subset, routes to the DeepSeek file.
 ## 1. API mechanics are the claude-api skill's job
 
 `claude-api` = Anthropic's Agent Skill for current Claude API reference.
-Bundled with Claude Code as `/claude-api`, also open-sourced in Anthropic's
-public skills repository.
+Bundled with Claude Code as `/claude-api`.
 
 Never answer from this file, training data, or memory for: model IDs, context
 window, pricing; `effort` levels, defaults, per-model accepted levels; thinking
@@ -44,13 +45,13 @@ docs, never from this agent's knowledge.
 
 ## 2. Version-local behavior is not stored here
 
-Adjacent Claude releases invert defaults, not merely shift them. Between the
-last two Opus generations the recommended fix reversed on: default verbosity,
+Adjacent Claude releases invert defaults, not merely shift them. Axes that have
+inverted across adjacent releases: default verbosity,
 subagent eagerness, whether self-verification helps, whether thinking defaults
 on, which `effort` level to start from. A "model 4.N does X" rule is wrong
 within one release cycle.
 
-No per-version table here; do not add one. Rules 3-12 are the part that
+No per-version table here; do not add one. Rules 3-11 are the part that
 survives a generation change. Applying one turns on a version-specific default
 → confirm via rule 1, name the version verified against in Key Changes.
 
@@ -79,7 +80,8 @@ Scan and delete: "double-check your answer", "re-verify before responding",
 
 Replacement = a chained call, not a deleted check: draft, review against
 criteria, refine, as separate calls. Self-correction inside one call is the
-defect; across calls it is the architecture (G1, rule 3).
+defect; across calls it is the architecture (`GRADING_PIPELINE.md` G1,
+`GENERIC_REVIEW.md` item 3).
 
 **Code-side validation stays.** Quote fuzzy-match, schema retry, bounds check,
 escalation re-call (artifact 4, G8) run outside the model. Never delete a
@@ -106,7 +108,7 @@ to fix the first failure can silently override a count constraint elsewhere.
 Lowering `effort` cuts thinking, not output length. Two lengths, two
 instructions:
 
-1. **Conversational response.** One conciseness directive, repeated as a short reminder near the end of a long prompt (`GENERIC_REVIEW.md` item 6).
+1. **Conversational response.** One conciseness directive, repeated as a short reminder near the end of a long prompt (`GENERIC_REVIEW.md` item 3).
 2. **Written deliverable.** Anything written to a file runs long and pads with filler sections independently of the first. LESSON prompts emitting a material to disk state what it must cover and that padding is a defect.
 
 ## 7. Calibrate imperative force where it drives triggering
@@ -141,7 +143,8 @@ instead of a structured call, so it never runs, the turn completes as if it
 had, and in an agentic loop the leaked text stays in history and affects later
 turns — a validator checking only output shape passes this.
 
-Thinking must stay off → one combined instruction covers both: permit a brief
+Deployer constraint forces thinking off, rule 1 confirming that is possible on
+the target → one combined instruction covers both: permit a brief
 sentence before a tool call, give an out when no tool fits, state a general
 rule against internal or system XML tags. Naming specific tag types is weaker
 than the general form. Output ordering (evidence array before level)
@@ -158,7 +161,7 @@ Fix at the schema:
 
 - Every required enum over a judgment the input may not support carries an insufficient-evidence member.
 - Abstention path = a **fixed literal**, never "say if you are unsure": free-form doubt is undetectable downstream (invariant 2). Vendor examples name the exact string ("No relevant quotes found").
-- No `minItems` floor on abstainable arrays (schema review essentials 2).
+- No `minItems` floor on abstainable arrays (`CLAUDE_STRUCTURED_OUTPUTS.md` 3; `GRADING_PIPELINE.md` schema review essentials 2 where loaded).
 - Prefer required + abstention member over optional or nullable; on Claude, optional members also cost grammar budget (`CLAUDE_STRUCTURED_OUTPUTS.md` 7).
 - Keep the prose grounding clause; additive, not a substitute.
 
@@ -188,7 +191,8 @@ Claude-targeted prompts, not schema-constrained calls:
 Vendor guidance recommends 3-5 examples for general steering. G6's 0-or-1
 borderline example per criterion is narrower on purpose: judge examples anchor
 the rating rather than teach a format. Judge and grading prompts → G6 wins.
-Never upgrade a criterion block to 3-5.
+Non-judge gate prompts → `GENERIC_REVIEW.md` item 4's 1-3 wins. 3-5 applies only
+where the prompt gates nothing. Never upgrade a criterion block to 3-5.
 
 ## Verify after changes
 
@@ -203,6 +207,7 @@ Never upgrade a criterion block to 3-5.
 9. Example count follows G6 on judge prompts, not the general 3-5 (11).
 10. Every version-specific fact sourced from rule 1 or flagged deployer-verify with the version named.
 11. `CLAUDE_UPGRADE_AUDIT.md` loaded → every stale-scaffolding item listed as remove-and-retest.
+12. `CLAUDE_STRUCTURED_OUTPUTS.md` loaded → no numeric or string bounds, `additionalProperties: false` on every object, no `minItems` above 1, every property required.
 
 ## Second-level routing
 
@@ -215,8 +220,9 @@ Load `CLAUDE_UPGRADE_AUDIT.md` additively when the prompt was written for an
 earlier Claude generation than the declared target: caller says so, call-site
 names an older model, or the prompt carries self-verification steps, forced
 progress narration, caps-lock anti-under-trigger urgency, reasoning-depth
-nagging, assistant-turn prefill, sampling parameters, or a manual thinking
-budget.
+nagging, assistant-turn prefill, sampling parameters, a manual thinking budget,
+an N-vote scaffold added for an unstable model, or a prompt-side vision
+workaround.
 
 ## Closing directive recap
 

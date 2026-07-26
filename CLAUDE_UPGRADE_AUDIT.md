@@ -11,9 +11,9 @@ Scaffolding built for a weaker model is not neutral on a stronger one: it costs
 tokens and some of it degrades the newer model. Strip each instance; list each
 as remove-and-retest, never a silent port.
 
-1. Self-verification and re-check steps (core rule 4).
+1. Prompt-side self-verification and re-check steps (core rule 4). Never a code-side validator.
 2. Forced progress narration ("after every 3 steps, summarize").
-3. Anti-under-trigger urgency: caps-lock imperatives, "if in doubt, use the tool" (core rule 7).
+3. Anti-under-trigger urgency on **conditional** behavior: caps-lock imperatives, "if in doubt, use the tool" (core rule 7). Emphasis on unconditional grounding, quoting, and injection-defense clauses stays.
 4. Reasoning-depth nagging ("think step by step", "think harder") — now the `effort` parameter's job; confirm the current lever via core rule 1.
 5. Assistant-turn prefill. Verify support via core rule 1; replacement depends on what it enforced:
    - Format forcing → structured outputs, or a tool with an enum field for label sets.

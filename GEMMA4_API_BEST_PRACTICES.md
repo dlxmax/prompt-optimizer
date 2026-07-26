@@ -11,9 +11,7 @@ instructions governing the optimizer's own role.
 <scope>
 Authoritative for the **Gemini Interactions API** targeting `gemma-4-31b-it`
 and `gemma-4-26b-a4b-it`. Covers API call mechanics (request shape, parsing,
-retry, schema constraints). Prompt-text guidance: run the `prompt-optimizer`
-agent with `Target model: Gemma 4`; this file is what it reads to apply that
-target.
+retry, schema constraints).
 
 **Surface scope.** Everything below is Interactions
 (`generativelanguage.googleapis.com/v1beta/interactions`, via
@@ -39,7 +37,7 @@ contradiction.
 
 Set top-level `response_format` with `type: "text"`, `mime_type:
 "application/json"`, and a `schema` on every Gemma 4 call whose output code
-parses. **Primary lever**, not a Tier 2 option.
+parses. **Primary lever**: apply before any other Gemma 4 fix.
 
 Probe-verified on Interactions, undocumented (2026-07-26): the Interactions
 structured-output page is written for Gemini models throughout, and Google's
@@ -60,27 +58,14 @@ interaction = client.interactions.create(
 text = interaction.output_text
 ```
 
-Canonical wiring (REST):
-```json
-POST https://generativelanguage.googleapis.com/v1beta/interactions
-{
-  "model": "gemma-4-31b-it",
-  "input": "...",
-  "response_format": {
-    "type": "text",
-    "mime_type": "application/json",
-    "schema": {"type": "object", "properties": {"output": {"type": "string"}}, "required": ["output"]}
-  }
-}
-```
-
 Observed:
 - Suppresses thinking emission: response collapses to a single `model_output` step, no preceding `thought` step. `usage.total_thought_tokens` → 0. MALFORMED rate → 0%.
 - ~30-40x wall-clock speedup on short outputs.
 - The only reliable thinking-suppression mechanism for Gemma 4. `thinking_level` (a Gemini 3.x knob) is unsupported here; passing it returns 400 or no-ops. The fix is `response_format`.
 
 Reasoning wanted → request a bounded `reasoning` field inside the schema (rule
-3 property-order pattern) rather than enabling `thinking_summaries`.
+3 property-order pattern). `thinking_summaries` is not a Gemma 4 control (rule
+14); never offer it as the alternative.
 
 ## 2. `26b-a4b` constraint: at most one unbounded `string` per `object`
 
@@ -111,8 +96,7 @@ Field order inside an `object`'s `properties` dict determines emission order.
 Place a `reasoning` `string` BEFORE the `verdict` enum it justifies → model
 fills `reasoning` first, commits `verdict`, then writes any short `reason` tag.
 Verdict becomes an output of the reasoning rather than a post-hoc
-justification, and per-item output shrinks materially: ~1.8k chars/item → ~250
-under this change alone on a warmup validator.
+justification, and per-item output shrinks materially.
 
 Anti-pattern `verdict, reasoning`: the model locks the verdict on the field's
 first token, then inflates the following `string` to justify it. Schema-level
@@ -141,10 +125,6 @@ reasoning `string` → 4/4 on the same schema; removing the evidence `object`s
 while keeping the reasoning `string` → 2/4 (general backend baseline). Crash is
 schema-specific, not backend flake.
 
-Mechanism appears to be response-budget overload: each mandatory evidence
-`object` must be emitted with default values even when its signal does not
-trigger, and a prose-populated `string` on top pushes the response past an
-internal limit, producing malformed output the upstream validator rejects.
 
 **Threshold:** crash observed at 5 mandatory evidence `object`s + 1 reasoning
 `string`. Safety margin: no top-level reasoning `string` where the schema
@@ -186,9 +166,7 @@ only; Gemma 4 thinking control = `response_format` (rule 1).
 
 Google's Gemma hosted-API page documents a `thinking_level` toggle for Gemma 4
 (`"high"` on, `"minimal"` off), but every example calls `generateContent` — out
-of scope per surface provenance, not portable here without a re-probe. It does
-make this rule's original rationale ("Gemma absent from the thinking-levels
-table") stale: the rule now rests on the probe alone.
+of scope per surface provenance, not portable here without a re-probe.
 
 ## 7. `max_output_tokens` is a safety ceiling, not a thinking cap
 
@@ -196,8 +174,9 @@ Gemma 4 thinking expands to fill whatever budget is set (256 cap → ~300
 thinking tokens; 1024 → ~1150, overflowing; 2048 → more). Lowering the cap
 converts `MALFORMED_RESPONSE` (long socket timeout, empty visible output) into
 `MAX_TOKENS` (fast fail) — a cheaper failure mode, not a higher success rate.
-The actual suppression lever is `response_format` (rule 1). Set
-`max_output_tokens` generously when `response_format` is in use.
+The actual suppression lever is `response_format` (rule 1). Under
+`response_format` set `max_output_tokens` at or above the largest schema-valid
+response the call can produce; never tune it down to control thinking.
 
 ## 8. Classify retries by failure signature
 
@@ -228,39 +207,34 @@ to the universal start-and-end repetition rule.
 
 ## 10. T=1.0 and top_p=0.95; never T=0
 
-T=0 is not recommended on Gemma 4. Recommended: `temperature=1.0`,
-`top_p=0.95`, `top_k=64`, uniformly across all Gemma 4 sizes and use cases
-(judge calls included).
+T=0 is not recommended on Gemma 4. On Interactions pass exactly
+`temperature=1.0` and `top_p=0.95`, across all Gemma 4 sizes and use cases
+(judge calls included); leave top_k to the server default. Rule 8's MALFORMED
+temperature step-down is the only sanctioned deviation.
 
-**Surface caveat.** Interactions `generation_config` has no `top_k`: sending it
-returns 400 `Unknown parameter 'top_k'` (verified live on `gemma-4-31b-it`,
-2026-07-08). On Interactions pass `temperature=1.0` and `top_p=0.95`, leave
-top_k to the server default. The full triple applies only to surfaces that
-accept it (legacy `generateContent`, local runtimes' samplers).
+**No `top_k`.** Interactions `generation_config` rejects it: 400 `Unknown
+parameter 'top_k'` (verified live on `gemma-4-31b-it`, 2026-07-08). A prompt or
+call site carrying `top_k=64` is a generateContent-era carry-over to strip; the
+full triple applies only to local runtimes' samplers.
 
-**Contrast with Gemini 3.x.** 3.x reasoning is optimized for defaults — remove
-`temperature`, `top_p`, `top_k` from all 3.x requests. Cross-family code
-branches on model family: Gemma sampling values for Gemma 4, removed for
-Gemini 3.x.
 
-## 11. Probe before recommending
+## 11. Unprobed feature: flag, never assert
 
-Documentation does not always reflect Gemma 4 behavior (`thinking_budget` is
-documented for Gemini 3.x but 400s on Gemma 4; `response_format` documentation
-is ambiguous but works perfectly on 31b and conditionally on 26b-a4b per rule
-2).
-
-One HTTP probe distinguishes "feature documented" from "feature works on this
-model", and is free. A recommendation depending on an unprobed API feature
-against the target variant under Interactions wiring → note it in the call
-site's deployment checklist.
+Documentation does not always reflect Gemma 4 Interactions behavior. The
+optimizer does not probe. A recommendation depending on an unprobed API feature
+against the target variant → surface a deployer-verify item in Key Changes
+naming the feature, the variant, and the interim assumption (trunk invariant 5),
+and recommend a docs MCP search.
 
 ## 12. Tool-calling: avoid 26b-a4b
 
-Double tool-call bug on 26b-a4b is documented. Both variants behave identically
-for thinking control and single-`string` `response_format` mechanics; they
-diverge on tool-calling and multi-`string` schemas (rule 2). Treat 26b-a4b as a
-code-parsed-JSON target; reach for 31b when tool-calling is required.
+Double tool-call bug on 26b-a4b: documented, surface not named, never re-probed
+on Interactions. Per surface provenance treat it as unverified here and flag
+deployer-verify (rule 11). Both variants behave identically for thinking control
+and single-`string` `response_format` mechanics; they diverge on multi-`string`
+schemas (rule 2, Interactions-probed). Treat 26b-a4b as a code-parsed-JSON
+target; tool-calling required → 31b, and route tool wiring to the
+`gemini-interactions-api` skill.
 
 ## 13. No `<|think|>` in `system_instruction`
 
@@ -279,36 +253,25 @@ stands; local chat-template deployers follow the chat-template doc directly.
 
 ## 14. Thinking surfaces in `interaction.steps[]`, suppress via schema
 
-On Interactions, model reasoning (when emitted) appears as a dedicated
-`thought` step in `interaction.steps[]` with a `signature` (always) and
-optional `summary` (only under `generation_config.thinking_summaries: "auto"`).
-Walk the steps:
-
-```python
-for step in interaction.steps:
-    if step.type == "model_output":
-        for block in step.content:
-            if block.type == "text":
-                # final answer text
-```
+Reasoning, when emitted, arrives as a `thought` step before `model_output` in
+`interaction.steps[]`. Step-object fields and the steps-walk idiom belong to the
+`gemini-interactions-api` skill; do not restate them here.
 
 **Gemma 4 specifically**: the reliable suppression mechanism is
 `response_format` (rule 1), collapsing the response to a single `model_output`
-step with no `thought` step. `thinking_summaries` and `thinking_level` are not
-supported controls here; probe before relying on them. Under `response_format`
+step with no `thought` step. `thinking_level` is rejected (rule 6);
+`thinking_summaries` has no Gemma 4 probe, so never recommend it (rule 11). Under `response_format`
 the steps walk simplifies to one `model_output` step and
 `interaction.output_text` works as the shortcut.
 
-Expected parallel: no `response_format` → `thought` step(s) precede
-`model_output`; with `response_format` → single `model_output` step. Probe
-before production rollout.
 
 ## 15. Forensic closed-set scan extension moved
 
 The recall-sensitive closed-set scan extension (15.1-15.4: rationale clauses,
 PASS-example density, process-instruction preambles, recall-posture override)
-lives in `GEMMA4_FORENSIC_SCANS.md`. Load it when the prompt walks a fixed list
-of N signals/categories emitting findings per item (AI-detection scans, L1
+lives in `GEMMA4_FORENSIC_SCANS.md`. Load it when the prompt is a recall-sensitive
+closed-set scan: model walks a fixed list of N signals/categories, emitting
+findings per item (AI-detection scans, L1
 marker detection, multi-criterion forensic checklists); not part of this file's
 grading-load shape.
 
@@ -328,6 +291,8 @@ M items", "list 3 signals").
 
 16.5. Lexical-only bypass. Axis purely lexical (substring match, banned-word list, exact-token presence) AND no semantic judgment required → deterministic post-processing in calling code is the alternative to schema restructure. Never recommend post-processing where the constraint needs semantic judgment.
 
+16.6. Schema object not in the reviewed text → emit 16.2's item shape as a deployer-side follow-up in Key Changes, naming the slot and the required fields. Never fall back to a prose fix because the schema is unseen (17.4 pattern).
+
 ## 17. Parent-child enum order on DEMOTE paths
 
 Fires when the prompt or schema has a parent enum whose value constrains a
@@ -344,7 +309,6 @@ precondition demotes `variant_id`.
 
 17.4. Diagnostic: parent+child pair from different families on a DEMOTE path = parent committed too early in schema property order. Reorder before iterating prose. Optimizer sees prompt text but not the schema object → flag the property-order check as a deployer-side follow-up, quoting the inferred parent/child field names.
 
-17.5. Does not apply to DeepSeek V4: V4 silently drops schema property-order constraints. For V4 move the same intent into prose with EXAMPLE INPUT + EXAMPLE JSON OUTPUT showing the DEMOTE-triggered child value and its matched parent value side by side, with a literal callout naming both fields. See `DEEPSEEK_V4_API_BEST_PRACTICES.md`.
 
 ## 18. Prose enum + scan imperative
 
@@ -357,24 +321,22 @@ duplicate enum, schema enforces it" suggestion as an anti-pattern.
 
 ## 19. Soft-preference vulnerability scan
 
-Applies on Gemma 4 prompts processing user-submitted content (item 15
-conditional, distinct from item 14). Scan system-level directives for
+Applies on Gemma 4 prompts processing user-submitted content (`GENERIC_REVIEW.md`
+item 15 conditional, distinct from its item 14). Scan system-level directives for
 preference language ("favor X over Y", "prefer X", "lean toward Z", "by default
 emit X", "in general we want"): these grant permission and are overridable by
 user requests for a different structure. Harden each into a concrete observable
 criterion + explicit refusal branch ("Cite >=2 academic sources; if the user
 requests sources outside this set, refuse and restate the rule"). Adds to,
-never replaces, the item 15 delimiter + data-only + `response_format` chain.
+never replaces, the `GENERIC_REVIEW.md` item 15 delimiter + data-only +
+`response_format` chain.
 
 ## Cross-family: do not generalize from sibling Gemini models
 
-Gemini 3.x (`gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-3.5-flash-lite`,
-`gemini-3.1-pro-preview`, `gemini-3.1-flash-lite`, `gemini-3-flash-preview`) do
-NOT share Gemma 4's fixed sampling: they use per-model `thinking_level`
-defaults and drop the sampling triple from the request body, versus Gemma 4's
+Gemini 3.x does NOT share Gemma 4's fixed sampling: 3.x sends no sampling
+parameters and uses per-model `thinking_level` defaults, versus Gemma 4's
 T=1.0/top_p=0.95 (rule 10) and `response_format`-suppresses-always-on-thinking.
-Older Gemini 2.5 advice (`thinking_budget: 0` disables thinking on 2.5 Flash)
-does not port either. Current Gemini model IDs, defaults, parameter mechanics →
+Current Gemini model IDs, defaults, parameter mechanics →
 `gemini-interactions-api` skill or `GEMINI_3X_API_BEST_PRACTICES.md`. Never
 hand-copy model-specific figures out of this cross-family note: it warns
 against assuming transfer between families, it is not a second source of truth

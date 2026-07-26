@@ -31,10 +31,10 @@ check which endpoint an example calls before treating it as evidence. Legacy
 wiring in a prompt or call-site = migration defect (`GEMINI_MIGRATION.md`),
 never an alternative to recommend.
 
-Only `gemini-3.6-flash`, `gemini-3.5-flash-lite`, `gemini-3.1-pro-preview`,
-`gemini-3.1-flash-lite` appear in the skill's current-model list; the rest are
-migration sources. Which strings are live, plus current defaults/pricing and
-every API-mechanics fact = the skill's job (rule 1). Gemma 4 →
+Which strings above are live, plus current defaults/pricing and every
+API-mechanics fact = the skill's job (rule 1). This file stores no
+current-model list: any snapshot of one drifts silently and then contradicts
+rule 1. Gemma 4 →
 `GEMMA4_API_BEST_PRACTICES.md`; DeepSeek V4 →
 `DEEPSEEK_V4_API_BEST_PRACTICES.md`.
 </scope>
@@ -48,9 +48,10 @@ tools-array shape), function-calling response matching,
 multi-turn/thought-preservation, streaming, SDK/migration facts. In Key
 Changes: recommend invoking the `gemini-interactions-api` skill before writing
 or reviewing call-site code — it fetches the current hosted docs page per
-feature, staying accurate across releases. Skill unavailable → fall back to a
-`gemini-api-docs-mcp` `search_docs` query scoped to the unknown; state your
-interim assumption either way. Legacy `generateContent` wiring additionally
+feature, staying accurate across releases. Name `gemini-api-docs-mcp` `search_docs`, scoped to the unknown, as the
+deployer's fallback where the skill is not installed. You cannot detect skill
+availability or run an MCP query with Read/Grep/Glob, so both are
+recommendations, never steps you take. State your interim assumption either way. Legacy `generateContent` wiring additionally
 loads `GEMINI_MIGRATION.md` (cross-family facts the skill doesn't cover; same
 skill-first policy).
 
@@ -68,7 +69,7 @@ Shape:
 ## 3. Prompting changes for 3.x
 
 - **Precise instructions:** be concise. 3.x responds best to direct, clear instructions; verbose prompt-engineering techniques built for older models make it over-analyze. Drop chain-of-thought scaffolding ("think step by step in detail before answering"); recommend tuning `thinking_level` instead (mechanics: rule 1).
-- **Output verbosity:** 3 and 3.1 are less verbose by default, preferring direct answers. Conversational tone required → steer explicitly ("Explain this as a friendly, talkative assistant"); never rely on defaults for it.
+- **Output verbosity:** 3.x is less verbose by default, preferring direct answers (observed on 3 and 3.1; re-confirm per release). Conversational tone required → steer explicitly ("Explain this as a friendly, talkative assistant"); never rely on defaults for it.
 - **Consistent structure:** XML XOR Markdown for section delimiters. Pick one; convert the minority style. Anti-pattern: wrapping already-Markdown-delimited sections (`## 1. Foo`) in per-section XML tags (`<rule_1>`) "for scope" — the header already delimits, so the wrapper creates the mix this rule prohibits. Whole-document meta blocks (`<role>`, `<scope>`) are not section delimiters and may coexist with a Markdown body. Curly-brace substitution conventions are unrelated.
 - **Critical-instructions placement:** persona, behavioral constraints, output format go in the System Instruction OR at the very beginning of the user prompt; never buried after long context or examples. Start-and-end recency rule still applies as a closing reminder.
 - **Multimodal equal-class:** prompt accepts images, audio, or video alongside text → reference each modality explicitly in the instructions; never name only the text input when an image is also passed.
@@ -77,10 +78,11 @@ Shape:
 
 ## 4. Gemini 3 Flash freshness and grounding clauses
 
-Flash system-instruction clauses (Gemini 3 Flash family; absent by default,
-each high-ROI for its failure mode). Recommend in Key Changes when the target
-is Flash AND the task is time-sensitive, knowledge-grounded, RAG-style, or a
-grading/judge task over submitted work:
+System-instruction clauses absent by default, each high-ROI for its failure
+mode. Two scopes, do not merge them. Clauses 1-2 fire on any Flash-tier target
+(`-flash` or `-flash-lite`) whose task is time-sensitive or knowledge-grounded.
+Clause 3 fires on ANY Gemini 3.x target, Pro included, that answers from
+provided context or judges submitted work. Recommend in Key Changes:
 
 - **Current-day clause** (time-sensitive queries, tool-call freshness): instruct the model to follow the provided current date and year when forming search queries, stating the year explicitly (2026). Flash otherwise defaults to stale assumptions about "now".
 - **Knowledge-cutoff clause** (facts near the boundary): state the cutoff so the model defers to grounding for post-cutoff facts instead of parametric memory (confirm the current cutoff via rule 1 — it moves with each release).
@@ -89,7 +91,7 @@ grading/judge task over submitted work:
 ## 5. Reduce tool-call overuse, two levers in order
 
 1. **Lower the thinking level** (mechanics: rule 1). Higher levels encourage tool use for exploration and verification.
-2. **System instruction bounding tool calls**: "You have a limited action budget of N tool calls. Use them efficiently."
+2. **System instruction bounding tool calls**: "You have a limited action budget of {tool_call_budget} tool calls. Use them efficiently." Substitute the real number before emitting; never emit the literal `{tool_call_budget}`.
 
 ## 6. Agentic workflows: port the 9-point planning template
 
@@ -114,22 +116,24 @@ Recommend in Key Changes:
 
 (Tool-declaration syntax is call-site mechanics: rule 1.)
 
-## 8. Flash-Lite's `minimal` default may need escalation
+## 8. Lite-tier thinking defaults often need escalation
 
-`gemini-3.5-flash-lite` defaults `thinking_level` to `minimal` (current default
-and full valid level set: rule 1 — the enum is a mechanics fact that shifts
-between model versions, so it is not hard-coded here). That default is tuned
+Lite-tier targets default to the bottom of the `thinking_level` enum (current
+default and full valid level set: rule 1, never this file, because both shift
+between model versions). That default is tuned
 for high-volume extraction, routing, classification, and can underperform on
 any task requiring multi-step judgment: nuanced rubric-criterion grading,
 multi-clause AND-gated descriptors, anything weighing evidence rather than
 pattern-matching.
 
 Escalation *policy* is an empirical quality judgment, not an API mechanic, so
-it lives here: prompt targeting `gemini-3.5-flash-lite` fails at the default →
-recommend testing the next level up (confirm current valid levels via rule 1
-before naming one) before concluding the prompt is at fault; escalate further
-only if the previous step still underperforms. Repeated escalation is not a
-signal to abandon the model — it signals the task needs more than `minimal`.
+it lives here. Two triggers. Review time: target is a Lite tier AND the task
+needs multi-step judgment → put a one-level-up test in Key Changes as a deployer
+action, reported failure or not (confirm current valid levels via rule 1 before
+naming one). Reported failure: escalate one level at a time, each step
+conditional on the previous still underperforming, and never call the prompt at
+fault before the default has been ruled out. Repeated escalation signals the
+task needs more than the bottom level, not that the model is wrong.
 `GRADING_PIPELINE.md` artifact 5 carries the calibration-checklist version of
 this diagnostic branch.
 
@@ -140,22 +144,18 @@ know task-specific results, so this stays hand-maintained regardless of rule 1.
 Every finding was tested on the prior generation (`gemini-3.1-flash-lite`,
 `gemini-3-flash-preview`, `gemini-2.5-*`) before `gemini-3.6-flash` and
 `gemini-3.5-flash-lite` existed. Treat each model-to-task mapping as a starting
-hypothesis to re-verify on the current generation, not a standing fact — Google
-documents exactly the kind of improvement (fewer reasoning steps, stronger
-multimodal/reasoning scores on Flash-Lite) that would flip some verdicts. The
+hypothesis to re-verify on the current generation, not a standing fact. The
 patterns below the table are the durable part.
 
-Stronger than a currency caveat: every model in the table is a documented
-migration *source*, not a current target (`gemini-3.5-flash`,
-`gemini-3-flash-preview`, `gemini-3.1-pro-preview` → `gemini-3.6-flash`;
-`gemini-3.1-flash-lite`, `gemini-2.5-flash` → `gemini-3.5-flash-lite`), and
-none appears in the skill's current-model list. Never name a table model as the
-recommendation for new work. Read a row as "this task type suited that tier",
+Stronger than a currency caveat: a row records which tier won a task on the
+generation tested, never which string to call today. Liveness and the current
+successor for any string below = the skill's job (rule 1); this file asserts
+neither. Never name a table model as the recommendation for new work. Read a row as "this task type suited that tier",
 map to the current successor, put the re-test in Key Changes.
 
 | Task type | Model that won, as tested | Why | Currency |
 |---|---|---|---|
-| Open-ended multimodal extraction (transcription, speaker labeling, phase detection) | `gemini-3.5-flash` (free tier) | Matched paid `gemini-2.5-pro` exactly on a multi-speaker code-switched video; free-tier `gemini-3.1-flash-lite`/`gemini-2.5-flash` under-counted speakers or mislabeled phases | Still current; `gemini-2.5-pro` since lost production access |
+| Open-ended multimodal extraction (transcription, speaker labeling, phase detection) | `gemini-3.5-flash` (free tier) | Matched paid `gemini-2.5-pro` exactly on a multi-speaker code-switched video; free-tier `gemini-3.1-flash-lite`/`gemini-2.5-flash` under-counted speakers or mislabeled phases | Re-verify on the current successor (rule 1); `gemini-2.5-pro` since lost production access |
 | Constrained rubric-tier grading needing internally consistent verdicts | `gemini-3-flash-preview` over `gemini-3.5-flash` | `gemini-3.5-flash` produced internally inconsistent grades (all-praise justification paired with a sub-Excellent tier) in one production chain; `gemini-3-flash-preview` held consistent | Re-verify: same model won the extraction row and lost here — task-specific, not a ranking |
 | TERMINAL-mode feedback register discipline | `gemini-3-flash-preview` over `gemini-3.1-flash-lite` | Flash-Lite lapsed to draft-register phrasing, used banned forward-framing language, doubled point values, intermittent JSON truncation on first pass | Re-verify on `gemini-3.5-flash-lite` |
 | Discrimination/distractor-construction (odd-one-out items) | `gemini-3.5-flash` over `gemini-3.1-flash-lite` | Flash-Lite built distractors around surface word-form patterns (the one gerund among plain nouns) rather than semantic outliers; a stricter surface-uniformity gate made this worse on Flash-Lite specifically, neutral-to-helpful on 3.5-flash | Re-verify on `gemini-3.5-flash-lite`, documented as stronger on reasoning/multimodal than 3.1 Flash-Lite |
@@ -178,25 +178,24 @@ skill-deferral, same as rule 8: a doc-fetching skill surfaces only what was
 written down, not what was observed under load.
 
 - `gemini-3.1-flash-lite` has an empirically confirmed per-minute token ceiling well below its context window. A generic auto-retry loop (short fixed sleep, many attempts) on a long prompt exhausts it inside one wall-clock minute, producing repeated zero-output failures that read as model failures but are pacing failures. Long-prompt Flash-Lite work → single-shot calls with wide spacing (90+ seconds) over blind auto-retry. Re-verify whether the ceiling carries to `gemini-3.5-flash-lite`.
-- Legacy `generateContent` surface: classify a 429's real severity by the `retryDelay` field on `RetryInfo` (short = transient, retry same model; long = real exhaustion, rotate keys or advance the chain), not by the `quotaId` substring — a `"PerDay"` string can appear on a short rolling-window RPM throttle and is unreliable alone.
-- Interactions API's 429 is a **different, strictly worse shape**: HTTP 200 with an SSE-embedded error, no `retryDelay`/`quotaId`/scope fields at all. The `retryDelay` classifier does not apply; use a persistence-based circuit breaker (consecutive failures over a time window) instead of parsing severity out of the response.
+- Interactions API's 429 is a **different, strictly worse shape**: HTTP 200 with an SSE-embedded error, no `retryDelay`/`quotaId`/scope fields at all. No severity can be parsed out of the response; use a persistence-based circuit breaker (consecutive failures over a time window). A severity classifier built on legacy `generateContent` `RetryInfo` fields does not port: legacy retry wiring in the input is a migration defect to flag, never a path to tune.
 
 ## Moved content
 
 Second-level routing, additive to this file:
 
-- **`GEMINI_MIGRATION.md`** — cross-family migration facts the skill doesn't cover (tools + response_format scope across families, Gemma 4 schema-shape porting, prefilled model-turn validation). Load when legacy `generateContent` forms appear anywhere in the input; one-time per prompt.
+- **`GEMINI_MIGRATION.md`** — cross-family migration facts the skill doesn't cover (tools + response_format scope across families, Gemma 4 schema-shape porting, prefilled model-turn validation). Load one-time per prompt when EITHER legacy `generateContent` forms appear anywhere in the input OR the prompt is being carried across Gemini generations, or from Gemma 4 / Gemini 2.5, to a 3.x target. The trunk routes only the first trigger, so the second is this file's to fire.
 
 ## Verify after changes
 
 - No API-mechanics claim (model ID, parameter, endpoint, request/response shape) answered from this file instead of the skill (1).
 - Long-context prompts end on the query, not the data (2).
 - Chain-of-thought scaffolding replaced with a `thinking_level` recommendation, not left in place (3).
-- Flash grounding/freshness clauses present when the task is time-sensitive, knowledge-grounded, or a grading/judge task over submitted work (4).
+- Freshness clauses present on Flash-tier targets with time-sensitive or knowledge-grounded tasks; strict-grounding clause present on any 3.x target answering from context or judging submitted work (4).
 - Agentic system instructions carry the 9-point planning block (6).
-- `gemini-3.5-flash-lite` targets on multi-step judgment tasks (rubric grading, AND-gated descriptors) get a next-level-up `thinking_level` test recommendation, not a silent default-`minimal` assumption (8).
+- Lite-tier targets on multi-step judgment tasks (rubric grading, AND-gated descriptors) get a next-level-up `thinking_level` test recommendation, not a silent bottom-level assumption (8).
 - Any recommended model swap names its currency caveat — tested on which generation, re-verify before porting — rather than standing as fact (9).
-- Any 429/quota recommendation matches the surface actually in use (`generateContent` `retryDelay` classifier vs. Interactions circuit breaker; 10).
+- Any 429/quota recommendation is written for Interactions (persistence-based circuit breaker), and legacy retry wiring is flagged as a migration defect rather than tuned (10).
 
 ## Closing directive recap
 

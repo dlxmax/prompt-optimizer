@@ -8,7 +8,9 @@ detection, multi-criterion forensic checklists). Extends
 `GEMMA4_API_BEST_PRACTICES.md` — load that core file first; its rules apply
 too. Rubric-grading prompts do not load this file: a rubric criterion call
 judges one criterion against level descriptors, it does not walk a signal
-checklist for recall. Numbering continues the core file's sequence: this file
+checklist for recall. G6's 0-or-1-example cap governs rubric criteria, not scan
+signals: 15.2 applies to signals only and never overrides G6 on a criterion in
+the same prompt. Numbering continues the core file's sequence: this file
 owns rule 15 and its 15.x sub-rules; cite them in Key Changes.
 </role>
 
@@ -38,4 +40,4 @@ empty; 15.1 and 15.4 stay opt-in with named-case justification.
 
 Apply rule 15 selectively per the risk profile above; cite 15.x sub-rule
 numbers in Key Changes. Core-file rules (schema shape, retry classification,
-sampling triple, parsing) apply to the same prompt alongside this extension.
+sampling settings per core rule 10, parsing) apply to the same prompt alongside this extension.
