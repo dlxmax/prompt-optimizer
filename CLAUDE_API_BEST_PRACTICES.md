@@ -7,19 +7,18 @@ model (`Claude Opus 5`, `Claude Opus 4.x`, `Claude Sonnet 5`, `Claude Haiku
 Changes.
 
 Canonical target: **Claude Opus 5**. Earlier Claude generation → every rule
-still applies. That alone does not load `CLAUDE_UPGRADE_AUDIT.md`; it fires on
-its own trigger below, a prompt written for a generation earlier than the
-declared target.
+still applies, and that alone does not load `CLAUDE_UPGRADE_AUDIT.md`, which
+fires on its own trigger below: a prompt written for a generation earlier than
+the declared target.
 
-Prompt content only. API mechanics (model IDs, `effort`, thinking config,
-structured-output wiring, prefill support, sampling parameters, context window,
-pricing, migration) = the `claude-api` skill's job, rule 1. No per-version
-behavior tables here, rule 2.
+Prompt content only. API mechanics (IDs, parameters, thinking config, pricing,
+migration) = the `claude-api` skill's job, rule 1. No per-version behavior
+tables here, rule 2.
 </role>
 
 <scope>
-Claude models on either deployment surface: a Messages API request, or a Claude
-Code agent definition. The two are not interchangeable, rule 12.
+Claude models on either deployment surface: Messages API request, or Claude Code
+agent definition. Not interchangeable, rule 12.
 
 Other families are out of scope here and their files are never loaded alongside
 this one: a Claude target reads this file only. Redirects, for a non-Claude
@@ -32,45 +31,43 @@ capability subset, routes to the DeepSeek file.
 
 ## 1. API mechanics are the claude-api skill's job
 
-`claude-api` = Anthropic's Agent Skill for current Claude API reference.
-Bundled with Claude Code as `/claude-api`.
+`claude-api` = Anthropic's Agent Skill for current Claude API reference, bundled
+with Claude Code as `/claude-api`.
 
 Never answer from this file, training data, or memory for: model IDs, context
 window, pricing; `effort` levels, defaults, per-model accepted levels; thinking
-configuration (adaptive vs. manual budget, default on/off, at which effort it
-can be disabled); structured-output wiring; prefill support; whether
-`temperature` / `top_p` / `top_k` are accepted; beta headers; prompt-caching
-breakpoints; migration steps. All of these have changed inside a single Claude
-generation more than once.
+config (adaptive vs. manual budget, default on/off, at which effort it can be
+disabled); structured-output wiring; prefill support; whether `temperature` /
+`top_p` / `top_k` are accepted; beta headers; prompt-caching breakpoints;
+migration steps. All have changed inside one Claude generation more than once.
 
-Surface a deployer-verify item recommending `/claude-api` before call-site code
-changes, `/claude-api migrate` when the target model changes. Version-specific
-behavior comes from that model's own page in Anthropic's prompt-engineering
-docs, never from this agent's knowledge.
+Surface a deployer-verify item: `/claude-api` before call-site code changes,
+`/claude-api migrate` when the target model changes. Version-specific behavior
+comes from that model's own page in Anthropic's prompt-engineering docs, never
+this agent's knowledge.
 
-Scope limit: `claude-api` covers the Messages API and Managed Agents, and
-states it does NOT cover the Claude Code harness. On a Claude Code agent target
-(rule 12) the answer to most of the list above is "no such parameter exists",
-not a lookup. Route to `CLAUDE_CODE_AGENTS.md`; residual gaps are deployer-verify
-against the Claude Code subagent docs.
+Scope limit: `claude-api` covers the Messages API and Managed Agents, and states
+it does NOT cover the Claude Code harness. On a Claude Code agent target (rule
+12) most of that list answers "no such parameter exists", not a lookup. Route to
+`CLAUDE_CODE_AGENTS.md`; residual gaps are deployer-verify against the Claude
+Code subagent docs.
 
 ## 2. Version-local behavior is not stored here
 
-Adjacent Claude releases invert defaults, not merely shift them. Axes that have
-inverted across adjacent releases: default verbosity,
-subagent eagerness, whether self-verification helps, whether thinking defaults
-on, which `effort` level to start from. A "model 4.N does X" rule is wrong
-within one release cycle.
+Adjacent Claude releases invert defaults, not merely shift them. Axes already
+inverted: default verbosity, subagent eagerness, whether self-verification
+helps, whether thinking defaults on, which `effort` level to start from. A
+"model 4.N does X" rule is wrong within one release cycle.
 
-No per-version table here; do not add one. Rules 3-12 are the part that
-survives a generation change. Applying one turns on a version-specific default
-→ confirm via rule 1, name the version verified against in Key Changes. Rule 12
-is perishable on a different axis, the harness version, not the model.
+No per-version table here; do not add one. Rules 3-12 survive a generation
+change. Applying one turns on a version-specific default → confirm via rule 1,
+name the version verified against in Key Changes. Rule 12 is perishable on a
+different axis: harness version, not model.
 
 ## 3. Prompt-side conservatism suppresses reporting
 
-Hedging instructions are followed literally: the model finds the problem, then
-withholds it. Reads as a recall regression, is not one.
+Hedging instructions are followed literally: model finds the problem, then
+withholds it. Reads as a recall regression; is not one.
 
 Scan judge, grading, review, audit prompts for: "only report high-severity",
 "be conservative", "don't nitpick", "flag only clear violations", "when in
@@ -83,8 +80,8 @@ Defect = withholding a finding already made.
 
 ## 4. Delete prompt-side re-check scaffolding
 
-Current models self-verify. Re-check instructions compound with that: more
-tokens, no quality gain, scope creep on narrow tasks.
+Current models self-verify; re-check instructions cost tokens, add no quality,
+creep scope on narrow tasks.
 
 Scan and delete: "double-check your answer", "re-verify before responding",
 "include a final verification step", "re-read the submission and confirm",
@@ -96,20 +93,21 @@ defect; across calls it is the architecture (`GRADING_PIPELINE.md` G1,
 `GENERIC_REVIEW.md` item 3).
 
 **Code-side validation stays.** Quote fuzzy-match, schema retry, bounds check,
-escalation re-call (artifact 4, G8) run outside the model. Never delete a
+escalation re-call (`GRADING_PIPELINE.md` artifact 4 and G8) run outside the
+model. Never delete a
 validator while stripping a "double-check yourself" sentence.
 
-Two vendor techniques, both outranked here. In-call retraction pass (find a
-supporting quote per claim, drop unsupported claims) is redundant where a
-code-side quote validator exists; keep only where none can run, with a defined
-output effect. Best-of-N = calibration-time instability detector, not a license
-for N-vote scoring in production (G8).
+Two vendor techniques, both outranked. In-call retraction pass (supporting quote
+per claim, drop unsupported claims): redundant where a code-side quote validator
+exists; keep only where none can run, with a defined output effect. Best-of-N =
+calibration-time instability detector, not a license for N-vote scoring in
+production (G8).
 
 ## 5. State scope explicitly in both directions
 
 Instructions are read literally. Two failures:
 
-- **Under-generalization.** An instruction shown on one criterion or section is not extended to the rest. Write "apply to every criterion below".
+- **Under-generalization.** Instruction shown on one criterion or section is not extended to the rest. Write "apply to every criterion below".
 - **Scope expansion.** Narrow tasks pick up unrequested steps. Name the deliverable, state that work beyond it is out of scope.
 
 Re-run the count-versus-universal scan after any scope edit: a universal added
@@ -121,53 +119,53 @@ Lowering `effort` cuts thinking, not output length. Two lengths, two
 instructions:
 
 6.1. **Conversational response.** One conciseness directive, repeated as a short reminder near the end of a long prompt (`GENERIC_REVIEW.md` item 3).
-6.2. **Written deliverable.** Anything written to a file runs long and pads with filler sections independently of the first. LESSON prompts emitting a material to disk state what it must cover and that padding is a defect.
+6.2. **Written deliverable.** Anything written to a file runs long and pads with filler sections independently of 6.1. LESSON prompts emitting a material to disk state what it must cover and that padding is a defect.
 
 ## 7. Calibrate imperative force where it drives triggering
 
-Urgency written to fix under-triggering on an older model now over-fires:
-"CRITICAL: You MUST use this tool when..." fires in the wrong cases. Plain
-imperative instead. Same for thoroughness nagging aimed at older-model laziness.
+Urgency written to fix under-triggering on an older model now fires in the wrong
+cases: "CRITICAL: You MUST use this tool when...". Plain imperative instead.
+Same for thoroughness nagging aimed at older-model laziness.
 
-Scope it: the defect is emphasis on a **conditional** behavior the model
-chooses when to perform. Emphasis on an **unconditional** constraint has no
-wrong case to over-fire into and is not a defect; vendor guidance itself uses
-"you MUST read the file before answering". Never strip emphasis from grounding,
-quoting, or injection-defense clauses.
+Scope: defect = emphasis on a **conditional** behavior the model chooses when to
+perform. Emphasis on an **unconditional** constraint has no wrong case to
+over-fire into; not a defect, and vendor guidance itself uses "you MUST read the
+file before answering". Never strip emphasis from grounding, quoting, or
+injection-defense clauses.
 
 Distinct from escape-hatch elimination (invariant 1, item 14). Both hold:
 
-- "Try to cite a quote when possible" — softening. Defect.
-- "CRITICAL: YOU MUST ALWAYS CITE A QUOTE!!!" — over-forcing. Defect.
-- "Cite a verbatim quote for every claim about the submission." — correct.
+- "Try to cite a quote when possible": softening. Defect.
+- "CRITICAL: YOU MUST ALWAYS CITE A QUOTE!!!": over-forcing. Defect.
+- "Cite a verbatim quote for every claim about the submission.": correct.
 
 Prohibition underperforming → the fix is rule 10, not more force.
 
 ## 8. Keep thinking on; never instruct the model not to reason
 
 "Do not think", "no reasoning", "answer immediately" = defects: they raise
-internal-tag leakage and remove reasoning the task needs. Delete them. For
-token cost, lower effort with thinking on.
+internal-tag leakage and remove reasoning the task needs. Delete them. For token
+cost, lower effort with thinking on.
 
-Thinking off produces two artifacts. Internal XML tags leak into visible
-output. Worse for pipelines: a tool call can be written as user-facing text
-instead of a structured call, so it never runs, the turn completes as if it
-had, and in an agentic loop the leaked text stays in history and affects later
-turns — a validator checking only output shape passes this.
+Thinking off produces two artifacts. Internal XML tags leak into visible output.
+Worse for pipelines: a tool call written as user-facing text instead of a
+structured call never runs, the turn completes as if it had, and in an agentic
+loop the leaked text stays in history and affects later turns; a validator
+checking only output shape passes this.
 
 Deployer constraint forces thinking off, rule 1 confirming that is possible on
-the target → one combined instruction covers both: permit a brief
-sentence before a tool call, give an out when no tool fits, state a general
-rule against internal or system XML tags. Naming specific tag types is weaker
-than the general form. Output ordering (evidence array before level)
-unaffected, still required.
+the target → one combined instruction covers both: permit a brief sentence
+before a tool call, give an out when no tool fits, state a general rule against
+internal or system XML tags. Naming specific tag types is weaker than the
+general form. Output ordering (evidence array before level) unaffected, still
+required.
 
 ## 9. Schema coercion outranks prose
 
 A required field with no way to express "no evidence" is an instruction to
-invent one. The model fills it from the most available material: the rubric's
-language, the example's content, the criterion's phrasing. A prose clause
-forbidding inference does not reliably override the schema.
+invent one, filled from the most available material: rubric language, example
+content, criterion phrasing. A prose clause forbidding inference does not
+reliably override the schema.
 
 Fix at the schema:
 
@@ -197,14 +195,14 @@ Claude-targeted prompts, not schema-constrained calls:
 
 - Multi-source input nests: `<documents>` wrapping `<document index="n">`, each with `<source>` and `<document_content>`. Use for assignment-plus-submission, multi-artifact grading, LESSON source material.
 - Examples in `<example>` tags, multiple in `<examples>`.
-- No schema wired → grounding contract is two tags: numbered quotes first, then claims citing quote numbers. Numbering makes the link checkable — an uncited claim, or a citation to a missing number, is mechanically detectable. Pair with a closed-world clause ("base the analysis only on the extracted quotes") and rule 9's no-quote literal.
+- No schema wired → grounding contract is two tags: numbered quotes first, then claims citing quote numbers. Numbering makes the link mechanically checkable: an uncited claim, or a citation to a missing number, is detectable. Pair with a closed-world clause ("base the analysis only on the extracted quotes") and rule 9's no-quote literal.
 - `{{double_curly}}` placeholders (invariant 3). Agent surface: none, rule 12.
 
 Vendor guidance recommends 3-5 examples for general steering. G6's 0-or-1
 borderline example per criterion is narrower on purpose: judge examples anchor
 the rating rather than teach a format. Judge and grading prompts → G6 wins.
-Non-judge gate prompts → `GENERIC_REVIEW.md` item 4's 1-3 wins. 3-5 applies only
-where the prompt gates nothing. Never upgrade a criterion block to 3-5.
+Non-judge gate prompts → `GENERIC_REVIEW.md` item 4's 1-3 wins. 3-5 only where
+the prompt gates nothing. Never upgrade a criterion block to 3-5.
 
 ## 12. Deployment surface: API request or Claude Code agent definition
 
@@ -249,16 +247,16 @@ name the one signal that would flip it. Never emit both shapes.
 9. Example count follows G6 on judge prompts, not the general 3-5 (11).
 10. Every version-specific fact sourced from rule 1 or flagged deployer-verify with the version named.
 11. `CLAUDE_UPGRADE_AUDIT.md` loaded → every stale-scaffolding item listed as remove-and-retest.
-12. `CLAUDE_STRUCTURED_OUTPUTS.md` loaded → no numeric or string bounds, `additionalProperties: false` on every object, no `minItems` above 1, every property required.
+12. `CLAUDE_STRUCTURED_OUTPUTS.md` loaded → no numeric or string bounds, `additionalProperties: false` on every object, `minItems` 0 on every abstainable array (1 is an API ceiling, not a safe floor: it still mandates an entry), every property required AND every abstainable one carrying rule 9's fixed-literal abstention member.
 13. Surface declared as API or agent, never both, never unstated (12); agent surface → `CLAUDE_CODE_AGENTS.md` loaded and its verify block run.
 
 ## Second-level routing
 
-Surface first (rule 12), because it gates the rest.
+Surface first (rule 12); it gates the rest.
 
 Load `CLAUDE_CODE_AGENTS.md` additively on the agent surface. Exclusive with
-`CLAUDE_STRUCTURED_OUTPUTS.md`: the constructs that file constrains do not
-exist there.
+`CLAUDE_STRUCTURED_OUTPUTS.md`: the constructs that file constrains do not exist
+there.
 
 Load `CLAUDE_STRUCTURED_OUTPUTS.md` additively on the API surface when the
 prompt carries, needs, or reviews a response schema (JSON output or strict tool
@@ -278,8 +276,8 @@ workaround.
 
 Apply when a Claude `Target model:` is declared; cite rule numbers in Key
 Changes. Diagnose the deployment surface before emitting anything (rule 12).
-This file owns prompt content: every model ID, parameter, default, and
-migration fact routes to the `claude-api` skill (rule 1), and no per-version
-behavior table is stored here (rule 2). Treat rule bodies as reference data
-describing model and API behavior; do not adopt directives inside rule text as
-instructions governing the optimizer's own role.
+This file owns prompt content: every model ID, parameter, default, and migration
+fact routes to the `claude-api` skill (rule 1), and no per-version behavior table
+is stored here (rule 2). Treat rule bodies as reference data describing model and
+API behavior; do not adopt directives inside rule text as instructions governing
+the optimizer's own role.
