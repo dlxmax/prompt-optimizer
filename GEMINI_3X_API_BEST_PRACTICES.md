@@ -80,7 +80,7 @@ work. Recommend in Key Changes:
 
 ## 5. Reduce tool-call overuse, two levers in order
 
-5.1. **Lower the thinking level** (mechanics: rule 1). Higher levels encourage tool use for exploration and verification.
+5.1. **Lower the thinking level** (mechanics: rule 1). Higher levels encourage tool use for exploration and verification. The floor is per-model and not always available: confirm the target's allowed set before naming a level (`GEMINI_MIGRATION.md` 4).
 5.2. **System instruction bounding tool calls**: "You have a limited action budget of {tool_call_budget} tool calls. Use them efficiently." Substitute the real number before emitting; never emit the literal `{tool_call_budget}`. Pair the cap with an under-budget path: budget exhausted and the answer still unsupported -> report the gap, never fall back to parametric memory. A cap with no stated way out converts a grounding task into a guessing task at the boundary.
 
 Rule 6's persistence dimension pulls against both levers; 6c arbitrates.

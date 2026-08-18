@@ -1,6 +1,6 @@
 {
   "name": "prompt-optimizer",
-  "version": "4.8.0",
+  "version": "4.9.0",
   "description": "Education-domain prompt designer and reviewer across three domains: rubric-based grading, feedback-comment generation (PQS/ghost-guard), and lesson/worksheet/exam authoring. Rescues oversized monoliths into per-criterion or per-section call architectures, audits revised prompts, and authors pipelines from a rubric or spec. Thin diagnostic trunk with composable branches. Also reviews generic prompts, with family files for Claude (canonical target Opus 5, plus a model-upgrade audit), Gemini 3.x, Gemma 4, and DeepSeek V4; Claude and Gemini API mechanics defer to the claude-api and gemini-interactions-api skills. Claude targets split by deployment surface: a Messages API request gets schema-based coercion, a Claude Code agent definition gets a frontmatter-plus-output-contract shape instead.",
   "author": {
     "name": "dlxmax",

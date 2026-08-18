@@ -43,6 +43,21 @@ equivalent: no model-turn prefill at all. Use `system_instruction` for output
 style, `response_format` for JSON (exact wiring: `gemini-interactions-api`
 skill).
 
+## 4. `thinking_level` values shrink across generations
+
+A level valid on the source model can be absent on the target and fails hard,
+HTTP 400 `invalid_request` naming the allowed set, never a silent clamp to the
+nearest level. Probe-confirmed: `minimal` is rejected by `gemini-3.7-flash`
+while `gemini-3.6-flash`, `gemini-3.5-flash`, and `gemini-3.5-flash-lite`
+accept it, so the enum narrowed rather than grew. Any generation move carrying
+a `thinking_level` in the prompt, call-site, or examples → re-read the target's
+allowed set through the `gemini-interactions-api` skill and flag the carried
+value in Key Changes. Never hand-carry the value, and never store the table
+here: it is per-model and it moves. A prompt whose behavior depends on the
+bottom level (high-volume extraction, routing, classification) may have no
+equivalent floor on the target: say so rather than substituting the next level
+up silently, since that changes cost and latency.
+
 ## Closing directive recap
 
 Cross-family migration facts only. Everything else, including per-model upgrade
