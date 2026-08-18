@@ -99,10 +99,26 @@ and patience, (9) inhibit-response gate.
 capability older models lacked; a 3.x model plans natively at its default
 thinking level, and the block now competes with that reasoning for attention.
 Order of moves on a failing agentic run: raise `thinking_level` one step
-(mechanics: rule 1) and re-run; still failing → port ONLY the dimensions the
-observed failure names, one numbered directive each. All nine only when the
-failure resists classification. Inhibit-response gate (9) last whenever any
-dimension is ported.
+(mechanics: rule 1) and re-run; still failing → port by the split below.
+Inhibit-response gate (9) last whenever any dimension is ported.
+
+**Port policy, never reasoning.** A dimension carrying external policy the model
+cannot infer from the task earns its tokens. A dimension describing how to reason
+duplicates native thinking and competes with it.
+
+- Port: (2) risk assessment, which tool calls mutate state versus read; (5) information availability, what counts as unknown rather than inferable; (9) inhibit-response gate, when to stop and ask. Add (6) precision and grounding where exact-string or type fidelity matters, and (8) persistence only to set a retry limit.
+- Omit: (1) logical dependencies, (3) abductive reasoning, (4) outcome evaluation, (7) completeness. Written into the prompt they buy verbosity, not planning.
+
+Triangulated, not probed: the vendor scopes the template's evaluation to
+complex-rulebook plus user-interaction agents, which is the policy class, and a
+`gemini-3.7-flash` self-report split the nine the same way. Neither is a
+benchmark. Re-test before trusting the omit list on a new deployment.
+
+**Hurt case, named.** Read-only exploratory agents (codebase search, database
+triage): risk assessment plus the inhibit gate reclassify benign reads as
+permission-worthy and the agent stops to ask instead of paging, while
+completeness has no end-state to satisfy on an open-ended search and drives
+keyword-variation loops. Read-only high-throughput work → port none.
 
 **The dimensions govern reasoning, not output.** The block is completed in the
 model's thinking. Emit it only where a human or a log consumes the plan, and
@@ -206,6 +222,7 @@ Empirical production findings, not documented mechanics: exception to rule 1's
 skill-deferral, same as rule 8.
 
 - `gemini-3.1-flash-lite` has an empirically confirmed per-minute token ceiling well below its context window. A generic auto-retry loop (short fixed sleep, many attempts) on a long prompt exhausts it inside one wall-clock minute, producing repeated zero-output failures that read as model failures but are pacing failures. Long-prompt Flash-Lite work → single-shot calls with wide spacing (90+ seconds) over blind auto-retry. Re-verify whether the ceiling carries to `gemini-3.5-flash-lite`.
+- A newly released model on the free tier sheds load as HTTP 500 with a high-demand message BEFORE any quota 429 appears, and sheds a long prompt while a trivial one on the same key succeeds seconds earlier. Observed on `gemini-3.7-flash` at launch. A circuit breaker keyed on 429 alone reads this as a server fault and retries straight into the real quota wall: count consecutive 500s toward the same breaker.
 - Interactions API's 429 is a **different, strictly worse shape**: HTTP 200 with an SSE-embedded error, no `retryDelay`/`quotaId`/scope fields at all. No severity can be parsed out of the response; use a persistence-based circuit breaker (consecutive failures over a time window). A severity classifier built on legacy `generateContent` `RetryInfo` fields does not port: legacy retry wiring in the input is a migration defect to flag, never a path to tune.
 
 ## Moved content
@@ -220,7 +237,7 @@ Second-level routing, additive to this file:
 - Long-context prompts end on the query, not the data (2).
 - Chain-of-thought scaffolding replaced with a `thinking_level` recommendation, not left in place (3).
 - Freshness clauses present on Flash-tier targets with time-sensitive or knowledge-grounded tasks; strict-grounding clause present on any 3.x target answering from context or judging submitted work (4).
-- No planning block ported without a named failure and a `thinking_level` step-up tried first; any ported dimension emitted as a clause rather than a label and arbitrated against rule 5 (6, 6a-6d).
+- No planning block ported without a named failure and a `thinking_level` step-up tried first; ported dimensions are policy-carrying (2, 5, 9), never reasoning-describing (1, 3, 4, 7); each emitted as a clause rather than a label and arbitrated against rule 5 (6, 6a-6d).
 - No tagged or serialized block is required immediately before a tool call; pre-tool notes route to a declared `update` call or to Markdown headers (6e).
 - Lite-tier targets on multi-step judgment tasks (rubric grading, AND-gated descriptors) get a next-level-up `thinking_level` test recommendation, not a silent bottom-level assumption (8).
 - Any recommended model swap names its currency caveat, tested on which generation and re-verify before porting, rather than standing as fact (9).
