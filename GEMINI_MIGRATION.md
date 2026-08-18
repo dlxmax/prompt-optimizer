@@ -46,5 +46,5 @@ skill).
 ## Closing directive recap
 
 Cross-family migration facts only. Everything else, including per-model upgrade
-checklists (moving to `gemini-3.6-flash` or `gemini-3.5-flash-lite`): invoke
+checklists, whatever the target generation: invoke
 the `gemini-interactions-api` skill, never this file or memory.

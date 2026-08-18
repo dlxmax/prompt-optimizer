@@ -117,6 +117,18 @@ task, not a failure to push through.
 or scoring pipeline -> substitute the fixed abstention literal, else the model
 assumes instead of asking.
 
+6e. **No structured text immediately before a tool call.** A directive to emit a
+tagged or serialized block (`<UPDATE>`, a JSON or YAML object) as the turn's
+first output and then call a tool intermittently corrupts the call into a
+malformed-function-call error. The 9-point block is the common source: it is
+completed BEFORE any tool call. Three fixes in order: move the notes into a
+declared `update` function the model calls first, so the notes call and the real
+call leave in one step; demote the block to Markdown headers (`# PLAN`); drop the
+pre-tool text requirement. Markdown headers here override rule 3's
+single-delimiter choice, for these note blocks only. Vendor-stated for the whole
+Gemini 3 series. The failure is intermittent: a clean dry run does not clear a
+prompt of it.
+
 ## 7. Tool enablement by task type
 
 Recommend in Key Changes:
@@ -148,8 +160,9 @@ this diagnostic branch.
 
 Deployer production A/B testing, not Google documentation; the skill cannot
 know task-specific results, so this stays hand-maintained regardless of rule 1.
-Every finding predates `gemini-3.6-flash` and `gemini-3.5-flash-lite`; the
-string tested is named in each row, never generalized to a generation. Each
+No finding was probed on a model newer than `gemini-3.5-flash`; every Gemini
+release after it is untested here (current list: rule 1). The string tested is
+named in each row, never generalized to a generation. Each
 mapping is a hypothesis to re-verify on
 the current generation, not a standing fact. The patterns below the table are
 the durable part.
@@ -199,6 +212,7 @@ Second-level routing, additive to this file:
 - Chain-of-thought scaffolding replaced with a `thinking_level` recommendation, not left in place (3).
 - Freshness clauses present on Flash-tier targets with time-sensitive or knowledge-grounded tasks; strict-grounding clause present on any 3.x target answering from context or judging submitted work (4).
 - Agentic system instructions carry the 9-point planning block, dimensions 5-8 emitted as clauses rather than labels and arbitrated against rule 5 (6, 6a-6d).
+- No tagged or serialized block is required immediately before a tool call; pre-tool notes route to a declared `update` call or to Markdown headers (6e).
 - Lite-tier targets on multi-step judgment tasks (rubric grading, AND-gated descriptors) get a next-level-up `thinking_level` test recommendation, not a silent bottom-level assumption (8).
 - Any recommended model swap names its currency caveat, tested on which generation and re-verify before porting, rather than standing as fact (9).
 - Any 429/quota recommendation is written for Interactions (persistence-based circuit breaker), and legacy retry wiring is flagged as a migration defect rather than tuned (10).
