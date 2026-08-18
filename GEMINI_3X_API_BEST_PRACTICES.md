@@ -85,7 +85,7 @@ work. Recommend in Key Changes:
 
 Rule 6's persistence dimension pulls against both levers; 6c arbitrates.
 
-## 6. Agentic workflows: port the 9-point planning template
+## 6. Agentic workflows: the 9-point planning template, added sparingly
 
 Prompt drives an agentic workflow (model reasons, plans, executes across tool
 calls) → 9-point system-instruction template: (1) logical dependencies and
@@ -94,10 +94,19 @@ exploration, (4) outcome evaluation and adaptability, (5) information
 availability, (6) precision and grounding, (7) completeness, (8) persistence
 and patience, (9) inhibit-response gate.
 
-Agentic-use prompt lacking an equivalent planning structure → port the 9
-dimensions into the system instruction as a numbered planning block the model
-completes before any tool call or user response. One numbered directive per
-dimension; inhibit-response gate (9) last.
+**Default: port none of it.** Scaffolding is a cost paid on every call
+(`GENERIC_REVIEW.md` rule 12). A nine-directive planning block bought a
+capability older models lacked; a 3.x model plans natively at its default
+thinking level, and the block now competes with that reasoning for attention.
+Order of moves on a failing agentic run: raise `thinking_level` one step
+(mechanics: rule 1) and re-run; still failing → port ONLY the dimensions the
+observed failure names, one numbered directive each. All nine only when the
+failure resists classification. Inhibit-response gate (9) last whenever any
+dimension is ported.
+
+**The dimensions govern reasoning, not output.** The block is completed in the
+model's thinking. Emit it only where a human or a log consumes the plan, and
+then by 6e's ladder, never as a tagged block.
 
 **Adapt, never paste.** Vendor frames it as an example to fit to the use case,
 tuning a stated cost-versus-accuracy trade-off. Four dimensions invert when
@@ -211,7 +220,7 @@ Second-level routing, additive to this file:
 - Long-context prompts end on the query, not the data (2).
 - Chain-of-thought scaffolding replaced with a `thinking_level` recommendation, not left in place (3).
 - Freshness clauses present on Flash-tier targets with time-sensitive or knowledge-grounded tasks; strict-grounding clause present on any 3.x target answering from context or judging submitted work (4).
-- Agentic system instructions carry the 9-point planning block, dimensions 5-8 emitted as clauses rather than labels and arbitrated against rule 5 (6, 6a-6d).
+- No planning block ported without a named failure and a `thinking_level` step-up tried first; any ported dimension emitted as a clause rather than a label and arbitrated against rule 5 (6, 6a-6d).
 - No tagged or serialized block is required immediately before a tool call; pre-tool notes route to a declared `update` call or to Markdown headers (6e).
 - Lite-tier targets on multi-step judgment tasks (rubric grading, AND-gated descriptors) get a next-level-up `thinking_level` test recommendation, not a silent bottom-level assumption (8).
 - Any recommended model swap names its currency caveat, tested on which generation and re-verify before porting, rather than standing as fact (9).
