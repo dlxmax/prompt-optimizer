@@ -80,7 +80,7 @@ work. Recommend in Key Changes:
 
 ## 5. Reduce tool-call overuse, two levers in order
 
-5.1. **Lower the thinking level** (mechanics: rule 1). Higher levels encourage tool use for exploration and verification. The floor is per-model and not always available: confirm the target's allowed set before naming a level (`GEMINI_MIGRATION.md` 4).
+5.1. **Lower the thinking level** (mechanics: rule 1). Higher levels encourage tool use for exploration and verification. The floor is per-model and not always available: confirm the target's allowed set before naming a level (`GEMINI_MIGRATION.md` 4). A config shared across models (fallback chain, router) sets the level per leg or uses one valid on every leg: a bottom level valid on the primary can 400 the fallback exactly when it is needed.
 5.2. **System instruction bounding tool calls**: "You have a limited action budget of {tool_call_budget} tool calls. Use them efficiently." Substitute the real number before emitting; never emit the literal `{tool_call_budget}`. Pair the cap with an under-budget path: budget exhausted and the answer still unsupported -> report the gap, never fall back to parametric memory. A cap with no stated way out converts a grounding task into a guessing task at the boundary.
 
 Rule 6's persistence dimension pulls against both levers; 6c arbitrates.
@@ -96,15 +96,22 @@ and patience, (9) inhibit-response gate.
 
 **Default: port none of it.** Scaffolding is a cost paid on every call
 (`GENERIC_REVIEW.md` rule 12). A nine-directive planning block bought a
-capability older models lacked. Vendor-stated for 3.x: prompt engineering built
-for older models drives over-analysis (rule 3), and `gemini-3.8-flash` by
-design takes smaller reasoning steps, calls tools iteratively, and verifies its
-own work. A ported block duplicates that behavior and competes with it.
+capability older models lacked. Vendor-stated for all 3.x: prompt engineering
+built for older models drives over-analysis (rule 3). Vendor-stated for
+`gemini-3.8-flash` only: it by design takes smaller reasoning steps, calls tools
+iteratively, and verifies its own work, so a ported block duplicates that
+behavior outright. Earlier 3.x strings carry no such statement; there the
+default rests on rule 3 and the triangulation below.
 Order of moves on a failing agentic run: raise `thinking_level` one step
 (mechanics: rule 1) and re-run; still failing → port by the split below.
 A run failing by token burn or verification loops rather than wrong actions is
 rule 5's lever, never a ported block.
 Inhibit-response gate (9) last whenever any dimension is ported.
+
+**One prompt, several generations** (fallback chain, router, staged rollout):
+the port decision is per target string. A dimension ported against a failure
+named on one model reaches another only after that failure reproduces there.
+Shared text carries no ported dimension; a per-model addition carries it.
 
 **Managed-agent target** (a prebuilt agent harness rather than a bare model):
 the harness already plans and executes, and the deployer's system instruction
@@ -245,9 +252,10 @@ Second-level routing, additive to this file:
 
 - No API-mechanics claim (model ID, parameter, endpoint, request/response shape) answered from this file instead of the skill (1).
 - Long-context prompts end on the query, not the data (2).
+- A `thinking_level` shared across a fallback chain or router is valid on every leg, or set per leg (5.1).
 - Chain-of-thought scaffolding replaced with a `thinking_level` recommendation, not left in place (3).
 - Freshness clauses present on Flash-tier targets with time-sensitive or knowledge-grounded tasks; strict-grounding clause present on any 3.x target answering from context or judging submitted work (4).
-- No planning block ported without a named failure and a `thinking_level` step-up tried first; none on a managed-agent target by default, and no ported policy duplicated across system instruction and instruction file; ported dimensions are policy-carrying (2, 5, 9), never reasoning-describing (1, 3, 4, 7); each emitted as a clause rather than a label and arbitrated against rule 5 (6, 6a-6d).
+- No planning block ported without a named failure and a `thinking_level` step-up tried first; none on a managed-agent target by default, and no ported policy duplicated across system instruction and instruction file; no ported dimension in text shared across model strings; ported dimensions are policy-carrying (2, 5, 9), never reasoning-describing (1, 3, 4, 7); each emitted as a clause rather than a label and arbitrated against rule 5 (6, 6a-6d).
 - No tagged or serialized block is required immediately before a tool call; pre-tool notes route to a declared `update` call or to Markdown headers (6e).
 - Lite-tier targets on multi-step judgment tasks (rubric grading, AND-gated descriptors) get a next-level-up `thinking_level` test recommendation, not a silent bottom-level assumption (8).
 - Any recommended model swap names its currency caveat, tested on which generation and re-verify before porting, rather than standing as fact (9).
