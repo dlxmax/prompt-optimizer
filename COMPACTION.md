@@ -1,8 +1,9 @@
 # Compaction reference
 
 <role>
-Reference for prompt-optimizer. Load when a prompt must shrink: RESCUE
-single-call fallback, a GRADING artifact over the G7 byte cap in any shape,
+Reference for prompt-optimizer. Load whenever prompt text is emitted (RESCUE,
+AUTHOR, any full revision), or a prompt must shrink: a GRADING artifact over
+the G7 byte cap in any shape,
 any shape finding a length or duplication defect it will cut, or explicit
 caller request. A duplicate deleted without the anchor test below is the
 failure mode this file exists to prevent, so the shape does not gate the load.

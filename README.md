@@ -62,7 +62,7 @@ Loaded additively, at most a handful per call.
 | `FEEDBACK_GENERATION.md` | domain FEEDBACK, or grading with PQS-shaped feedback |
 | `LESSON_AUTHORING.md` | domain LESSON |
 | `GENERIC_REVIEW.md` | generic domain, or `Task: review` |
-| `COMPACTION.md` | a prompt has to shrink, or a duplicate is being cut |
+| `COMPACTION.md` | prompt text is emitted, a prompt has to shrink, or a duplicate is being cut |
 | **Model family** | |
 | `CLAUDE_API_BEST_PRACTICES.md` | `Target model:` any Claude |
 | `GEMINI_3X_API_BEST_PRACTICES.md` | `Target model:` Gemini 3.x |

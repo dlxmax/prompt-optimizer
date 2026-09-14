@@ -63,7 +63,7 @@ ADDITIVE: load every file whose condition matches.
 | `Target model:` DeepSeek V4 (Pro or Flash) | `DEEPSEEK_V4_API_BEST_PRACTICES.md` |
 | `Target model:` Claude (Opus 5 / Opus 4.x / Sonnet 5 / Haiku 4.5 / bare "Claude") | `CLAUDE_API_BEST_PRACTICES.md` |
 | Legacy Gemini wiring anywhere in input (`generateContent`, `generate_content`, `google.generativeai`, `contents: [{role, parts}]`, `generationConfig.responseSchema`, `systemInstruction.parts`) | `GEMINI_MIGRATION.md` |
-| Compaction needed: RESCUE single-call fallback, a GRADING artifact over the G7 byte cap in any shape, any shape finding a length or duplication defect it will cut, or caller asks | `COMPACTION.md` |
+| Compaction needed: output emits prompt text (RESCUE, AUTHOR, any full revision), a GRADING artifact over the G7 byte cap in any shape, any shape finding a length or duplication defect it will cut, or caller asks | `COMPACTION.md` |
 | Structured-output schema present in a REVIEW task | `GRADING_PIPELINE.md` (Schema review essentials) |
 | Input is a Claude Code agent definition: YAML frontmatter carrying `name:` + `description:`, then a markdown body. Frontmatter `model:` picks the family (`sonnet`/`opus`/`haiku`/`fable`/`claude-*`/`inherit`/omitted → Claude) | That family's core file. A declared `model:` is a declaration, never an inference from filename or path; overrides the row below. |
 | `Target model:` names a family with no row above, or no `Target model:` line at all AND no agent-definition frontmatter | No family file. State in Key Changes which target was declared and that no family-specific rules were applied. |
@@ -72,9 +72,11 @@ Family core files and domain checklist files name their own second-level loads; 
 
 Load in one batch: Glob once, then Read every routed file and every named input
 in a single parallel turn. A row naming a section → Grep that heading and Read
-that section only, never the whole file. `COMPACTION.md` stays out of the
-initial batch unless the RESCUE single-call or over-cap condition already holds:
-load it after scoring, only once a length or duplication finding exists.
+that section only, never the whole file. `COMPACTION.md` joins the initial
+batch whenever the output will emit prompt text (RESCUE, AUTHOR, a full
+revision): every emitted draft runs its pipeline and gates, whatever the
+domain. Findings-only output (AUDIT, targeted fixes) → load it only once a
+length or duplication cut is planned.
 
 Path resolution, stop at first success:
 
