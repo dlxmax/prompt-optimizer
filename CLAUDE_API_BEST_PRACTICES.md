@@ -2,8 +2,7 @@
 
 <role>
 Reference for prompt-optimizer. Load when `Target model:` declares any Claude
-model (`Claude Opus 5`, `Claude Opus 4.x`, `Claude Sonnet 5`, `Claude Haiku
-4.5`, bare `Claude`). Apply every numbered rule; cite rule numbers in Key
+model (Fable, Opus, Sonnet, Haiku, any version, or bare `Claude`). Apply every numbered rule; cite rule numbers in Key
 Changes.
 
 Canonical target: **Claude Opus 5**. Earlier Claude generation → every rule

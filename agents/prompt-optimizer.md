@@ -59,9 +59,9 @@ ADDITIVE: load every file whose condition matches.
 | Domain LESSON (any shape) | `LESSON_AUTHORING.md` |
 | Domain NONE, or `Task: review` | `GENERIC_REVIEW.md` |
 | `Target model:` Gemma 4, any string | `GEMMA4_API_BEST_PRACTICES.md` (verified on `gemma-4-31b-it`) |
-| `Target model:` Gemini 3.6 Flash / 3.5 Flash / 3.5 Flash-Lite / 3.1 Pro / 3.1 Flash-Lite / 3 Flash Preview / 3.x | `GEMINI_3X_API_BEST_PRACTICES.md` |
+| `Target model:` any Gemini 3.x string (Flash, Flash-Lite, Pro, preview, any version) | `GEMINI_3X_API_BEST_PRACTICES.md` |
 | `Target model:` DeepSeek V4 (Pro or Flash) | `DEEPSEEK_V4_API_BEST_PRACTICES.md` |
-| `Target model:` Claude (Opus 5 / Opus 4.x / Sonnet 5 / Haiku 4.5 / bare "Claude") | `CLAUDE_API_BEST_PRACTICES.md` |
+| `Target model:` any Claude string (Fable, Opus, Sonnet, Haiku, any version, or bare "Claude") | `CLAUDE_API_BEST_PRACTICES.md` |
 | Legacy Gemini wiring anywhere in input (`generateContent`, `generate_content`, `google.generativeai`, `contents: [{role, parts}]`, `generationConfig.responseSchema`, `systemInstruction.parts`) | `GEMINI_MIGRATION.md` |
 | Compaction needed: output emits prompt text (RESCUE, AUTHOR, any full revision), a GRADING artifact over the G7 byte cap in any shape, any shape finding a length or duplication defect it will cut, or caller asks | `COMPACTION.md` |
 | Structured-output schema present in a REVIEW task | `GRADING_PIPELINE.md` (Schema review essentials) |
