@@ -215,6 +215,12 @@ string to call today. Liveness and the current successor for any string below
 as the recommendation for new work. Read a row as "this task type suited that
 tier", map to the current successor, put the re-test in Key Changes.
 
+**The newest Flash is not automatically the successor.** `gemini-3.8-flash` is
+a behavior break, not an increment (`GEMINI_MIGRATION.md` 5); vendor-stated,
+`gemini-3.7-flash` remains fully supported for work that does not need 3.8's
+verification. A Flash row on a bounded task (grading, extraction,
+classification) → re-test on both strings, never assume 3.8 wins.
+
 | Task type | Model that won, as tested | Why | Currency |
 |---|---|---|---|
 | Open-ended multimodal extraction (transcription, speaker labeling, phase detection) | `gemini-3.5-flash` (free tier) | Matched paid `gemini-2.5-pro` exactly on a multi-speaker code-switched video; free-tier `gemini-3.1-flash-lite`/`gemini-2.5-flash` under-counted speakers or mislabeled phases | Re-verify on the current successor (rule 1); `gemini-2.5-pro` since lost production access |
@@ -246,7 +252,7 @@ skill-deferral, same as rule 8.
 
 Second-level routing, additive to this file:
 
-- **`GEMINI_MIGRATION.md`**: cross-family migration facts the skill doesn't cover (tools + response_format scope across families, Gemma 4 schema-shape porting, prefilled model-turn validation). Load one-time per prompt when EITHER legacy `generateContent` forms appear anywhere in the input OR the prompt is being carried across Gemini generations, or from Gemma 4 / Gemini 2.5, to a 3.x target. The trunk routes only the first trigger, so the second is this file's to fire.
+- **`GEMINI_MIGRATION.md`**: cross-family migration facts the skill doesn't cover (tools + response_format scope across families, Gemma 4 schema-shape porting, prefilled model-turn validation, `thinking_level` shrinkage, the `gemini-3.8-flash` behavior break). Load one-time per prompt when EITHER legacy `generateContent` forms appear anywhere in the input OR the prompt is being carried across Gemini generations or served by a chain or router spanning them, or from Gemma 4 / Gemini 2.5, to a 3.x target. The trunk routes only the first trigger, so the second is this file's to fire.
 
 ## Verify after changes
 
@@ -258,7 +264,7 @@ Second-level routing, additive to this file:
 - No planning block ported without a named failure and a `thinking_level` step-up tried first; none on a managed-agent target by default, and no ported policy duplicated across system instruction and instruction file; no ported dimension in text shared across model strings; ported dimensions are policy-carrying (2, 5, 9), never reasoning-describing (1, 3, 4, 7); each emitted as a clause rather than a label and arbitrated against rule 5 (6, 6a-6d).
 - No tagged or serialized block is required immediately before a tool call; pre-tool notes route to a declared `update` call or to Markdown headers (6e).
 - Lite-tier targets on multi-step judgment tasks (rubric grading, AND-gated descriptors) get a next-level-up `thinking_level` test recommendation, not a silent bottom-level assumption (8).
-- Any recommended model swap names its currency caveat, tested on which generation and re-verify before porting, rather than standing as fact (9).
+- Any recommended model swap names its currency caveat, tested on which generation and re-verify before porting, rather than standing as fact (9); a Flash successor is never assumed to be `gemini-3.8-flash` (9, `GEMINI_MIGRATION.md` 5).
 - Any 429/quota recommendation is written for Interactions (persistence-based circuit breaker), and legacy retry wiring is flagged as a migration defect rather than tuned (10).
 
 ## Closing directive recap

@@ -55,6 +55,7 @@ Unstated defaults to an API request and says so.
 
 - **Scaffolding is a cost.** The vendor's 9-point agentic planning block is not ported by default: prompt engineering built for older models drives over-analysis on 3.x, and `gemini-3.8-flash` plans and verifies natively by design. A point is ported only against a named, observed failure, after a `thinking_level` step-up was tried, and only the policy-carrying points. Token burn or verification loops are fixed with a lower level or a tool-call budget, never a ported block.
 - **Managed agents** (Antigravity and custom agents): the system instruction and instruction file are additive, so any ported policy lives in exactly one of them.
+- **`gemini-3.8-flash` is a behavior break, not a drop-in successor.** It checks its own work and can use more tokens by design; `gemini-3.7-flash` stays fully supported. Bounded tasks (grading, extraction, classification) carried to 3.8 get a token and latency re-baseline and a stay-on-3.7 comparison, never an assumed upgrade.
 - **Mixed-generation fleets** (fallback chains, routers, staged rollouts): port decisions are made per model string; shared text carries nothing model-specific.
 - **`thinking_level` sets shrink across generations** and fail hard with a 400, never a silent clamp. A level shared across a fallback chain must be valid on every leg or set per leg.
 
