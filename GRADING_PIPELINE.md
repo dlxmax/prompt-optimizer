@@ -205,7 +205,7 @@ Any structured-output schema reviewed or emitted here:
 2. A required field with no abstention path forces fabrication, and the schema outranks the prose: an instruction forbidding inference does not reliably stop it. Two defect shapes. (a) `minItems` floor on abstainable members forces hallucinated entries → lower it to 0, or make the member nullable. Not to 1: one mandated entry against a zero-evidence input is the same fabrication, one item smaller. (b) Required enum over a judgment the input may not support leaves no room to hedge → add an insufficient-evidence member. Keep the prose clause: additive, not a replacement.
 3. Bound numeric fields at the per-item envelope, not the aggregate. Claude rejects numeric bounds outright → enum plus code-side validation (`CLAUDE_STRUCTURED_OUTPUTS.md` 1).
 4. Emission order = `properties` declaration order + reason-first prose directive. `propertyOrdering` is a `generateContent`-era key absent from the Interactions supported-key list; do not emit it. Claude orders required before optional regardless (`CLAUDE_STRUCTURED_OUTPUTS.md` 4).
-5. Trace serialization end to end: serializers silently drop `description` and any unsupported key. Read the request-builder path before approving.
+5. Trace serialization end to end: serializers silently drop `description` and any unsupported key. Request-builder path named in the input → read it before approving; not named → deployer-verify item, never a codebase search.
 6. Default verdict on schema + prose: additive. Schema constrains the decoder; prose drives the scan. Strip only genuine shape-restatement.
 
 ## Closing directive recap
