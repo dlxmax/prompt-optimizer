@@ -10,7 +10,7 @@
       "name": "prompt-optimizer",
       "source": "./",
       "description": "Designs and reviews LLM prompts for education: rubric grading, student feedback, and lesson, worksheet and exam generation. Splits oversized prompts into smaller calls, checks revised prompts, and builds new ones from a rubric. Also reviews any other prompt. Covers Claude, Gemini, Gemma 4 and DeepSeek V4.",
-      "version": "4.16.1",
+      "version": "4.16.2",
       "author": {
         "name": "dlxmax"
       },
@@ -35,11 +35,6 @@
         "compliance",
         "validation",
         "gemini",
-        "gemini-3.6",
-        "gemini-3.6-flash",
-        "gemini-3.5",
-        "gemini-3.5-flash",
-        "gemini-3.5-flash-lite",
         "gemini-3.x",
         "interactions-api",
         "gemma-4",
@@ -49,11 +44,13 @@
         "deepseek-v4",
         "response-schema",
         "structured-output",
-        "claude-opus-5",
         "claude-api",
-        "opus-5",
         "abstention",
-        "model-upgrade-audit"
+        "model-upgrade-audit",
+        "claude-code",
+        "subagents",
+        "agent-definition",
+        "deployment-surface"
       ],
       "category": "workflow",
       "tags": [
@@ -74,11 +71,6 @@
         "compliance",
         "validation",
         "gemini",
-        "gemini-3.6",
-        "gemini-3.6-flash",
-        "gemini-3.5",
-        "gemini-3.5-flash",
-        "gemini-3.5-flash-lite",
         "gemini-3.x",
         "interactions-api",
         "gemma-4",
@@ -88,11 +80,13 @@
         "deepseek-v4",
         "response-schema",
         "structured-output",
-        "claude-opus-5",
         "claude-api",
-        "opus-5",
         "abstention",
-        "model-upgrade-audit"
+        "model-upgrade-audit",
+        "claude-code",
+        "subagents",
+        "agent-definition",
+        "deployment-surface"
       ],
       "strict": false
     }
