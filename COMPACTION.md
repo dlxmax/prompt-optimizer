@@ -24,7 +24,7 @@ Apply to draft revision, in order:
 6. Cut instructional comments inside output template blocks. Keep the literal-emission guard on any placeholder inside a worked example (invariant 3): a directive to the model, not a comment. Never rename canonical field tags (`<reasoning>`, `<verdict>`, `evidence`, `level`, `comment`): parsers key on exact names.
 7. Escape hatches out: scan every directive for "try to", "if possible", "when appropriate", "attempt to", "ideally", "generally", "as needed", "as much as possible" -> direct imperative or genuine factual conditional. Exempt occurrences inside checklists and scan-target listings, where the word is named not used; defect = word in imperative position.
 8. Cut courtesy markers ("kindly", "please", "feel free to", "as you see fit") and filler connectives ("Furthermore", "In addition", "Moreover", "It is important to note that"). Zero signal in directive blocks.
-9. Threshold prose -> numeric. "scores below three" -> `<=2`. "more than five examples" -> `>5`. "between 20 and 40 percent" -> `20-40%`.
+9. Threshold prose -> numeric. "scores below three" -> `<=2`. "more than five examples" -> `>5`. Range with unstated endpoints ("between 20 and 40 percent"): intent known -> `>=20% and <=40%`; unknown -> keep words, flag in Key Changes (a value on the boundary has no band). Never `20-40%`: it hides the gap.
 
 ## Densification
 
@@ -41,12 +41,11 @@ a goal; gate 3 recoverability is.
 | `>=` | at least, no fewer than |
 | `!=` | is not, does not equal |
 | `->` | leads to, results in, maps to, then |
-| `iff` | if and only if |
 | `in {a,b,c}` | is one of, is a member of |
 
 Never, no saving and sometimes a cost: `and`->`&`/`∧`, `or`->`|` (collides
 with table syntax), `with`->`w/`, bare `percent`->`%`, `maximum`->`max`,
-`each`->`∀`, any one-word abbreviation (`criterion`->`crit`, `required`->`req`,
+`each`->`∀`, `if and only if`->`iff` (reads as a typo of `if`), any one-word abbreviation (`criterion`->`crit`, `required`->`req`,
 `evidence`->`ev`).
 
 12. **Parallel cases -> table.** Repeated field labels are paid once per item; emit one header row, N data rows. Level descriptors, per-criterion config, any "X means..., Y means..." run. Compresses labels, not discriminating language: preserve-list b governs cell contents.
@@ -70,7 +69,7 @@ g. Schema-versus-prose: a prose clause covering ground a schema field also cover
 1. Token estimate against the cap the calling file sets, never a global one: GRADING per-criterion block ~900 tokens (G7), GRADING monolith ~3,000, generic REVIEW ~3,000 (`GENERIC_REVIEW.md` item 3). FEEDBACK and LESSON set no cap; use ~3,000 and say so. Still over after the full pipeline -> decomposition required, not optional: write "split before deployment" in Key Changes and name the split boundary.
    **Divisor is density-dependent.** `len/4` prose, `len/3` for any block carrying steps 10-13. Score the output on the divisor its final form earns, not the input's. Characters fall faster than tokens under densification, so `len/4` on a densified block claims a larger cut than happened and can pass a block still over cap. Every char cap in the repo is the prose-calibrated face of a token cap: G7's `~3,600 chars` for ~900 tokens, the RESCUE skeleton's `~12,000 chars` for the monolith's ~3,000. Densified, `~12,000 chars` is nearer 4,000 tokens, a third over while passing the char check. The token number governs in both.
 2. Re-run count-versus-universal check on the post-compaction draft: count constraint ("exactly N", "N to M", "at most K") + universal ("every", "all", "each") over the same population = contradiction; scope the universal, drop it, or name the complement.
-3. Semantic round-trip every densified line: restate the original directive without consulting it. Fails when the expansion is not unique: `/` as "per" or "or", `|` as "or" or column break, an operator whose left operand was step 10's dropped subject. Ambiguous -> revert that line to words.
+3. Semantic round-trip every densified line: restate the original directive without consulting it. Fails when the expansion is not unique: `/` as "per" or "or", `|` as "or" or column break, an operator whose left operand was step 10's dropped subject. Also fails when a form reads as a typo of a commoner token with a different meaning: the reader normalizes it and the directive silently changes. Ambiguous -> revert that line to words.
 
 ## Placement re-verification
 
