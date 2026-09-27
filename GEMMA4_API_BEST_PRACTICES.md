@@ -216,7 +216,7 @@ recommend a docs MCP search.
 Double tool-call bug documented on Gemma 4, surface not named, never re-probed
 on Interactions. Per surface provenance, unverified here: flag deployer-verify
 (rule 11). Treat Gemma 4 as a code-parsed-JSON target; tool wiring ->
-`gemini-interactions-api` skill.
+`gemini-api-docs-mcp` (`gemini_search_docs`).
 
 ## 13. No `<|think|>` in `system_instruction`
 
@@ -237,7 +237,7 @@ chat-template deployers follow the chat-template doc directly.
 
 Reasoning, when emitted, arrives as a `thought` step before `model_output` in
 `interaction.steps[]`. Step-object fields and the steps-walk idiom belong to the
-`gemini-interactions-api` skill; never restate them here.
+`gemini-api-docs-mcp` (`gemini_search_docs`); never restate them here.
 
 **Gemma 4 specifically**: reliable suppression = `response_format` (rule 1). It
 empties the `thought` step, it does not remove it: `steps[]` stays
@@ -333,7 +333,7 @@ Gemini 3.x does NOT share Gemma 4's fixed sampling: 3.x sends no sampling
 parameters and uses per-model `thinking_level` defaults, versus Gemma 4's
 T=1.0/top_p=0.95 (rule 10) and `response_format`-suppresses-always-on-thinking.
 Current Gemini model IDs, defaults, parameter mechanics ->
-`gemini-interactions-api` skill or `GEMINI_3X_API_BEST_PRACTICES.md`. Never
+`gemini-api-docs-mcp` (`gemini_search_docs`) or `GEMINI_3X_API_BEST_PRACTICES.md`. Never
 hand-copy model-specific figures out of this note: it warns against assuming
 transfer between families; it is not a second source of truth for Gemini facts.
 

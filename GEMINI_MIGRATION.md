@@ -8,16 +8,17 @@ one fallback chain or router spans generations.
 
 Mechanical migration (endpoint/SDK, schema location, request shape, response
 parsing, tools-array shape, multi-turn history, `store=false`, per-model
-upgrade checklists): invoke the `gemini-interactions-api` skill, which tracks
-current hosted docs as a hand-maintained file cannot. This file carries only
-migration facts that are cross-family or outside that skill's Gemini-only scope.
+upgrade checklists): recommend a `gemini-api-docs-mcp` (`gemini_search_docs`)
+query, which tracks current hosted docs as a hand-maintained file cannot. This
+file carries only migration facts that are cross-family or that the docs do not
+state.
 </role>
 
 ## 1. `tools` + `response_format` combination scope
 
 Combined use = Gemini 3-series-only preview as last verified. Gemma 4 and
 Gemini 2.5 cannot mix the two. Preview scope moves: confirm current
-combined-use support through the `gemini-interactions-api` skill before
+combined-use support through the Gemini docs MCP before
 recommending the split, and name that check in Key Changes. A 2.5 or Gemma 4
 prompt wiring both -> recommend a two-step pipeline (tools first,
 structured-output reduction second).
@@ -41,8 +42,7 @@ Legacy `generateContent` / raw REST payloads ending `contents[]` on a non-empty
 `gemini-3.6-flash` and `gemini-3.5-flash-lite` and every Gemini release after.
 Flag any prefilled trailing model turn as a migration defect. Interactions
 equivalent: no model-turn prefill at all. Use `system_instruction` for output
-style, `response_format` for JSON (exact wiring: `gemini-interactions-api`
-skill).
+style, `response_format` for JSON (exact wiring: Gemini docs MCP).
 
 ## 4. `thinking_level` values shrink across generations
 
@@ -55,7 +55,7 @@ rejection for `gemini-3.8-flash`. A fallback chain or router spanning
 generations hits the same failure with no move at all (`GEMINI_3X_API_BEST_PRACTICES.md`
 5.1). Any generation move carrying
 a `thinking_level` in the prompt, call-site, or examples → re-read the target's
-allowed set through the `gemini-interactions-api` skill and flag the carried
+allowed set through the Gemini docs MCP and flag the carried
 value in Key Changes. Never hand-carry the value, and never store the table
 here: it is per-model and it moves. A prompt whose behavior depends on the
 bottom level (high-volume extraction, routing, classification) may have no
@@ -78,5 +78,5 @@ router with 3.8 on one leg:
 ## Closing directive recap
 
 Cross-family migration facts only. Everything else, including per-model upgrade
-checklists, whatever the target generation: invoke
-the `gemini-interactions-api` skill, never this file or memory.
+checklists, whatever the target generation: recommend
+a `gemini-api-docs-mcp` (`gemini_search_docs`) query, never this file or memory.

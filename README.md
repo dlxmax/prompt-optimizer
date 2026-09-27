@@ -60,9 +60,8 @@ Unstated defaults to an API request and says so.
 - **`thinking_level` sets shrink across generations** and fail hard with a 400, never a silent clamp. A level shared across a fallback chain must be valid on every leg or set per leg.
 
 Family files carry **prompt content only**. Model IDs, parameters, defaults,
-and migration steps defer to the vendor's own skill: Anthropic's `claude-api`
-(bundled with Claude Code) and Google's `gemini-interactions-api`, backed by the
-Gemini docs MCP when available. So a new model release needs no update here.
+and migration steps defer to the vendor's own source: Anthropic's `claude-api` skill
+(bundled with Claude Code) and the Gemini docs MCP (`gemini-api-docs-mcp`). So a new model release needs no update here.
 The exception is the Claude Code agent surface, which `claude-api` does not
 cover; those facts are version-floored in `CLAUDE_CODE_AGENTS.md`.
 

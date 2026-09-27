@@ -8,14 +8,14 @@ Reference for prompt-optimizer. Load when `Target model:` declares any Gemini
 prompt or system instruction for a Gemini 3.x model, plus deployer production
 findings on model choice and behavior under load. NOT documented API mechanics
 (model IDs, defaults, pricing, parameter wiring, request/response shape, SDK
-versions), which are the `gemini-interactions-api` skill's job (rule 1). Rules
+versions), which are the Gemini docs MCP's job (rule 1). Rules
 8-10 are the stated exception: empirical quality judgments and production
-behavior no doc-fetching skill can know.
+behavior no docs search can know.
 </role>
 
 <scope>
 Family: any `gemini-3.x` string. Liveness and the current successor for any
-string = the skill's job (rule 1); this file stores no model list.
+string = the docs MCP's job (rule 1); this file stores no model list.
 
 **Surface scope.** Interactions API only. Evidence written against
 `generateContent` (doc page, example, forum answer) neither confirms nor
@@ -25,26 +25,24 @@ example calls before treating it as evidence. Legacy wiring in a prompt or
 call-site = migration defect (`GEMINI_MIGRATION.md`), never an alternative to
 recommend.
 
-Current defaults/pricing and every API-mechanics fact = the skill's job (rule
-1). Gemma 4 → `GEMMA4_API_BEST_PRACTICES.md`; DeepSeek V4 →
+Current defaults/pricing and every API-mechanics fact = the docs MCP's job
+(rule 1). Gemma 4 → `GEMMA4_API_BEST_PRACTICES.md`; DeepSeek V4 →
 `DEEPSEEK_V4_API_BEST_PRACTICES.md`.
 </scope>
 
-## 1. API mechanics are the gemini-interactions-api skill's job
+## 1. API mechanics are the Gemini docs MCP's job
 
 Never answer from this file, training data, or memory for: current model
 IDs/pricing/defaults, parameter wiring (`temperature`/`top_p`/`top_k` removal,
 `thinking_level` vs `thinking_budget`, `response_format` schema wiring,
 tools-array shape), function-calling response matching,
 multi-turn/thought-preservation, streaming, SDK/migration facts. In Key
-Changes: recommend invoking the `gemini-interactions-api` skill before writing
-or reviewing call-site code. Name `gemini-api-docs-mcp` `search_docs`, scoped
-to the unknown, as the deployer's fallback where the skill is not installed.
-Read/Grep/Glob cannot detect skill availability or run an MCP query, so both
-are recommendations, never steps you take. State your interim assumption
-either way. Legacy `generateContent` wiring additionally loads
-`GEMINI_MIGRATION.md` (cross-family facts the skill doesn't cover; same
-skill-first policy).
+Changes: recommend a `gemini-api-docs-mcp` (`gemini_search_docs`) query scoped to the
+unknown before writing or reviewing call-site code. Never point to the
+`gemini-interactions-api` skill: you cannot see whether the caller has it. Read/Grep/Glob
+cannot run an MCP query, so this is a recommendation, never a step you take.
+State your interim assumption. Legacy `generateContent` wiring additionally
+loads `GEMINI_MIGRATION.md` (cross-family facts; same docs-MCP-first policy).
 
 ## 2. Long-context: query at the end, anchored to the context
 
@@ -200,8 +198,8 @@ this diagnostic branch.
 
 ## 9. Empirical model choice by task type (probe-verified, not vendor guidance)
 
-Deployer production A/B testing, not Google documentation; the skill cannot
-know task-specific results, so this stays hand-maintained regardless of rule 1.
+Deployer production A/B testing, not Google documentation; the docs cannot
+state task-specific results, so this stays hand-maintained regardless of rule 1.
 No finding was probed on a model newer than `gemini-3.5-flash`; every Gemini
 release after it is untested here (current list: rule 1). The string tested is
 named in each row, never generalized to a generation. Each
@@ -211,7 +209,7 @@ the durable part.
 
 A row records which tier won a task on the generation tested, never which
 string to call today. Liveness and the current successor for any string below
-= the skill's job (rule 1); this file asserts neither. Never name a table model
+= the docs MCP's job (rule 1); this file asserts neither. Never name a table model
 as the recommendation for new work. Read a row as "this task type suited that
 tier", map to the current successor, put the re-test in Key Changes.
 
@@ -242,7 +240,7 @@ classification) → re-test on both strings, never assume 3.8 wins.
 ## 10. Quota and rate-limit behavior the hosted docs don't cover
 
 Empirical production findings, not documented mechanics: exception to rule 1's
-skill-deferral, same as rule 8.
+docs deferral, same as rule 8.
 
 - `gemini-3.1-flash-lite` has an empirically confirmed per-minute token ceiling well below its context window. A generic auto-retry loop (short fixed sleep, many attempts) on a long prompt exhausts it inside one wall-clock minute, producing repeated zero-output failures that read as model failures but are pacing failures. Long-prompt Flash-Lite work → single-shot calls with wide spacing (90+ seconds) over blind auto-retry. Re-verify whether the ceiling carries to `gemini-3.5-flash-lite`.
 - A newly released model on the free tier sheds load as HTTP 500 with a high-demand message BEFORE any quota 429 appears, and sheds a long prompt while a trivial one on the same key succeeds seconds earlier. Observed on `gemini-3.7-flash` at launch. A circuit breaker keyed on 429 alone reads this as a server fault and retries straight into the real quota wall: count consecutive 500s toward the same breaker.
@@ -252,11 +250,11 @@ skill-deferral, same as rule 8.
 
 Second-level routing, additive to this file:
 
-- **`GEMINI_MIGRATION.md`**: cross-family migration facts the skill doesn't cover (tools + response_format scope across families, Gemma 4 schema-shape porting, prefilled model-turn validation, `thinking_level` shrinkage, the `gemini-3.8-flash` behavior break). Load one-time per prompt when EITHER legacy `generateContent` forms appear anywhere in the input OR the prompt is being carried across Gemini generations or served by a chain or router spanning them, or from Gemma 4 / Gemini 2.5, to a 3.x target. The trunk routes only the first trigger, so the second is this file's to fire.
+- **`GEMINI_MIGRATION.md`**: cross-family migration facts the docs don't state (tools + response_format scope across families, Gemma 4 schema-shape porting, prefilled model-turn validation, `thinking_level` shrinkage, the `gemini-3.8-flash` behavior break). Load one-time per prompt when EITHER legacy `generateContent` forms appear anywhere in the input OR the prompt is being carried across Gemini generations or served by a chain or router spanning them, or from Gemma 4 / Gemini 2.5, to a 3.x target. The trunk routes only the first trigger, so the second is this file's to fire.
 
 ## Verify after changes
 
-- No API-mechanics claim (model ID, parameter, endpoint, request/response shape) answered from this file instead of the skill (1).
+- No API-mechanics claim (model ID, parameter, endpoint, request/response shape) answered from this file instead of the docs MCP (1).
 - Long-context prompts end on the query, not the data (2).
 - A `thinking_level` shared across a fallback chain or router is valid on every leg, or set per leg (5.1).
 - Chain-of-thought scaffolding replaced with a `thinking_level` recommendation, not left in place (3).
@@ -271,9 +269,9 @@ Second-level routing, additive to this file:
 
 Imperative reference when `Target model: Gemini 3.x` is declared, scoped to
 prompt content and empirical findings (rules 8-10 = stated exception to
-mechanics-defer-to-skill). Apply every numbered rule; cite rule numbers in Key
+mechanics-defer-to-docs). Apply every numbered rule; cite rule numbers in Key
 Changes. Current model IDs, defaults, pricing, and every other documented
-API-mechanics or migration fact → recommend the `gemini-interactions-api` skill
-(rule 1), never this file or memory. Empirically-tested model choice (9) and
+API-mechanics or migration fact → recommend a `gemini-api-docs-mcp` (`gemini_search_docs`)
+query (rule 1), never this file or memory. Empirically-tested model choice (9) and
 production quota behavior (10) → this file is the source of truth. Legacy
 `:generateContent` wiring additionally loads `GEMINI_MIGRATION.md`.

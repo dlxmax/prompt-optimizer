@@ -67,7 +67,7 @@ Either a response schema (preferred for anything downstream-parsed as JSON) or a
 literal-anchor text contract (L3) where the pipeline parses plain text. State
 which; never mix conventions within one section's output. Schema chosen →
 wiring key and location are per-family mechanics owned by the loaded family file
-and its vendor skill (invariant 5), never named here; apply
+and its vendor docs route (invariant 5), never named here; apply
 `GRADING_PIPELINE.md` schema review essentials, plus
 `CLAUDE_STRUCTURED_OUTPUTS.md` on Claude targets. No family file loaded → name
 the interim assumption as a deployer-verify item. No schema mechanism on the
