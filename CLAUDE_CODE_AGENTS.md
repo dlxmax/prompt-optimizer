@@ -115,8 +115,9 @@ literal text nothing fills. Overrides invariant 3 on this surface:
 - A placeholder in the body is a defect unless the deployer substitutes it at file-write time. Flag it.
 - Reference files resolve at runtime from the working directory. A path the body names must exist relative to cwd; the body cannot inline it.
 
-User, project, and local `CLAUDE.md` load unless `omitClaudeMd: true` (floor
-v2.1.271). Skill content does not, unless listed in `skills`.
+User, project, and local `CLAUDE.md`, rules files, and `AGENTS.md` load unless
+`omitClaudeMd: true` (floor v2.1.271; managed policy still loads). Main-session
+auto memory and skill content do not, unless listed in `skills`.
 
 ## 7. Failure is text, not status
 

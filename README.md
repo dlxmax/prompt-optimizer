@@ -41,8 +41,9 @@ and which model the script calls:
 Claude sends the prompt to the agent, applies the fixes, and shows you what
 changed.
 
-Every report ends with two recommendations Claude follows:
+Every report ends with three lines Claude acts on:
 
+- **Input**: what the request was missing (like which model the script calls) or sent that wasn't needed, so the next request is better.
 - **Recheck**: the fixes changed the prompt's structure, so the revised version should go back for a second look.
 - **Compaction**: the prompt carries dead weight (rules stated twice, rules for things that no longer exist, patches stacked on patches) and should be trimmed.
 
@@ -54,7 +55,7 @@ to you. It won't decide those.
 ## Cost
 
 Each review costs tokens. The agent runs on Sonnet at high effort, about half
-Opus's price, and keeps its own reading to a minimum. Claude skips rechecks
+Opus's price, and reads only itself and the prompt you send, not your other Claude Code settings. Claude skips rechecks
 when the fixes were only wording.
 
 ## More

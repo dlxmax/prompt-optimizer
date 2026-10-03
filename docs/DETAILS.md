@@ -12,6 +12,7 @@ what each reference file covers, and what drives cost.
 | Fixes *or* Pipeline Spec | targeted fixes for failing items (AUDIT), or artifacts 1-5 for a full build (RESCUE / AUTHOR) |
 | Key Changes | what changed and why, citing item and rule numbers, plus deployer-verify items |
 | Optional Enhancements | behavior-shaping additions held back from the main spec, off by default |
+| `Input:` line | `complete`, or what the call was missing or sent without need |
 | `Recheck:` / `Compaction:` lines | each `needed` or `not needed` with one reason; both needed → one call |
 | `Next:` line | when to follow up on this agent and when to start a new call (see Cost) |
 
@@ -146,5 +147,6 @@ To keep a call cheap:
 - **Paste the call-site facts** the review depends on as short excerpts, rather than pointing at the code that builds the request.
 - **Revised prompt → state the prior version's size.** Bloat is judged by growth against the change asked for, never by a fixed size cap. Size reports include per-run cost (tokens × calls) when call volume is stated.
 - **Follow the `Next:` line.** A question about the output within 5 minutes → follow up on the same agent (its cache is warm). A revised prompt, or anything later → a new call with the revised text inline. After the 5-minute cache expires a follow-up rewrites the whole accumulated context, often 100k+ tokens, where a new call starts near 35k.
-- Claude Code loads your project `CLAUDE.md` and `~/.claude/rules` into every subagent: a large one raises the floor of every call. `omitClaudeMd: true` in the frontmatter skips the `CLAUDE.md` files (Claude Code v2.1.271+).
+- Claude Code loads your `CLAUDE.md` files and rules into every subagent unless its frontmatter sets `omitClaudeMd: true` (Claude Code v2.1.271+). This agent sets it, so it reads only itself and what you send; older versions load them anyway.
+- **Watch the `Input:` line.** It names what the call lacked or sent without need.
 

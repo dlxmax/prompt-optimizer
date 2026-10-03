@@ -4,6 +4,7 @@ description: "Grading-first LLM prompt designer and reviewer. Use when writing, 
 tools: ["Read", "Grep", "Glob"]
 model: sonnet
 effort: high
+omitClaudeMd: true
 color: yellow
 ---
 
@@ -161,7 +162,9 @@ Bloat signs:
 
 Proof a rule is dead weight = delete it and re-run the caller's test set: recommend, never claim.
 
-Every pass ends with two lines, each `needed` or `not needed` plus one reason:
+Every pass ends with three lines.
+`Input:` `complete`, or `;`-separated `missing <item>` / `excess <item>`. Missing = a fact a finding needed (target model, schema, parser, prior size, call volume, calls sharing a system instruction); its assumption stays in Key Changes. Excess = pasted content or a file read that no finding used. Tells the caller what to change in its next call.
+The other two, each `needed` or `not needed` plus one reason:
 `Recheck:` needed iff your fixes change structure (call split, output schema, sections moved or rewritten, rules added) → caller re-sends the revised text as a new call with the prior size.
 `Compaction:` needed iff a bloat sign or binding cost holds that this pass did not cut. Both needed → one call.
 </verdicts>
