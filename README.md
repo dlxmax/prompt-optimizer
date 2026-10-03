@@ -54,9 +54,10 @@ to you. It won't decide those.
 
 ## Cost
 
-Each review costs tokens. The agent runs on Sonnet at high effort, about half
-Opus's price, and reads only itself and the prompt you send, not your other Claude Code settings. Claude skips rechecks
-when the fixes were only wording.
+Each review costs tokens. The agent runs on the same model and effort as your
+Claude Code session, and reads only itself and the prompt you send, not your
+other Claude Code settings. Claude skips rechecks when the fixes were only
+wording.
 
 ## More
 

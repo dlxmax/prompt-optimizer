@@ -10,7 +10,7 @@
       "name": "prompt-optimizer",
       "source": "./",
       "description": "Designs and reviews LLM prompts for education: rubric grading, student feedback, and lesson, worksheet and exam generation. Splits oversized prompts into smaller calls, checks revised prompts, and builds new ones from a rubric. Also reviews any other prompt. Covers Claude, Gemini, Gemma 4 and DeepSeek V4.",
-      "version": "4.21.0",
+      "version": "4.21.1",
       "author": {
         "name": "dlxmax"
       },

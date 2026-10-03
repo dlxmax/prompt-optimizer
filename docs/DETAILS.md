@@ -138,8 +138,8 @@ refuses to score rather than reviewing you against rules it never read.
 ## Cost
 
 A subagent re-reads its whole context on every turn, so each extra read is paid
-again on every later turn. The agent runs on Sonnet (`model: sonnet`, `effort: high`):
-about half Opus's per-token price. Edit the frontmatter to change either.
+again on every later turn. The agent inherits the session's model and effort (`model: inherit`, no
+`effort` line). Add either to the frontmatter to pin it.
 
 To keep a call cheap:
 
