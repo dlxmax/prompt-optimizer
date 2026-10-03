@@ -28,8 +28,8 @@ In Claude Code:
 /reload-plugins
 ```
 
-To update later: `/plugin marketplace update prompt-optimizer`, then
-`/reload-plugins`.
+To update later: `/plugin marketplace update prompt-optimizer` (it reloads
+plugins itself).
 
 ## Use
 
