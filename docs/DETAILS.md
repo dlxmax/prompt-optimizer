@@ -146,5 +146,5 @@ To keep a call cheap:
 - **Paste the call-site facts** the review depends on as short excerpts, rather than pointing at the code that builds the request.
 - **Revised prompt → state the prior version's size.** Bloat is judged by growth against the change asked for, never by a fixed size cap. Size reports include per-run cost (tokens × calls) when call volume is stated.
 - **Follow the `Next:` line.** A question about the output within 5 minutes → follow up on the same agent (its cache is warm). A revised prompt, or anything later → a new call with the revised text inline. After the 5-minute cache expires a follow-up rewrites the whole accumulated context, often 100k+ tokens, where a new call starts near 35k.
-- Claude Code loads your project `CLAUDE.md` and `~/.claude/rules` into every subagent: a large one raises the floor of every call.
+- Claude Code loads your project `CLAUDE.md` and `~/.claude/rules` into every subagent: a large one raises the floor of every call. `omitClaudeMd: true` in the frontmatter skips the `CLAUDE.md` files (Claude Code v2.1.271+).
 

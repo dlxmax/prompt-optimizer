@@ -14,8 +14,9 @@ rubric, and returns what's wrong and how to fix it:
 - **Lesson materials.** Worksheets, warm-ups, exam questions, and lesson plans that come out generic or repetitive.
 - **Any other prompt**, on request.
 
-It knows the quirks of Claude, Gemini, Gemma 4, and DeepSeek V4. It only reads;
-it never changes your files.
+It knows the quirks of Claude (Opus 5.5 and Sonnet 5.5, in API calls and in
+Claude Code agents), Gemini, Gemma 4, and DeepSeek V4. It only reads; it never
+changes your files.
 
 ## Install
 
@@ -52,8 +53,9 @@ to you. It won't decide those.
 
 ## Cost
 
-Each review costs tokens. The agent keeps its own reading to a minimum. Claude
-skips rechecks when the fixes were only wording.
+Each review costs tokens. The agent runs on Sonnet at high effort, about half
+Opus's price, and keeps its own reading to a minimum. Claude skips rechecks
+when the fixes were only wording.
 
 ## More
 
