@@ -39,7 +39,7 @@ G5. **Tie-break surfaced.** Exact-boundary ties get one explicit directional rul
 
 G6. **Examples.** 0 or 1 borderline worked example per criterion, formatted identically to the output contract. Per-level verdict-balanced sets never go in revised prompts; offer in Optional Enhancements with byte cost and bench-validation caveat.
 
-G7. **Byte cap (hard).** Scaffold + one criterion block (system-instruction share, directive, descriptors, tie-break, example) <= ~900 tokens (~3,600 chars), excluding submission and assignment context. Over cap = a failing defect that must be cut: a compacted revision for RESCUE and AUTHOR, a targeted cut under Fixes for AUDIT. Load `COMPACTION.md` and run its pipeline against this ~900-token cap; its preserve-list is binding. Reporting the number without cutting is not a fix. Ratio = second, independent check: on short-answer or fill-in work a cap-compliant block can still dwarf the submission, leaving the rubric's own language as the most available material to fill fields from. Report ratio alongside byte count; fix with the pre-gate (artifact 4, step 0) and the example cut (G6), not by trimming bytes alone.
+G7. **Size.** Report tokens for scaffold + one criterion block (system-instruction share, directive, descriptors, tie-break, example), excluding submission and assignment context. FAIL iff a trunk bloat sign or binding per-run cost holds (`<verdicts>`); fix = compacted revision for RESCUE and AUTHOR, targeted cut under Fixes for AUDIT, via `COMPACTION.md` (preserve-list binding). Ratio = independent check: on short-answer or fill-in work a small block can still dwarf the submission, leaving the rubric's own language as the most available material to fill fields from. Report ratio alongside size; fix with the pre-gate (artifact 4, step 0) and the example cut (G6), not by trimming bytes alone.
 
 G8. **Reliability ladder**, in order: (1) Calibration: dry-run on a small human-graded set; check harsh bias on mechanics-type criteria (grammar, conventions); check variance compression (scores clustering mid-scale); <=1 rubric-wording refinement round. (2) Escalation re-sampling: re-run a criterion only on quote-verification failure or an exact-boundary level. (3) Sampling with majority vote: only when the caller names an available call budget. Never recommend blanket N>=5 voting for per-criterion grading.
 
@@ -163,7 +163,7 @@ catching drift.
 ## Key Changes
 - [what changed and why, citing G-items and family-file rules]
 - Tie-break: [direction set and why, or "open policy choice; deployer must confirm"]
-- Byte budget: scaffold+criterion <pre> -> <post> chars vs ~3,600 cap; monolith emitted → report it separately against its own ~12,000-char cap
+- Size: scaffold+criterion <pre> -> <post> tokens; monolith emitted → its size separately
 - Scaffold-to-submission ratio: [G7 flag, or "not flagged"]
 ## Optional Enhancements (off by default; needs bench A/B)
 - [byte cost + risk note each; "None." if empty]
@@ -177,7 +177,7 @@ catching drift.
 ## Fixes
 [targeted corrections for failing items ONLY; do not re-emit a passing prompt]
 ## Key Changes
-- Byte budget: <n> chars vs ~3,600 cap
+- Size: <n> tokens
 - Scaffold-to-submission ratio: [G7 flag, or "not flagged"]
 - [tie-break line when touched]
 ## Optional Enhancements (off by default; needs bench A/B)
@@ -193,7 +193,7 @@ as AND-gated level clauses, one schema wrapping per-criterion objects
 exactly the criterion count. Claude: any `minItems` floor above 1 is a 400, so
 enforce the count code-side only. Either way de-dup criterion ids and assert
 every expected id is present, schema review essentials 1), <=1 borderline
-example total, hard cap ~3,000 tokens. Load `COMPACTION.md`, run its pipeline
+example total. Load `COMPACTION.md`, run its pipeline
 on the result. State in Key Changes: per-criterion decomposition = recommended
 architecture, monolith = constrained fallback.
 

@@ -2,10 +2,8 @@
 
 <role>
 Reference for prompt-optimizer. Load whenever prompt text is emitted (RESCUE,
-AUTHOR, any full revision), or a prompt must shrink: a GRADING artifact over
-the G7 byte cap in any shape,
-any shape finding a length or duplication defect it will cut, or explicit
-caller request. A duplicate deleted without the anchor test below is the
+AUTHOR, any full revision), or a prompt must shrink: any shape cutting a bloat sign (trunk
+`<verdicts>`), or explicit caller request. A duplicate deleted without the anchor test below is the
 failure mode this file exists to prevent, so the shape does not gate the load.
 Run pipeline in order (cut 1-9, then densify 10-13), then gates, then
 re-verify placement. Cite as `COMPACTION.md step N`, `preserve-list
@@ -20,7 +18,7 @@ Apply to draft revision, in order:
 2. Verbose -> imperative. "Please make sure to always..." -> "Always...". "You should ensure that..." -> "Ensure...". "When you encounter a case where..." -> "If...".
 3. Cut unintentional mid-prompt duplicates, each cleared first by the anchor test (preserve-list f). Keep intentional start-and-end repetition of governing directives. Governing directive = a JSON output schema: emit full spec once, close with a brief shape echo or "do not restart the object" guard, never a second field-by-field contract.
 4. Cut background explaining motivation without changing behavior. Exception: feature-category lists in linguistic-analysis prompts are behavior-changing instruction: keep.
-5. Examples over ceiling -> trim to the ceiling the loaded domain file sets: grading 0 or 1 borderline per criterion (G6), FEEDBACK/LESSON one PASS+FAIL pair per gate (F4, L4), generic gate prompts 3 per criterion. No domain file loaded -> 3 per criterion. Zero is legal under G6, and cutting the example is G7's named fix for an over-cap block. Gemma 4 forensic scans: PASS-example density is owned by `GEMMA4_FORENSIC_SCANS.md` 15.2, never cut below it.
+5. Examples over ceiling -> trim to the ceiling the loaded domain file sets: grading 0 or 1 borderline per criterion (G6), FEEDBACK/LESSON one PASS+FAIL pair per gate (F4, L4), generic gate prompts 3 per criterion. No domain file loaded -> 3 per criterion. Zero is legal under G6, and cutting the example is G7's named ratio fix. Gemma 4 forensic scans: PASS-example density is owned by `GEMMA4_FORENSIC_SCANS.md` 15.2, never cut below it.
 6. Cut instructional comments inside output template blocks. Keep the literal-emission guard on any placeholder inside a worked example (invariant 3): a directive to the model, not a comment. Never rename canonical field tags (`<reasoning>`, `<verdict>`, `evidence`, `level`, `comment`): parsers key on exact names.
 7. Escape hatches out: scan every directive for "try to", "if possible", "when appropriate", "attempt to", "ideally", "generally", "as needed", "as much as possible" -> direct imperative or genuine factual conditional. Exempt occurrences inside checklists and scan-target listings, where the word is named not used; defect = word in imperative position.
 8. Cut courtesy markers ("kindly", "please", "feel free to", "as you see fit") and filler connectives ("Furthermore", "In addition", "Moreover", "It is important to note that"). Zero signal in directive blocks.
@@ -66,8 +64,8 @@ g. Schema-versus-prose: a prose clause covering ground a schema field also cover
 
 ## Post-compaction gates
 
-1. Token estimate against the cap the calling file sets, never a global one: GRADING per-criterion block ~900 tokens (G7), GRADING monolith ~3,000, generic REVIEW ~3,000 (`GENERIC_REVIEW.md` item 3). FEEDBACK and LESSON set no cap; use ~3,000 and say so. Still over after the full pipeline -> decomposition required, not optional: write "split before deployment" in Key Changes and name the split boundary.
-   **Divisor is density-dependent.** `len/4` prose, `len/3` for any block carrying steps 10-13. Score the output on the divisor its final form earns, not the input's. Characters fall faster than tokens under densification, so `len/4` on a densified block claims a larger cut than happened and can pass a block still over cap. Every char cap in the repo is the prose-calibrated face of a token cap: G7's `~3,600 chars` for ~900 tokens, the RESCUE skeleton's `~12,000 chars` for the monolith's ~3,000. Densified, `~12,000 chars` is nearer 4,000 tokens, a third over while passing the char check. The token number governs in both.
+1. Token estimate pre -> post; no size cap (trunk `<verdicts>`). Per-run cost or a stated rate limit still binding after the full pipeline -> decomposition required, not optional: write "split before deployment" in Key Changes and name the split boundary.
+   **Divisor is density-dependent.** `len/4` prose, `len/3` for any block carrying steps 10-13. Score the output on the divisor its final form earns, not the input's: characters fall faster than tokens under densification, so `len/4` on a densified block overstates the cut.
 2. Re-run count-versus-universal check on the post-compaction draft: count constraint ("exactly N", "N to M", "at most K") + universal ("every", "all", "each") over the same population = contradiction; scope the universal, drop it, or name the complement.
 3. Semantic round-trip every densified line: restate the original directive without consulting it. Fails when the expansion is not unique: `/` as "per" or "or", `|` as "or" or column break, an operator whose left operand was step 10's dropped subject. Also fails when a form reads as a typo of a commoner token with a different meaning: the reader normalizes it and the directive silently changes. Ambiguous -> revert that line to words.
 

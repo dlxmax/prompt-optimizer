@@ -185,8 +185,8 @@ aloud by a text-to-speech engine, so never use ellipses".
 
 Spend it where unlisted cases are the risk: a register or word-swap list (never
 complete), a grounding clause, a formatting ban whose consumer is a parser.
-Rationale costs bytes against the G7 cap: one or two clauses, not every
-directive. Budget will not carry it → say so in Key Changes.
+Rationale costs tokens on every call: one or two clauses, not every
+directive.
 
 ## 11. Claude structural conventions
 
@@ -242,7 +242,7 @@ name the one signal that would flip it. Never emit both shapes.
 5. No caps-lock on conditional behavior, no escape hatches, emphasis intact on unconditional grounding clauses (7).
 6. No instruction against reasoning (8).
 7. Every abstainable required field has a fixed-literal abstention path, validated per tier called (9).
-8. Clauses that must generalize carry their reason, within the byte cap (10).
+8. Clauses that must generalize carry their reason (10).
 9. Example count follows G6 on judge prompts, not the general 3-5 (11).
 10. Every version-specific fact sourced from rule 1 or flagged deployer-verify with the version named.
 11. `CLAUDE_UPGRADE_AUDIT.md` loaded → every stale-scaffolding item listed as remove-and-retest.

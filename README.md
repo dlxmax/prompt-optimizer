@@ -1,25 +1,21 @@
 # Prompt Optimizer
 
-I'm a teacher. I built this to check and fix the AI prompts I use for grading,
-feedback, and lesson materials. It works inside Claude Code. I'm sharing it with
-other educators who do the same.
+I'm a teacher. My scripts send prompts to AI models through their APIs to grade
+work, write feedback, and build lesson materials. This Claude Code agent checks
+and fixes those prompts. I'm sharing it with educators who do the same.
 
 ## What it does
 
-You give it a prompt you use with an AI model (or a rubric you want turned into
-one). It tells you what's wrong and how to fix it.
-
-It helps with:
+It reviews a prompt your script sends to an AI model, or builds one from a
+rubric, and returns what's wrong and how to fix it:
 
 - **Grading prompts.** Stops the AI from inventing quotes, or mixing up criteria by grading them all at once.
 - **Feedback comments.** Stops empty praise ("Great job!") and comments about things the student never wrote.
-- **Lesson materials.** Worksheets, warm-ups, exam questions, lesson plans that come out generic or repetitive.
+- **Lesson materials.** Worksheets, warm-ups, exam questions, and lesson plans that come out generic or repetitive.
 - **Any other prompt**, on request.
 
-It knows the quirks of Claude, Gemini, Gemma 4, and DeepSeek V4.
-
-It's a strict reviewer, not a cheerleader. It only reads; it never changes your
-files. You decide what to use.
+It knows the quirks of Claude, Gemini, Gemma 4, and DeepSeek V4. It only reads;
+it never changes your files.
 
 ## Install
 
@@ -36,44 +32,33 @@ To update later: `/plugin marketplace update prompt-optimizer`, then
 
 ## Use
 
-Ask Claude Code in plain words, for example:
+You don't call it yourself. Tell Claude Code which prompt, what's going wrong,
+and which model the script calls:
 
-- "Our essay-grading prompt invents quotes. Fix it."
-- "Here's my rubric. Set up the grading prompts."
-- "My feedback comments all sound the same. Check this prompt."
-- "My warm-up question generator keeps giving generic questions. Review it."
+> Show the grading prompt in `grade.py` to the prompt optimizer agent. It keeps inventing quotes. We're calling Gemini 3.5 Flash-Lite.
 
-Or call the agent yourself (`prompt-optimizer:prompt-optimizer`). Put the prompt
-first and your question last:
+Claude sends the prompt to the agent, applies the fixes, and shows you what
+changed.
 
-```
-<prompt_under_review>
-(paste your prompt here)
-</prompt_under_review>
+Every report ends with two recommendations Claude follows:
 
-Target model: Gemini 3.8 Flash
+- **Recheck**: the fixes changed the prompt's structure, so the revised version should go back for a second look.
+- **Compaction**: the prompt carries dead weight (rules stated twice, rules for things that no longer exist, patches stacked on patches) and should be trimmed.
 
-Based on the preceding prompt, find what's wrong and fix it.
-```
+When both apply, they happen in one call.
 
-The `Target model` line is optional, but it gets you advice for that model.
+Choices that change students' grades, like which way to break a tie, come back
+to you. It won't decide those.
 
-## What you get back
+## Cost
 
-- What kind of job it thinks this is.
-- A checklist: each item passes or fails, with the reason.
-- Fixes for what failed, or a full set of prompts if you asked it to build from a rubric.
-- Choices that change students' grades (like which way to break a tie) are left for you to make. It won't decide those for you.
-
-## Keeping it cheap
-
-- **Paste the prompt text** rather than pointing it at a file.
-- **Follow-up questions within 5 minutes** are cheap. After that, or with a revised prompt, start a fresh request.
+Each review costs tokens. The agent keeps its own reading to a minimum. Claude
+skips rechecks when the fixes were only wording.
 
 ## More
 
-How it works under the hood, which file covers what, and the details for each
-AI model: [docs/DETAILS.md](docs/DETAILS.md).
+How it works, which file covers what, and the details for each AI model:
+[docs/DETAILS.md](docs/DETAILS.md).
 
 ## License
 

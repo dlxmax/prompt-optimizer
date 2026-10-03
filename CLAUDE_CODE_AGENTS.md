@@ -55,9 +55,8 @@ formatting conventions. Anything the prompt needs, the body states.
 
 No length ceiling on the file. `--agents` JSON and programmatic paths hit the
 8191-char Windows command-line limit; over that, file-based only. Mechanism
-limit, not a byte budget: a loaded domain checklist's cap
-(`GRADING_PIPELINE.md` G7) still governs the body it owns, because the body is
-that prompt. Never read "no ceiling" as licence to exceed it.
+limit, not a size budget: the body is the prompt, so trunk `<verdicts>` bloat
+signs still govern it.
 
 ## 3. No schema. Coercion moves to the output-format spec.
 
