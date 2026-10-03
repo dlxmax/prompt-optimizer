@@ -40,7 +40,9 @@ disabled); structured-output wiring; prefill support; whether `temperature` /
 `top_p` / `top_k` are accepted; beta headers; prompt-caching breakpoints;
 migration steps. All have changed inside one Claude generation more than once.
 
-Surface a deployer-verify item: `/claude-api` before call-site code changes,
+Invoke `claude-api` with the Skill tool and read only the section the fact
+needs. Skill unavailable or the fact absent -> deployer-verify item instead.
+Always add one: `/claude-api` before call-site code changes,
 `/claude-api migrate` when the target model changes. Version-specific behavior
 comes from that model's own page in Anthropic's prompt-engineering docs, never
 this agent's knowledge.

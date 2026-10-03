@@ -64,7 +64,7 @@ Unstated defaults to an API request and says so.
 
 Family files carry **prompt content only**. Model IDs, parameters, defaults,
 and migration steps defer to the vendor's own source: Anthropic's `claude-api` skill
-(bundled with Claude Code) and the Gemini docs MCP (`gemini-api-docs-mcp`,
+(bundled with Claude Code, which the agent invokes itself) and the Gemini docs MCP (`gemini-api-docs-mcp`,
 which the agent queries itself with `gemini_search_docs`). So a new model release
 needs no update here.
 The exception is the Claude Code agent surface, which `claude-api` does not
