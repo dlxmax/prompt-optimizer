@@ -150,3 +150,9 @@ To keep a call cheap:
 - Claude Code loads your `CLAUDE.md` files and rules into every subagent unless its frontmatter sets `omitClaudeMd: true` (Claude Code v2.1.271+). This agent sets it, so it reads only itself and what you send; older versions load them anyway.
 - **Watch the `Input:` line.** It names what the call lacked or sent without need.
 
+Under context pressure, split one review into two calls by phase (diagnose +
+score, then revise + emit), naming the phase in each call. Never split by giving
+each parallel agent one reference file: the files are rules governing one
+output, and an agent holding one cannot see the rule it contradicts. Tried in
+v2.1.0, reverted in v3.1.0.
+
