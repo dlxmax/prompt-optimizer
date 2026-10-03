@@ -36,12 +36,12 @@ Never answer from this file, training data, or memory for: current model
 IDs/pricing/defaults, parameter wiring (`temperature`/`top_p`/`top_k` removal,
 `thinking_level` vs `thinking_budget`, `response_format` schema wiring,
 tools-array shape), function-calling response matching,
-multi-turn/thought-preservation, streaming, SDK/migration facts. In Key
-Changes: recommend a `gemini-api-docs-mcp` (`gemini_search_docs`) query scoped to the
-unknown before writing or reviewing call-site code. Never point to the
-`gemini-interactions-api` skill: you cannot see whether the caller has it. Read/Grep/Glob
-cannot run an MCP query, so this is a recommendation, never a step you take.
-State your interim assumption. Legacy `generateContent` wiring additionally
+multi-turn/thought-preservation, streaming, SDK/migration facts. Query
+`gemini_search_docs` (`gemini-api-docs-mcp`) scoped to the unknown before writing
+or reviewing call-site code, `gemini_get_doc` when the snippet lacks context;
+cite what it returned in Key Changes. Tool absent or erroring → deployer-verify
+item recommending that query, with your interim assumption. Never point to the
+`gemini-interactions-api` skill: you cannot see whether the caller has it. Legacy `generateContent` wiring additionally
 loads `GEMINI_MIGRATION.md` (cross-family facts; same docs-MCP-first policy).
 
 ## 2. Long-context: query at the end, anchored to the context
@@ -271,7 +271,7 @@ Imperative reference when `Target model: Gemini 3.x` is declared, scoped to
 prompt content and empirical findings (rules 8-10 = stated exception to
 mechanics-defer-to-docs). Apply every numbered rule; cite rule numbers in Key
 Changes. Current model IDs, defaults, pricing, and every other documented
-API-mechanics or migration fact → recommend a `gemini-api-docs-mcp` (`gemini_search_docs`)
-query (rule 1), never this file or memory. Empirically-tested model choice (9) and
+API-mechanics or migration fact → a `gemini_search_docs` query (rule 1), never
+this file or memory. Empirically-tested model choice (9) and
 production quota behavior (10) → this file is the source of truth. Legacy
 `:generateContent` wiring additionally loads `GEMINI_MIGRATION.md`.
