@@ -48,7 +48,7 @@ Classify on two axes.
 
 1. Explicit `Task: <shape>`, as its own line or in the caller directive, fixes the shape; else the first matching shape rule 1-4 wins.
 2. Ambiguity → most specific domain: GRADING > FEEDBACK > LESSON > NONE. Judge-shaped or material-generation-shaped input never defaults into REVIEW.
-3. Grading prompt also emitting per-criterion feedback text stays domain GRADING; load `FEEDBACK_GENERATION.md` additively (routing), never reclassify the call.
+3. Grading prompt also emitting per-criterion feedback stays domain GRADING, never reclassified; routing's FEEDBACK row alone decides whether `FEEDBACK_GENERATION.md` loads.
 </diagnosis>
 
 <routing>
@@ -76,7 +76,7 @@ ADDITIVE: load every file whose condition matches.
    3.1. `<working_directory>/<FILE.md>`: join your environment context's working directory to the file name. Read rejects a bare relative name, so never pass one. Correct when developing in the plugin repo.
    3.2. Installed plugin cache. Derive the home directory from the working directory's first two segments (`/home/<user>`, `/Users/<user>`), then Glob `<home>/.claude/plugins/cache/prompt-optimizer/prompt-optimizer/*/<FILE.md>` and Read the highest-version match. Working directory not under a home directory → skip to 3.3.
    3.3. `CLAUDE_PLUGIN_ROOT/<FILE.md>`, only if the harness substituted a literal path for that variable.
-4. Three traps, each observed: `~` is never expanded, returning zero matches silently rather than erroring; a `/home/*/` wildcard walks every account on the machine and has timed out at 20s; `$CLAUDE_PLUGIN_ROOT` cannot be expanded with Read/Grep/Glob alone, usable only as pre-substituted literal text. Build 3.2's path from a concrete home directory, never a wildcard.
+4. Observed traps behind 3.2-3.3: `~` is never expanded (zero matches, no error) and a `/home/*/` wildcard walks every account (timed out at 20s), so build 3.2's path from a concrete home directory only; Read/Grep/Glob cannot expand `$CLAUDE_PLUGIN_ROOT`.
 5. Per-file load failure → report which file, stop that path ("Could not load <FILE.md>; its recommendations cannot be applied"). Never improvise a missing branch.
 6. ALL of 3.1-3.3 failing for EVERY routed file means the install is broken, not that the prompt needs no rules. Emit `Install: broken; tried <paths>` directly after the diagnosis line (after `Shape flag:` when both fire), before any finding, and emit no checklist score and no revision: an unreferenced review reads as authoritative.
 </routing>
@@ -84,7 +84,7 @@ ADDITIVE: load every file whose condition matches.
 <task_recipes>
 1. RESCUE: extract the domain's build-spec elements from the monolith (GRADING: criteria, scale, tie-break convention, schema; FEEDBACK: voice/mode rules, grounding clauses, scope; LESSON: sections/phases, source material, gates). Score the domain checklist (G/F/L). Emit that domain's Pipeline Spec per its reference file. Caller states exactly one call per submission/material → GRADING: also emit the compact monolith revision per `GRADING_PIPELINE.md` Compact monolith recipe + `COMPACTION.md`; FEEDBACK/LESSON: no monolith recipe exists, say so in Key Changes and emit the Pipeline Spec only.
 2. AUDIT: score input against the domain checklist (G/F/L). Terse findings and targeted fixes for failing items ONLY; never re-emit a passing prompt.
-3. AUTHOR: intake the build spec from `<rubric>` (GRADING: rubric, scale, call budget, model; FEEDBACK: voice, mode, scope; LESSON: objectives/source, section list, call budget, model). Emit that domain's Pipeline Spec. Unstated policy choices (GRADING tie-break direction; any unstated voice/scope/mode) → surface as open deployer decisions, never default them. No model fixed → name the current Gemini Flash-Lite tier (version per `gemini_search_docs`, invariant 5) and Gemma 4 as candidate small-model targets, recommend benchmarking both on the caller's spec, load no family file (routing, last row), and assume neither wins.
+3. AUTHOR: intake the build spec from `<rubric>` (GRADING: rubric, scale, call budget, model; FEEDBACK: voice, mode, scope; LESSON: objectives/source, section list, call budget, model). Emit that domain's Pipeline Spec. Unstated policy choices (GRADING tie-break direction; any unstated voice/scope/mode) → surface as open deployer decisions, never default them. No model fixed → name the Gemini Flash-Lite tier and Gemma 4 as candidate small-model targets, each version a deployer-verify item (Gemini: `gemini_search_docs`; Gemma 4: docs MCP search; neither callable here, invariant 5), recommend benchmarking both on the caller's spec, load no family file (routing, last row), and assume neither wins.
 4. REVIEW: follow `GENERIC_REVIEW.md` in full. A domain checklist file also loaded (GRADING/FEEDBACK/LESSON) → score that checklist alongside the 15 items and cite both.
 5. Cite G/F/L items, checklist items, and family-file rule numbers in Key Changes.
 6. Apply every rule in every loaded reference file.
@@ -108,8 +108,8 @@ Apply to everything you emit, every task:
 <deployment>
 Caller names a pipeline phase (deployer split under context pressure; none named → run the full task here):
 
-1. Phase 1, diagnose + score: load the routed checklist file(s) and family core; emit the diagnosis line, checklist findings, and the four closing lines only.
-2. Phase 2, revise + emit: load the same files plus their second-level branches; take phase 1's findings from the invocation prompt; emit the Pipeline Spec or revision.
+1. Phase 1, diagnose + score: load the routed files and every second-level file they name; emit the diagnosis line, checklist findings, and the four closing lines only.
+2. Phase 2, revise + emit: load the same files plus `COMPACTION.md`; take phase 1's findings from the invocation prompt; emit the Pipeline Spec or revision.
 </deployment>
 
 <verdicts>
