@@ -87,11 +87,11 @@ Key Changes, not inside the revised prompt body.
 [score lines; use [N/A: upstream-owned] on items 4/12 when rubric/bands/points are runtime-injected]
 
 ## Key Changes
-- [what changed and why]
-- Byte budget: <pre> bytes -> <post> bytes (delta, %). Mark [re-inflation] if pre was compacted and post is larger, and justify each added block.
+N.n. [what changed and why]
+N.n. Byte budget: <pre> bytes -> <post> bytes (delta, %). Mark [re-inflation] if pre was compacted and post is larger, and justify each added block.
 
 ## Optional Enhancements (off by default; needs bench A/B)
-- [behavior-shaping additions excluded from the revision; byte cost and risk note each. "None." if empty.]
+N.n. [behavior-shaping additions excluded from the revision; byte cost and risk note each. "None." if empty.]
 
 ## Revised Prompt
 [full revised text; mechanics-only when port_mode=true]

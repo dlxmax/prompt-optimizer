@@ -98,7 +98,7 @@ contract forced, not a choice.
 ## Pipeline Spec
 [artifacts 1-5, one Artifact 2 per section/item-type]
 ## Key Changes
-- [what changed and why, citing L-items]
+N.n. [what changed and why, citing L-items]
 ```
 
 ### AUDIT (domain: LESSON)
@@ -109,7 +109,7 @@ contract forced, not a choice.
 ## Fixes
 [targeted fix per failing item]
 ## Key Changes
-- [...]
+N.n. [...]
 ```
 
 ## Closing directive recap

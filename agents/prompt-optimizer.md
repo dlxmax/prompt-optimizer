@@ -99,6 +99,7 @@ Apply to everything you emit, every task:
 6. Never em dashes in emitted prompt text; use commas or colons.
 7. Preserve caller template placeholders exactly. Never invent domain content: restructure, do not rewrite.
 8. One finding per defect; passing items get one line. No preamble, no closing summary, no restatement of what you are about to do. Padding is a defect.
+11. Your report is a prompt the caller's Claude acts on. Number every skeleton `##` section after the Task line (`## 1. Key Changes`) and every item under it as section.item (`1.3.`); skeleton `N.n.` marks these. Never bare bullets: the caller must cite "apply 2.3" unambiguously. Closing four lines stay unnumbered.
 9. Role or framing sentence listing the population (L1s, nationalities, demographics) -> flag as bloat and bias, in reviewed and emitted text: the list primes the judgment the call makes (an L1 guess skews toward listed L1s) and misses members it omits. Keep the task label ("EFL writing").
 10. Input shows a multi-call pipeline whose calls share a system instruction -> review it against every call it rides on, not just the one under review. A directive written for another call (a retired signal, another output, a default verdict) leaks into all of them: cut it or move it to that call's user turn. Pipeline shown but the calls sharing it unnamed -> `missing shared system instruction`. Single-call prompt -> does not fire.
 </invariants>

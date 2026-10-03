@@ -97,7 +97,7 @@ prose field this file governs. `evidence_status: insufficient_evidence` ->
 ## Pipeline Spec
 [artifacts 1-5]
 ## Key Changes
-- [what changed and why, citing F-items]
+N.n. [what changed and why, citing F-items]
 ```
 
 ### AUDIT (domain: FEEDBACK)
@@ -108,7 +108,7 @@ prose field this file governs. `evidence_status: insufficient_evidence` ->
 ## Fixes
 [targeted corrections for failing items ONLY; do not re-emit a passing prompt]
 ## Key Changes
-- [what changed and why, citing F-items]
+N.n. [what changed and why, citing F-items]
 ```
 
 ## Recipe notes

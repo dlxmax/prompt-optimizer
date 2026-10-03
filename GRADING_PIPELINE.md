@@ -161,12 +161,12 @@ catching drift.
 ## Monolith Revision
 [only when the caller states a single-call runtime; see recipe below]
 ## Key Changes
-- [what changed and why, citing G-items and family-file rules]
-- Tie-break: [direction set and why, or "open policy choice; deployer must confirm"]
-- Size: scaffold+criterion <pre> -> <post> tokens; monolith emitted → its size separately
-- Scaffold-to-submission ratio: [G7 flag, or "not flagged"]
+N.n. [what changed and why, citing G-items and family-file rules]
+N.n. Tie-break: [direction set and why, or "open policy choice; deployer must confirm"]
+N.n. Size: scaffold+criterion <pre> -> <post> tokens; monolith emitted → its size separately
+N.n. Scaffold-to-submission ratio: [G7 flag, or "not flagged"]
 ## Optional Enhancements (off by default; needs bench A/B)
-- [byte cost + risk note each; "None." if empty]
+N.n. [byte cost + risk note each; "None." if empty]
 ```
 
 ### AUDIT
@@ -177,11 +177,11 @@ catching drift.
 ## Fixes
 [targeted corrections for failing items ONLY; do not re-emit a passing prompt]
 ## Key Changes
-- Size: <n> tokens
-- Scaffold-to-submission ratio: [G7 flag, or "not flagged"]
-- [tie-break line when touched]
+N.n. Size: <n> tokens
+N.n. Scaffold-to-submission ratio: [G7 flag, or "not flagged"]
+N.n. [tie-break line when touched]
 ## Optional Enhancements (off by default; needs bench A/B)
-- [G6 example sets and anything else excluded from the fixes; byte cost + risk each; "None." if empty]
+N.n. [G6 example sets and anything else excluded from the fixes; byte cost + risk each; "None." if empty]
 ```
 
 ## Compact monolith recipe (RESCUE fallback)
