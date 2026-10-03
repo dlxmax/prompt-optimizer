@@ -26,6 +26,12 @@ covers the prompt text, the output contract, code-side validators, and a
 calibration plan. Every emitted prompt draft runs the compaction pipeline, in
 every domain.
 
+Two checks apply in every domain. A system instruction shared across a
+pipeline's calls is reviewed against each call it rides on, so a directive left
+over from another call gets cut. A role sentence listing the population (L1s,
+nationalities, demographics) is flagged as bloat and bias: the list primes the
+judgment the call makes.
+
 ## How it decides what to do
 
 Three independent axes, combined per call:
@@ -58,10 +64,12 @@ Unstated defaults to an API request and says so.
 - **`gemini-3.8-flash` is a behavior break, not a drop-in successor.** It checks its own work and can use more tokens by design; `gemini-3.7-flash` stays fully supported. Bounded tasks (grading, extraction, classification) carried to 3.8 get a token and latency re-baseline and a stay-on-3.7 comparison, never an assumed upgrade.
 - **Mixed-generation fleets** (fallback chains, routers, staged rollouts): port decisions are made per model string; shared text carries nothing model-specific.
 - **`thinking_level` sets shrink across generations** and fail hard with a 400, never a silent clamp. A level shared across a fallback chain must be valid on every leg or set per leg.
+- **Nullable schema fields** use a type array, `{"type": ["string", "null"]}`. `nullable: true` is outside Gemini's supported JSON Schema subset and is flagged.
 
 Family files carry **prompt content only**. Model IDs, parameters, defaults,
 and migration steps defer to the vendor's own source: Anthropic's `claude-api` skill
-(bundled with Claude Code) and the Gemini docs MCP (`gemini-api-docs-mcp`). So a new model release needs no update here.
+(bundled with Claude Code) and the Gemini docs MCP (`gemini-api-docs-mcp`,
+queried with `gemini_search_docs`). So a new model release needs no update here.
 The exception is the Claude Code agent surface, which `claude-api` does not
 cover; those facts are version-floored in `CLAUDE_CODE_AGENTS.md`.
 
