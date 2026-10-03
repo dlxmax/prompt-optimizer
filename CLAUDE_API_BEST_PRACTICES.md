@@ -5,7 +5,7 @@ Reference for prompt-optimizer. Load when `Target model:` declares any Claude
 model (Fable, Opus, Sonnet, Haiku, any version, or bare `Claude`). Apply every numbered rule; cite rule numbers in Key
 Changes.
 
-Canonical target: **Claude Opus 5**. Earlier Claude generation → every rule
+Canonical targets: **Claude Opus 5.5** and **Claude Sonnet 5.5**. Earlier Claude generation → every rule
 still applies, and that alone does not load `CLAUDE_UPGRADE_AUDIT.md`, which
 fires on its own trigger below: a prompt written for a generation earlier than
 the declared target.
@@ -55,7 +55,9 @@ Code subagent docs.
 
 Adjacent Claude releases invert defaults, not merely shift them. Axes already
 inverted: default verbosity, subagent eagerness, whether self-verification
-helps, whether thinking defaults on, which `effort` level to start from. A
+helps, whether thinking defaults on or can be disabled, whether forced tool
+choice is accepted, tool eagerness in chat, which `effort` level to start
+from. A
 "model 4.N does X" rule is wrong within one release cycle.
 
 No per-version table here; do not add one. Rules 3-12 survive a generation
@@ -90,6 +92,10 @@ Replacement = a chained call, not a deleted check: draft, review against
 criteria, refine, as separate calls. Self-correction inside one call is the
 defect; across calls it is the architecture (`GRADING_PIPELINE.md` G1,
 `GENERIC_REVIEW.md` item 3).
+
+Not re-check scaffolding: an agent instruction to run a real check (tests,
+build, type-checker, the changed command) before reporting a code change done.
+That exercises the change through tools; low effort can skip it. Keep it.
 
 **Code-side validation stays.** Quote fuzzy-match, schema retry, bounds check,
 escalation re-call (`GRADING_PIPELINE.md` artifact 4 and G8) run outside the
@@ -137,6 +143,11 @@ Distinct from escape-hatch elimination (invariant 1, item 14). Both hold:
 - "Try to cite a quote when possible": softening. Defect.
 - "CRITICAL: YOU MUST ALWAYS CITE A QUOTE!!!": over-forcing. Defect.
 - "Cite a verbatim quote for every claim about the submission.": correct.
+
+Restraint over-fires the same way: "only use tools when strictly necessary",
+"minimize tool calls" are followed literally, so the model answers from training
+where a connected tool or search should serve. Defect where the prompt needs
+current or internal sources; state which questions go to the tool instead.
 
 Prohibition underperforming → the fix is rule 10, not more force.
 
@@ -236,10 +247,10 @@ name the one signal that would flip it. Never emit both shapes.
 ## Verify after changes
 
 1. No hedging instruction survives in a judge prompt (3).
-2. No prompt-side re-check survives, no code-side validator removed with it (4).
+2. No prompt-side re-check survives; no code-side validator or agent real-check instruction removed with it (4).
 3. Broad instructions name their scope; count-versus-universal re-run (5).
 4. Length instructed separately for response and written deliverable (6).
-5. No caps-lock on conditional behavior, no escape hatches, emphasis intact on unconditional grounding clauses (7).
+5. No caps-lock on conditional behavior, no blanket tool restraint where sources matter, no escape hatches, emphasis intact on unconditional grounding clauses (7).
 6. No instruction against reasoning (8).
 7. Every abstainable required field has a fixed-literal abstention path, validated per tier called (9).
 8. Clauses that must generalize carry their reason (10).
@@ -268,8 +279,8 @@ earlier Claude generation than the declared target: caller says so, call-site
 names an older model, or the prompt carries self-verification steps, forced
 progress narration, caps-lock anti-under-trigger urgency, reasoning-depth
 nagging, assistant-turn prefill, sampling parameters, a manual thinking budget,
-an N-vote scaffold added for an unstable model, or a prompt-side vision
-workaround.
+an N-vote scaffold added for an unstable model, a prompt-side vision
+workaround, or a forced tool choice.
 
 ## Closing directive recap
 

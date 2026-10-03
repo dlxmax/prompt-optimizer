@@ -38,9 +38,11 @@ background: true
 isolation: worktree
 color: red|blue|green|yellow|purple|orange|pink|cyan
 initialPrompt: <main-thread only, ignored as subagent>
+omitClaudeMd: true               # skip user/project/local CLAUDE.md
 ```
 
-`effort` is per-agent, overrides the session: legal non-API knob here. Never
+`effort` is per-agent, overrides the session: legal non-API knob here. Omitted
+→ session level, which defaults to `medium` on Opus 5.5 / Sonnet 5.5 (2026-10). Never
 strip as API-style. Core rule 6 still holds: `effort` cuts thinking, not output
 length.
 
@@ -113,8 +115,8 @@ literal text nothing fills. Overrides invariant 3 on this surface:
 - A placeholder in the body is a defect unless the deployer substitutes it at file-write time. Flag it.
 - Reference files resolve at runtime from the working directory. A path the body names must exist relative to cwd; the body cannot inline it.
 
-Project `CLAUDE.md` loads. Preloaded skill content does not, unless listed in
-`skills`.
+User, project, and local `CLAUDE.md` load unless `omitClaudeMd: true` (floor
+v2.1.271). Skill content does not, unless listed in `skills`.
 
 ## 7. Failure is text, not status
 
@@ -131,12 +133,13 @@ available.
 ## 8. The tool pool is filtered twice. Never assume a tool exists.
 
 Filter 1, removed from every subagent even when listed in `tools`:
-`Agent` (unless nested spawning is on), `AskUserQuestion`, `EndConversation`,
+`Agent` (at the spawn-depth limit), `AskUserQuestion`, `EndConversation`,
 `EnterPlanMode`, `ExitPlanMode` (unless `permissionMode: plan`),
-`ScheduleWakeup`, `TaskOutput`, `WaitForMcpServers`, `Workflow`.
+`ScheduleWakeup`, `WaitForMcpServers`, `Workflow`.
 
-Filter 2, background subagents (the default as of v2.1.198) keep every MCP tool
-but only these built-ins: `Read`, `Grep`, `Glob`, `Bash`, `PowerShell`, `Edit`,
+Filter 2, background subagents (the default unless fork mode is on, or the
+parent needs the result first) keep every MCP tool but only these built-ins:
+`Read`, `Grep`, `Glob`, `LSP`, `Bash`, `PowerShell`, `Edit`,
 `Write`, `NotebookEdit`, `WebFetch`, `WebSearch`, `TodoWrite`, `Skill`,
 `ToolSearch`, `EnterWorktree`, `ExitWorktree`, `Monitor`, `TaskStop`,
 `SendMessage`, `Artifact`. Removal is silent. One definition resolves to
@@ -156,10 +159,16 @@ v2.1.198; below that, off regardless). Core rule 8 still applies to prompt
 text: delete any instruction against reasoning. A deployer-verify item about
 thinking configuration is wrong here: nothing to configure.
 
-**Model resolution, first match wins:** `CLAUDE_CODE_SUBAGENT_MODEL` env var >
-per-invocation `model` parameter > frontmatter `model` > main conversation. An
-`availableModels` org allowlist silently skips an excluded value and falls back
-to inherited.
+**Model resolution, first match wins:** per-invocation `model` parameter >
+frontmatter `model` (`inherit` = main conversation) > `CLAUDE_CODE_SUBAGENT_MODEL`
+env var > main conversation.
+
+Aliases do not name a version. `opus` / `sonnet` resolve per provider and drift
+on release (Anthropic API, 2026-10: Opus 5.5, Sonnet 5.5; other providers lag).
+A family alias matching the main conversation's family runs the main
+conversation's exact model. An `availableModels` allowlist substitutes for a
+blocked value: newest permitted version of a blocked family alias, else the
+inherited model.
 
 Never assert the declared model is what runs. A per-tier recommendation (core
 rule 9's "validate the abstention path on each tier called") names the tier as

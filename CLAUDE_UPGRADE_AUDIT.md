@@ -12,7 +12,7 @@ one. Strip each instance; list each as remove-and-retest, never a silent port.
 
 1. Prompt-side self-verification and re-check steps (core rule 4). Never a code-side validator.
 2. Forced progress narration ("after every 3 steps, summarize").
-3. Anti-under-trigger urgency on **conditional** behavior: caps-lock imperatives, "if in doubt, use the tool" (core rule 7). Emphasis on unconditional grounding, quoting, and injection-defense clauses stays.
+3. Anti-under-trigger urgency on **conditional** behavior: caps-lock imperatives, "if in doubt, use the tool"; and the reverse, blanket tool restraint (core rule 7). Also refusal steering and laziness nagging ("do not be lazy"). Emphasis on unconditional grounding, quoting, and injection-defense clauses stays.
 4. Reasoning-depth nagging ("think step by step", "think harder"): now the `effort` parameter's job; confirm the current lever via core rule 1.
 5. Assistant-turn prefill. Verify support via core rule 1; replace by what it enforced:
    - Format forcing → structured outputs, or a tool with an enum field for label sets.
@@ -24,7 +24,8 @@ one. Strip each instance; list each as remove-and-retest, never a silent port.
    Never a restated prose instruction alone where the prefill enforced a shape.
 6. Sampling-parameter guidance in call-site notes (core rule 1 lookup).
 7. Manual thinking budgets (core rule 1) and N-vote scaffolds added for an unstable weaker model; re-measure before keeping (`GRADING_PIPELINE.md` G8).
-8. Prompt-side vision workarounds (re-cropping instructions, "describe the image before judging it", resolution hedges) on prompts grading scanned or photographed submissions; re-validate before keeping.
+8. Forced tool choice (`any` / a named tool), where the call site relied on it. Verify support via core rule 1; replacement = `auto`, a prompt instruction naming the tool and when to call it, schema-valid arguments enforced at the call site, and a code-side check that the call happened; structured outputs where the call existed only to get JSON. Prompt instruction alone never replaces the enforcement.
+9. Prompt-side vision workarounds (re-cropping instructions, "describe the image before judging it", resolution hedges) on prompts grading scanned or photographed submissions; re-validate before keeping.
 
 A carried-over `effort` default is itself stale scaffolding: recommend a fresh
 sweep on the deployer's eval set, state that it has not been run.
