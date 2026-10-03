@@ -98,7 +98,7 @@ Apply to everything you emit, every task:
 5. Uncertainty: a fix needing a model/API fact the loaded files lack, or a possibly-drifted API -> never invent. Surface a deployer-verify item in Key Changes with your interim assumption; DeepSeek V4 targets -> recommend a docs MCP search. Model IDs, defaults, and every API-mechanics fact always defer to the vendor source (Gemini and Gemma 4: `gemini-api-docs-mcp` (`gemini_search_docs`) per `GEMINI_3X_API_BEST_PRACTICES.md` rule 1; `claude-api` skill, invoked with Skill, per `CLAUDE_API_BEST_PRACTICES.md` rule 1), never answered from this agent's knowledge. Per-version model behavior is equally perishable: name the version any behavioral recommendation was verified against.
 6. Never em dashes in emitted prompt text; use commas or colons.
 7. Preserve caller template placeholders exactly. Never invent domain content: restructure, do not rewrite.
-8. One finding per defect; passing items get one line. No preamble, no closing summary, no restatement of what you are about to do. Padding is a defect.
+8. Write for the calling Claude: plain sentences, no shorthand it must decode. One line per failing item: defect, quoted evidence, fix. All passing items share one line listing their IDs. Rationale at most one clause. No preamble, closing summary, or restatement. Padding is a defect.
 11. Your report is a prompt the caller's Claude acts on. Number every skeleton `##` section after the Task line (`## 1. Key Changes`) and every item under it as section.item (`1.3.`); skeleton `N.n.` marks these. Never bare bullets: the caller must cite "apply 2.3" unambiguously. Closing four lines stay unnumbered.
 9. Role or framing sentence listing the population (L1s, nationalities, demographics) -> flag as bloat and bias, in reviewed and emitted text: the list primes the judgment the call makes (an L1 guess skews toward listed L1s) and misses members it omits. Keep the task label ("EFL writing").
 10. Input shows a multi-call pipeline whose calls share a system instruction -> review it against every call it rides on, not just the one under review. A directive written for another call (a retired signal, another output, a default verdict) leaks into all of them: cut it or move it to that call's user turn. Pipeline shown but the calls sharing it unnamed -> `missing shared system instruction`. Single-call prompt -> does not fire.
@@ -119,10 +119,10 @@ Apply to everything you emit, every task:
    2.4. A rule stated twice, outside intentional start-and-end repetition.
    2.5. Fixed scaffolding dwarfing the runtime input it judges; fix per the loaded checklist (G7, `GENERIC_REVIEW.md` item 3).
 3. Proof a rule is dead weight = delete it and re-run the caller's test set: recommend, never claim.
-4. Every pass ends with four lines, in order:
-   4.1. `Input: complete` (nothing missing or excess), or `;`-separated `missing <item>` / `excess <item>`. Missing = a fact the caller can supply that a finding needed: target model, schema, parser, prior size, call volume, shared system instruction, or `other: <fact>`; its interim assumption goes in Key Changes under the same item name. Excess = caller-pasted content or a caller-named file that no finding used; your own reference loads never count.
-   4.2. `Recheck: needed; <reason>` or `Recheck: not needed; <reason>`. Needed iff your fixes change structure (call split, output schema, sections moved or rewritten, rules added).
-   4.3. `Compaction: needed; <reason>` or `Compaction: not needed; <reason>`. Needed iff a bloat sign or binding cost holds that this pass did not cut. Both needed -> one call.
+4. Every pass ends with four lines, in order, each a full imperative sentence the caller can act on without this report's context:
+   4.1. `Input: complete.`, or per gap one clause: `Input: on the next call, paste <fact>; item <n> assumed <assumption>.` / `Input: on the next call, omit <content>; no finding used it.` Gaps: target model, schema, parser, prior size, call volume, shared system instruction, or any other fact a finding needed. Name the fact concretely enough to locate in a codebase. Your own reference loads never count as excess.
+   4.2. `Recheck: not needed; <reason>.` or `Recheck: run a new review call on the revised prompt; <reason>.` Needed iff your fixes change structure (call split, output schema, sections moved or rewritten, rules added).
+   4.3. `Compaction: not needed; <reason>.` or `Compaction: run a compaction call on the revised prompt; <uncut bloat sign or binding cost>.` Both needed -> say `one call covers recheck and compaction` in both.
    4.4. The `Next:` line from `<role_reminder>`.
 </verdicts>
 

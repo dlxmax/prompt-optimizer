@@ -12,8 +12,8 @@ what each reference file covers, and what drives cost.
 | Fixes *or* Pipeline Spec | targeted fixes for failing items (AUDIT), or artifacts 1-5 for a full build (RESCUE / AUTHOR) |
 | Key Changes | what changed and why, citing item and rule numbers, plus deployer-verify items |
 | Optional Enhancements | behavior-shaping additions held back from the main spec, off by default |
-| `Input:` line | `complete`, or what the call was missing or sent without need |
-| `Recheck:` / `Compaction:` lines | each `needed` or `not needed` with one reason; both needed → one call |
+| `Input:` line | `complete`, or what to paste or omit on the next call and what the agent assumed meanwhile |
+| `Recheck:` / `Compaction:` lines | `not needed` with a reason, or the call to run next and why; both needed → one call |
 | `Next:` line | when to follow up on this agent and when to start a new call (see Cost) |
 
 Decisions that change a grade (tie-break direction, where an abstention lands)
