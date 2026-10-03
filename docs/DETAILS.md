@@ -137,7 +137,10 @@ refuses to score rather than reviewing you against rules it never read.
 ## Cost
 
 A subagent re-reads its whole context on every turn, so each extra read is paid
-again on every later turn. To keep a call cheap:
+again on every later turn. The agent runs on Sonnet (`model: sonnet`, `effort: high`):
+about half Opus's per-token price. Edit the frontmatter to change either.
+
+To keep a call cheap:
 
 - **Paste the prompt text.** A file path works, but the agent reads only the file or span named, never traces your codebase (parsers, call sites, other prompts). Anything it needs and lacks becomes a deployer-verify item.
 - **Paste the call-site facts** the review depends on as short excerpts, rather than pointing at the code that builds the request.
