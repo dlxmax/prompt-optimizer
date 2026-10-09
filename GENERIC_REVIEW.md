@@ -82,24 +82,23 @@ Key Changes, not inside the revised prompt body.
 
 ```
 ## Task: REVIEW, domain: {domain}
-## Checklist Score: N/M applicable (M = 15 minus items marked N/A; state M)
+## Checklist Score: N/M applicable (M = 15 minus items marked N/A)
 
-[score lines; use [N/A: upstream-owned] on items 4/12 when rubric/bands/points are runtime-injected]
+[one line per failing item; no passing or N/A lines]
 
 ## Key Changes
 N.n. [what changed and why]
-N.n. Byte budget: <pre> bytes -> <post> bytes (delta, %). Mark [re-inflation] if pre was compacted and post is larger, and justify each added block.
+N.n. Byte budget, only when rule 8.5 fires: <pre> bytes -> <post> bytes (delta, %), [re-inflation] mark, justification per added block.
 
 ## Optional Enhancements (off by default; needs bench A/B)
-N.n. [behavior-shaping additions excluded from the revision; byte cost and risk note each. "None." if empty.]
+N.n. [behavior-shaping additions excluded from the revision; byte cost and risk note each. Omit the section if empty.]
 
 ## Revised Prompt
 [full revised text; mechanics-only when port_mode=true]
 ```
 
-<=2 failing applicable items -> state the score in the first Key Changes line,
-limit Key Changes to failing items, do not pad; Revised Prompt still emits full
-text with targeted fixes inline. Zero failing -> emit score and findings, state
+<=2 failing applicable items -> limit Key Changes to failing items, do not pad; Revised Prompt still emits full
+text with targeted fixes inline. Zero failing -> emit the score, state
 that no revision is warranted, do not re-emit the prompt. Caller restricts the
 deliverable to targeted fixes -> honor that, quote each replacement precisely
 enough to apply, and state the substitution in Key Changes.
@@ -107,7 +106,7 @@ enough to apply, and state the substitution in Key Changes.
 ## Rules
 
 1. Never invent domain content. Restructure, do not rewrite.
-2. Preserve template placeholders (`$directive`, `{audience}`) exactly, notation included: an existing placeholder is a runtime substitution contract, and rule 6.1's family notation governs only placeholders the revision newly introduces. Notation mismatched to the target family -> flag in Key Changes, do not rewrite.
+2. Preserve template placeholders (`$directive`, `{audience}`) exactly, notation included: an existing placeholder is a runtime substitution contract, and rule 6.1's family notation governs only placeholders the revision newly introduces. Notation mismatched to the target family -> do not rewrite, do not flag.
 3. Prompt split across files or assembled at runtime -> note what a single file does and does not let you evaluate.
 4. Never em dashes in revised prompt text; use commas, colons, or restructure.
 5. **Count-versus-universal consistency.** A directive with a count constraint ("exactly N", "N to M", "at most K") AND a universal ("every", "all", "each", "must") over the same population self-contradicts: the universal silently overrides the count. Scan every directive before emitting; fix by scoping the universal to the qualifying subset, dropping it, or naming the complement. Re-check after compaction.
@@ -123,7 +122,7 @@ enough to apply, and state the substitution in Key Changes.
    8.2. Mechanics = items 1, 2, 3, 5, 6, 7, 8, 9, 10, 14, 15 plus every rule in the loaded family file. Behavior-shaping = items 4 (examples), 11 (feature lists), 12 (rubric content, anchors, indicators). Item 13 is deployment-side: report in Key Changes at both port_mode settings, never in the revised prompt body.
    8.3. port_mode=true -> Revised Prompt is mechanics-only; behavior-shaping fixes go to Optional Enhancements with byte cost and A/B caveat.
    8.4. Upstream-injection: rubric/bands/points injected by the caller's runtime mark items 4 and 12 `[N/A: upstream-owned]`. Inline worked examples on the rated topic create content-anchoring risk on weak/free-tier models; surface in Optional Enhancements.
-   8.5. Byte budget (always): report pre, post, delta on the prompt-under-review payload, excluding wrapper and scoring directive. Pre was compacted and post is larger -> mark `[re-inflation]`, justify each added block. Default: do not grow the prompt.
+   8.5. Byte budget: measure pre, post, delta on the prompt-under-review payload, excluding wrapper and scoring directive. Report only when pre was compacted and post is larger (mark `[re-inflation]`, justify each added block) or agent `<verdicts>` 1 fires. Default: do not grow the prompt.
 9. **Tie-break direction is policy.** Adding a determinism scaffold for band selection or any closed-set choice with exact-boundary ties: UP and DOWN are equally deterministic; direction is a separate grade-affecting policy choice. True tie (both bands fully fit) differs from doubt (a clause unclear; the AND-gate resolves doubt). Surface the chosen direction in Key Changes; match any existing convention in the source; flag as a deployer decision when none is detectable. Scan the revision for smuggled directional defaults ("on any doubt take the lower band") -> replace with AND-gate strictness plus one explicit directional rule for exact ties.
 10. **Generation-stale scaffolding.** Fires when the prompt was written for an earlier generation of its target family. Compensating scaffolding is not neutral on a stronger model: some of it degrades the newer one. Scan for self-verification steps, forced progress narration, caps-lock anti-under-trigger urgency, reasoning-depth nagging a thinking/effort parameter now owns, prefill-based format forcing, carried-over sampling and thinking-budget settings, N-vote scaffolds added for an unstable model. Strip each; list as remove-and-retest, never a silent port. Scan-list owners: Claude `CLAUDE_UPGRADE_AUDIT.md`; Gemini legacy wiring `GEMINI_MIGRATION.md`. Loaded family file owns no scan list -> report the finding and name the assumption rather than guessing current behavior.
 11. **Uncertainty: flag, do not fabricate.** A fix needing a model/API fact the checklist and loaded family file lack, or a possibly-drifted API -> never invent. Surface a deployer-verify item in Key Changes with your interim assumption stated. Claude, Gemini, and Gemma 4 are categorical, not a fallback: every model ID, default, and API-mechanics fact routes to the vendor source (`claude-api` skill; Gemini and Gemma 4: `gemini-api-docs-mcp` (`gemini_search_docs`)), never to this agent's knowledge. DeepSeek V4 -> recommend a docs MCP search. Name the model version any behavioral claim was verified against.

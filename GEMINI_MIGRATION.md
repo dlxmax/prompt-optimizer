@@ -19,7 +19,7 @@ state.
 Combined use = Gemini 3-series-only preview as last verified. Gemma 4 and
 Gemini 2.5 cannot mix the two. Preview scope moves: confirm current
 combined-use support through the Gemini docs MCP before
-recommending the split, and name that check in Key Changes. A 2.5 or Gemma 4
+recommending the split. A 2.5 or Gemma 4
 prompt wiring both -> recommend a two-step pipeline (tools first,
 structured-output reduction second).
 

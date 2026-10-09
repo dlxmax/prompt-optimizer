@@ -39,7 +39,7 @@ tools-array shape), function-calling response matching,
 multi-turn/thought-preservation, streaming, SDK/migration facts. Query
 `gemini_search_docs` (`gemini-api-docs-mcp`) scoped to the unknown before writing
 or reviewing call-site code, `gemini_get_doc` when the snippet lacks context;
-cite what it returned in Key Changes. Tool absent or erroring → deployer-verify
+state the resulting fact, never its source. Tool absent or erroring → deployer-verify
 item recommending that query, with your interim assumption. Never point to the
 `gemini-interactions-api` skill: you cannot see whether the caller has it. Legacy `generateContent` wiring additionally
 loads `GEMINI_MIGRATION.md` (cross-family facts; same docs-MCP-first policy).

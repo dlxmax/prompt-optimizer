@@ -163,10 +163,10 @@ catching drift.
 ## Key Changes
 N.n. [what changed and why, citing G-items and family-file rules]
 N.n. Tie-break: [direction set and why, or "open policy choice; deployer must confirm"]
-N.n. Size: scaffold+criterion <pre> -> <post> tokens; monolith emitted → its size separately
-N.n. Scaffold-to-submission ratio: [G7 flag, or "not flagged"]
+N.n. Size, only per agent `<verdicts>` 1: scaffold+criterion <pre> -> <post> tokens; monolith emitted → its size separately
+N.n. Scaffold-to-submission ratio: [G7 flag; omit line when not flagged]
 ## Optional Enhancements (off by default; needs bench A/B)
-N.n. [byte cost + risk note each; "None." if empty]
+N.n. [byte cost + risk note each; omit section if empty]
 ```
 
 ### AUDIT
@@ -177,11 +177,11 @@ N.n. [byte cost + risk note each; "None." if empty]
 ## Fixes
 [targeted corrections for failing items ONLY; do not re-emit a passing prompt]
 ## Key Changes
-N.n. Size: <n> tokens
-N.n. Scaffold-to-submission ratio: [G7 flag, or "not flagged"]
+N.n. Size, only per agent `<verdicts>` 1: <n> tokens
+N.n. Scaffold-to-submission ratio: [G7 flag; omit line when not flagged]
 N.n. [tie-break line when touched]
 ## Optional Enhancements (off by default; needs bench A/B)
-N.n. [G6 example sets and anything else excluded from the fixes; byte cost + risk each; "None." if empty]
+N.n. [G6 example sets and anything else excluded from the fixes; byte cost + risk each; omit section if empty]
 ```
 
 ## Compact monolith recipe (RESCUE fallback)
