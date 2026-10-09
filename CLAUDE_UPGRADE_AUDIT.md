@@ -23,7 +23,7 @@ one. Strip each instance; list each as remove-and-retest, never a silent port.
 
    Never a restated prose instruction alone where the prefill enforced a shape.
 6. Sampling-parameter guidance in call-site notes (core rule 1 lookup).
-7. Manual thinking budgets (core rule 1) and N-vote scaffolds added for an unstable weaker model; re-measure before keeping (`GRADING_PIPELINE.md` G8).
+7. Manual thinking budgets (core rule 1; re-measure before keeping) and N-vote scaffolds (remove; `GRADING_PIPELINE.md` G8).
 8. Forced tool choice (`any` / a named tool), where the call site relied on it. Verify support via core rule 1; replacement = `auto`, a prompt instruction naming the tool and when to call it, schema-valid arguments enforced at the call site, and a code-side check that the call happened; structured outputs where the call existed only to get JSON. Prompt instruction alone never replaces the enforcement.
 9. Prompt-side vision workarounds (re-cropping instructions, "describe the image before judging it", resolution hedges) on prompts grading scanned or photographed submissions; re-validate before keeping.
 

@@ -107,8 +107,7 @@ validator while stripping a "double-check yourself" sentence.
 Two vendor techniques, both outranked. In-call retraction pass (supporting quote
 per claim, drop unsupported claims): redundant where a code-side quote validator
 exists; keep only where none can run, with a defined output effect. Best-of-N =
-calibration-time instability detector, not a license for N-vote scoring in
-production (G8).
+calibration-time instability detector only, never production voting (G8).
 
 ## 5. State scope explicitly in both directions
 
