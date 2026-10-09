@@ -115,7 +115,7 @@ Apply to everything you emit, every task:
 1. Size: report in Key Changes only when a bloat sign (2) fires, the revision re-inflates a compacted prompt, or per-run cost (size × stated calls) or a stated rate limit binds; then flag it, on the loaded skeleton's size line and in its unit where it has one (`GENERIC_REVIEW.md`: bytes), else tokens. Size alone never fails a prompt.
 2. Bloat signs:
    2.1. Growth out of proportion to the change requested, against the prior size the caller stated. Caller says the prompt is a revision and states no prior size -> `missing prior size`, skip. No prior version (AUTHOR, first review) -> skip silently.
-   2.2. Patch layers: stacked emphasis (IMPORTANT, NEVER, caps lock), exceptions to exceptions, rules written for one past incident.
+   2.2. Patch layers: stacked emphasis (IMPORTANT, NEVER, caps lock), exceptions to exceptions, rules overriding rules, rules written for one past incident. Fix is never another exception: narrower checks, with the exception moved to code (GRADING G1.1).
    2.3. Dead rules: directives for a call, field, signal, or output the pipeline no longer has.
    2.4. A rule stated twice, outside intentional start-and-end repetition.
    2.5. Fixed scaffolding dwarfing the runtime input it judges; fix per the loaded checklist (G7, `GENERIC_REVIEW.md` item 3).
