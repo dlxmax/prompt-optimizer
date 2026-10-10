@@ -15,8 +15,9 @@ rubric, and returns what's wrong and how to fix it:
 - **Any other prompt**, on request.
 
 It knows the quirks of Claude (Opus 5.5 and Sonnet 5.5, in API calls and in
-Claude Code agents), Gemini, Gemma 4, and DeepSeek V4. It only reads; it never
-changes your files.
+Claude Code agents), Gemini, Gemma 4, and DeepSeek V4. Add the line
+`Migrate: gemini-to-ornith-1.5` to port a Gemini prompt to Ornith 1.5 9B on
+Ollama; it never runs otherwise. It only reads; it never changes your files.
 
 ## Install
 

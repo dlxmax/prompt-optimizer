@@ -37,6 +37,7 @@ Three independent axes, combined per call:
 | **Domain** | GRADING · FEEDBACK · LESSON · generic |
 | **Shape** | RESCUE (split a monolith) · AUDIT (compliance check) · AUTHOR (build from a rubric) · REVIEW (generic checklist) |
 | **Target model** | Claude (any) · Gemini 3.x (any) · Gemma 4 · DeepSeek V4 · unstated |
+| **Migration** | `Migrate: gemini-to-ornith-1.5` (opt-in, never inferred) |
 
 Each axis loads its own reference file, additively. A GRADING/RESCUE call
 targeting Claude loads the grading rulebook plus the Claude rules; a generic
@@ -126,6 +127,7 @@ Full message shape:
 [optional] call-site facts: response schema, parser expectations, thinking level
 [optional] Target model: Gemini 3.8 Flash
 [optional] Task: review
+[optional] Migrate: gemini-to-ornith-1.5   (opt-in only: ports a Gemini prompt to Ornith 1.5 9B on Ollama)
 
 Based on the preceding prompt, <what you want>.
 ```
