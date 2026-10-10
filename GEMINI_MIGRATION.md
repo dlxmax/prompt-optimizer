@@ -48,10 +48,9 @@ style, `response_format` for JSON (exact wiring: Gemini docs MCP).
 
 A level valid on the source model can be absent on the target and fails hard,
 HTTP 400 `invalid_request` naming the allowed set, never a silent clamp to the
-nearest level. Probe-confirmed: `minimal` is rejected by `gemini-3.7-flash`
-while `gemini-3.6-flash`, `gemini-3.5-flash`, and `gemini-3.5-flash-lite`
-accept it, so the enum narrowed rather than grew; the vendor states the same
-rejection for `gemini-3.8-flash`. A fallback chain or router spanning
+nearest level. `minimal` is accepted by `gemini-3.6-flash`, `gemini-3.5-flash`,
+and `gemini-3.5-flash-lite` (probe-confirmed) and rejected by
+`gemini-3.8-flash` (vendor-stated), so the enum narrowed rather than grew. A fallback chain or router spanning
 generations hits the same failure with no move at all (`GEMINI_3X_API_BEST_PRACTICES.md`
 5.1). Any generation move carrying
 a `thinking_level` in the prompt, call-site, or examples → re-read the target's
@@ -66,14 +65,14 @@ up silently, since that changes cost and latency.
 
 Vendor-stated for `gemini-3.8-flash` only: by design it takes smaller reasoning
 steps, calls tools iteratively, verifies its own work, and can use more tokens
-on long or complex tasks. Earlier Flash strings, `gemini-3.7-flash` included,
-carry no such statement, and 3.7 stays fully supported. The model string swaps
+on long or complex tasks. Earlier Flash strings
+carry no such statement. The model string swaps
 cleanly; the behavior does not. Any move into or out of 3.8, or a chain or
 router with 3.8 on one leg:
 
-- **Bounded task** (single-call grading, extraction, classification, routing) → Key Changes carries a token and latency re-baseline against the source model, plus a lower-`thinking_level` or stay-on-3.7 comparison. Never recommend 3.8 as the default successor for it.
+- **Bounded task** (single-call grading, extraction, classification, routing) → Key Changes carries a token and latency re-baseline against the source model, plus a lower-`thinking_level` or stay-on-3.6 comparison. Never recommend 3.8 as the default successor for it.
 - **Into 3.8:** prompt-side self-check or re-verification directives written for an earlier model now duplicate native verification → candidate cuts, each tested (`GEMINI_3X_API_BEST_PRACTICES.md` 6). Code-side validators stay: native verification is not a parse guarantee.
-- **Out of 3.8, or a 3.7 fallback leg:** behavior a 3.8-tuned prompt got for free is not assumed on the other model. Re-run the failing-case set there; a per-model addition carries whatever that leg needs (`GEMINI_3X_API_BEST_PRACTICES.md` 6).
+- **Out of 3.8, or a 3.6 fallback leg:** behavior a 3.8-tuned prompt got for free is not assumed on the other model. Re-run the failing-case set there; a per-model addition carries whatever that leg needs (`GEMINI_3X_API_BEST_PRACTICES.md` 6).
 
 ## Closing directive recap
 

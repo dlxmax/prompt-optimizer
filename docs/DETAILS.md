@@ -57,7 +57,7 @@ Unstated defaults to an API request and says so.
 
 - **Scaffolding is a cost.** The vendor's 9-point agentic planning block is not ported by default: prompt engineering built for older models drives over-analysis on 3.x, and `gemini-3.8-flash` plans and verifies natively by design. A point is ported only against a named, observed failure, after a `thinking_level` step-up was tried, and only the policy-carrying points. Token burn or verification loops are fixed with a lower level or a tool-call budget, never a ported block.
 - **Managed agents** (Antigravity and custom agents): the system instruction and instruction file are additive, so any ported policy lives in exactly one of them.
-- **`gemini-3.8-flash` is a behavior break, not a drop-in successor.** It checks its own work and can use more tokens by design; `gemini-3.7-flash` stays fully supported. Bounded tasks (grading, extraction, classification) carried to 3.8 get a token and latency re-baseline and a stay-on-3.7 comparison, never an assumed upgrade.
+- **`gemini-3.8-flash` is a behavior break, not a drop-in successor.** It checks its own work and can use more tokens by design; Bounded tasks (grading, extraction, classification) carried to 3.8 get a token and latency re-baseline and a stay-on-3.6 comparison, never an assumed upgrade.
 - **Mixed-generation fleets** (fallback chains, routers, staged rollouts): port decisions are made per model string; shared text carries nothing model-specific.
 - **`thinking_level` sets shrink across generations** and fail hard with a 400, never a silent clamp. A level shared across a fallback chain must be valid on every leg or set per leg.
 - **Nullable schema fields** use a type array, `{"type": ["string", "null"]}`. `nullable: true` is outside Gemini's supported JSON Schema subset and is flagged.
@@ -89,6 +89,7 @@ Loaded additively, typically 3-5 per call, in one batch.
 | `GEMMA4_API_BEST_PRACTICES.md` | `Target model:` Gemma 4 |
 | `DEEPSEEK_V4_API_BEST_PRACTICES.md` | `Target model:` DeepSeek V4 |
 | `GEMINI_MIGRATION.md` | legacy `generateContent` wiring, or a cross-generation Gemini port |
+| `ORNITH_MIGRATION.md` | caller line `Migrate: gemini-to-ornith-1.5` only, never by default (Ornith 1.5 9B on Ollama) |
 | **Second-level** (a family file names its own) | |
 | `CLAUDE_CODE_AGENTS.md` | the Claude target is an agent definition, not an API request |
 | `CLAUDE_STRUCTURED_OUTPUTS.md` | a response schema is in play (exclusive with the file above) |

@@ -125,9 +125,8 @@ duplicates native thinking and competes with it.
 - Omit: (1) logical dependencies, (3) abductive reasoning, (4) outcome evaluation, (7) completeness. Written into the prompt they buy verbosity, not planning.
 
 Triangulated, not probed: the vendor scopes the template's evaluation to
-complex-rulebook plus user-interaction agents, which is the policy class, and a
-`gemini-3.7-flash` self-report split the nine the same way. Neither is a
-benchmark. Re-test before trusting the omit list on a new deployment.
+complex-rulebook plus user-interaction agents, which is the policy class. That
+is not a benchmark. Re-test before trusting the omit list on a new deployment.
 
 **Hurt case, named.** Read-only exploratory agents (codebase search, database
 triage): risk assessment plus the inhibit gate reclassify benign reads as
@@ -214,10 +213,9 @@ as the recommendation for new work. Read a row as "this task type suited that
 tier", map to the current successor, put the re-test in Key Changes.
 
 **The newest Flash is not automatically the successor.** `gemini-3.8-flash` is
-a behavior break, not an increment (`GEMINI_MIGRATION.md` 5); vendor-stated,
-`gemini-3.7-flash` remains fully supported for work that does not need 3.8's
-verification. A Flash row on a bounded task (grading, extraction,
-classification) → re-test on both strings, never assume 3.8 wins.
+a behavior break, not an increment (`GEMINI_MIGRATION.md` 5). A Flash row on a
+bounded task (grading, extraction, classification) → re-test on both
+`gemini-3.6-flash` and `gemini-3.8-flash`, never assume 3.8 wins.
 
 | Task type | Model that won, as tested | Why | Currency |
 |---|---|---|---|
@@ -244,7 +242,7 @@ Empirical production findings, not documented mechanics: exception to rule 1's
 docs deferral, same as rule 8.
 
 - `gemini-3.1-flash-lite` has an empirically confirmed per-minute token ceiling well below its context window. A generic auto-retry loop (short fixed sleep, many attempts) on a long prompt exhausts it inside one wall-clock minute, producing repeated zero-output failures that read as model failures but are pacing failures. Long-prompt Flash-Lite work → single-shot calls with wide spacing (90+ seconds) over blind auto-retry. Re-verify whether the ceiling carries to `gemini-3.5-flash-lite`.
-- A newly released model on the free tier sheds load as HTTP 500 with a high-demand message BEFORE any quota 429 appears, and sheds a long prompt while a trivial one on the same key succeeds seconds earlier. Observed on `gemini-3.7-flash` at launch. A circuit breaker keyed on 429 alone reads this as a server fault and retries straight into the real quota wall: count consecutive 500s toward the same breaker.
+- A newly released model on the free tier sheds load as HTTP 500 with a high-demand message BEFORE any quota 429 appears, and sheds a long prompt while a trivial one on the same key succeeds seconds earlier. A circuit breaker keyed on 429 alone reads this as a server fault and retries straight into the real quota wall: count consecutive 500s toward the same breaker.
 - Interactions API's 429 is a **different, strictly worse shape**: HTTP 200 with an SSE-embedded error, no `retryDelay`/`quotaId`/scope fields at all. No severity can be parsed out of the response; use a persistence-based circuit breaker (consecutive failures over a time window). A severity classifier built on legacy `generateContent` `RetryInfo` fields does not port: legacy retry wiring in the input is a migration defect to flag, never a path to tune.
 
 ## Moved content
