@@ -150,7 +150,7 @@ To keep a call cheap:
 - **Paste the prompt text.** A file path works, but the agent reads only the file or span named, never traces your codebase (parsers, call sites, other prompts). Anything it needs and lacks becomes a deployer-verify item.
 - **Paste the call-site facts** the review depends on as short excerpts, rather than pointing at the code that builds the request.
 - **Revised prompt → state the prior version's size.** Bloat is judged by growth against the change asked for, never by a fixed size cap. Size reports include per-run cost (tokens × calls) when call volume is stated.
-- **Follow the `Next:` line.** A question about the output within 5 minutes → follow up on the same agent (its cache is warm). A revised prompt, or anything later → a new call with the revised text inline. After the 5-minute cache expires a follow-up rewrites the whole accumulated context, often 100k+ tokens, where a new call starts near 35k.
+- **Follow the `Next:` line.** Timestamp the reply when it arrives. Within 5 minutes of it, a question about the output or a revised version of the same prompt → follow up on the same agent (its cache is warm, so only the new text is billed in full). A different prompt, or anything later → a new call with the text inline. After the 5-minute cache expires a follow-up rewrites the whole accumulated context, often 100k+ tokens, where a new call starts near 35k.
 - Claude Code loads your `CLAUDE.md` files and rules into every subagent unless its frontmatter sets `omitClaudeMd: true` (Claude Code v2.1.271+). This agent sets it, so it reads only itself and what you send; older versions load them anyway.
 - **Watch the `Input:` line.** It names what the call lacked or sent without need.
 
