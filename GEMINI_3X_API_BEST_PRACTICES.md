@@ -177,23 +177,23 @@ Recommend in Key Changes:
 
 (Tool-declaration syntax is call-site mechanics: rule 1.)
 
-## 8. Lite-tier thinking defaults often need escalation
+## 8. Thinking level per call, set by the call's job
 
-Lite-tier targets default to the bottom of the `thinking_level` enum (current
-default and full valid level set: rule 1, never this file; both shift between
-model versions). Tuned for high-volume extraction, routing, classification;
-can underperform on any task requiring multi-step judgment: nuanced
-rubric-criterion grading, multi-clause AND-gated descriptors, anything
-weighing evidence rather than pattern-matching.
+Valid levels and the default per model: rule 1, never this file. The levels
+below are empirical, verified on `gemini-3.5-flash-lite` and `gemini-3.8-flash`;
+use the nearest level the target accepts.
 
-Escalation policy = empirical quality judgment, not an API mechanic, so it
-lives here. Two triggers:
-
-- **Review time:** target is a Lite tier AND the task needs multi-step judgment → put a one-level-up test in Key Changes as a deployer action, reported failure or not (confirm current valid levels via rule 1 before naming one).
-- **Reported failure:** escalate one level at a time, each step conditional on the previous still underperforming. Never call the prompt at fault before the default has been ruled out. Repeated escalation signals the task needs more than the bottom level, not that the model is wrong.
-
-`GRADING_PIPELINE.md` artifact 5 carries the calibration-checklist version of
-this diagnostic branch.
+8.1. Name a level for every call, never a token budget. Budgets map onto levels, so two budgets can send the same level and a bench across them tests fewer levels than it names.
+8.2. Start the level from the call's job, and name the job beside it:
+   8.2.1. Copy or split word for word: minimal. The model decides where an item ends: low.
+   8.2.2. One yes/no check against a definition: medium.
+   8.2.3. Lines written from already-checked findings: low.
+   8.2.4. One verdict over the whole text: high.
+   8.2.5. Long structured output: medium, with an output cap.
+8.3. Change a level only after a bench on anchor cases: the level below and the level above, the same anchors including cases already right, uncached, one model, time per call reported. Levels tie -> keep the lower: faster, less truncation. Report the model that answered; a fallback partway through voids the comparison.
+8.4. Never raise the level for quote echoing, broken bans, content a rule forbids or a step filters out, or answers that swing between runs at a fixed level. A higher level tidies grammar; it does not recover filtered content. Fix the prompt, or narrow the question or move the decision to code (`GRADING_PIPELINE.md` G1.1).
+8.5. Thinking tokens share the output cap. A higher level on long structured output -> pair it with an output cap and warn that the JSON tail may be truncated (empty replies, 500s).
+8.6. The level must be valid on every model in the chain (5.1).
 
 ## 9. Empirical model choice by task type (probe-verified, not vendor guidance)
 
@@ -261,7 +261,7 @@ Second-level routing, additive to this file:
 - Freshness clauses present on Flash-tier targets with time-sensitive or knowledge-grounded tasks; strict-grounding clause present on any 3.x target answering from context or judging submitted work (4).
 - No planning block ported without a named failure and a `thinking_level` step-up tried first; none on a managed-agent target by default, and no ported policy duplicated across system instruction and instruction file; no ported dimension in text shared across model strings; ported dimensions are policy-carrying (2, 5, 9), never reasoning-describing (1, 3, 4, 7); each emitted as a clause rather than a label and arbitrated against rule 5 (6, 6a-6d).
 - No tagged or serialized block is required immediately before a tool call; pre-tool notes route to a declared `update` call or to Markdown headers (6e).
-- Lite-tier targets on multi-step judgment tasks (rubric grading, AND-gated descriptors) get a next-level-up `thinking_level` test recommendation, not a silent bottom-level assumption (8).
+- Every call has a named `thinking_level` and the job behind it, never a token budget; any change rests on an anchor bench; no level raised for a prompt-caused or run-to-run failure; a higher level on long structured output carries an output cap and a truncation warning (8).
 - Any recommended model swap names its currency caveat, tested on which generation and re-verify before porting, rather than standing as fact (9); a Flash successor is never assumed to be `gemini-3.8-flash` (9, `GEMINI_MIGRATION.md` 5).
 - Any 429/quota recommendation is written for Interactions (persistence-based circuit breaker), and legacy retry wiring is flagged as a migration defect rather than tuned (10).
 
