@@ -100,7 +100,7 @@ built for older models drives over-analysis (rule 3). Vendor-stated for
 iteratively, and verifies its own work, so a ported block duplicates that
 behavior outright. Earlier 3.x strings carry no such statement; there the
 default rests on rule 3 and the triangulation below.
-Order of moves on a failing agentic run: raise `thinking_level` one step
+Order of moves on a failing agentic run: raise `thinking_level` one step after an 8.3 bench
 (mechanics: rule 1) and re-run; still failing → port by the split below.
 A run failing by token burn or verification loops rather than wrong actions is
 rule 5's lever, never a ported block.
@@ -179,27 +179,26 @@ Recommend in Key Changes:
 
 ## 8. Thinking level per call, set by the call's job
 
-Valid levels and the default per model: rule 1, never this file. The levels
-below are empirical, verified on `gemini-3.5-flash-lite` and `gemini-3.8-flash`;
-use the nearest level the target accepts.
+Valid levels and per-model defaults: rule 1, never this file. Levels below
+are empirical, verified on `gemini-3.5-flash-lite` and `gemini-3.8-flash`; use
+the nearest level the target accepts, valid on every model in the chain (5.1).
 
-8.1. Name a level for every call, never a token budget. Budgets map onto levels, so two budgets can send the same level and a bench across them tests fewer levels than it names.
-8.2. Start the level from the call's job, and name the job beside it:
+8.1. Name a level per call, never a token budget: budgets map onto levels, so two budgets can send the same level and a bench across them tests fewer levels than it names.
+8.2. Start from the call's job; name the job beside the level:
    8.2.1. Copy or split word for word: minimal. The model decides where an item ends: low.
    8.2.2. One yes/no check against a definition: medium.
    8.2.3. Lines written from already-checked findings: low.
-   8.2.4. One verdict over the whole text: medium; high only after the 8.3 bench shows medium misses.
-   8.2.5. Long structured output: medium, with an output cap.
+   8.2.4. One verdict over the whole text: medium; high only after an 8.3 bench shows medium misses.
+   8.2.5. Long structured output matching no job above: medium.
 8.3. Change a level only after a bench on anchor cases: the level below and the level above, the same anchors including cases already right, uncached, one model, time per call reported. Levels tie -> keep the lower: faster, less truncation. Report the model that answered; a fallback partway through voids the comparison.
-8.4. Never raise the level for quote echoing, broken bans, content a rule forbids or a step filters out, or answers that swing between runs at a fixed level. A higher level tidies grammar; it does not recover filtered content. Fix the prompt, or narrow the question or move the decision to code (`GRADING_PIPELINE.md` G1.1).
-8.5. Thinking tokens share the output cap. A higher level on long structured output -> pair it with an output cap and warn that the JSON tail may be truncated (empty replies, 500s).
-8.6. The level must be valid on every model in the chain (5.1).
+8.4. Never raise the level for quote echoing, broken bans, output carrying content a rule forbids, content an earlier step filtered out, or answers that swing between runs at a fixed level. A higher level tidies grammar; it does not recover filtered content. Fix the prompt, narrow the question, or move the decision to code (`GRADING_PIPELINE.md` G1.1).
+8.5. Thinking tokens share the output cap. Long structured output always carries an output cap; above medium, also warn that the JSON tail may be truncated (empty replies, 500s).
 
 ## 9. Empirical model choice by task type (probe-verified, not vendor guidance)
 
 Deployer production A/B testing, not Google documentation; the docs cannot
 state task-specific results, so this stays hand-maintained regardless of rule 1.
-No finding was probed on a model newer than `gemini-3.5-flash`; every Gemini
+No row in the table below was probed on a model newer than `gemini-3.5-flash`; every Gemini
 release after it is untested here (current list: rule 1). The string tested is
 named in each row, never generalized to a generation. Each
 mapping is a hypothesis to re-verify on
@@ -243,7 +242,7 @@ docs deferral, same as rule 8.
 
 - `gemini-3.1-flash-lite` has an empirically confirmed per-minute token ceiling well below its context window. A generic auto-retry loop (short fixed sleep, many attempts) on a long prompt exhausts it inside one wall-clock minute, producing repeated zero-output failures that read as model failures but are pacing failures. Long-prompt Flash-Lite work → single-shot calls with wide spacing (90+ seconds) over blind auto-retry. Re-verify whether the ceiling carries to `gemini-3.5-flash-lite`.
 - A newly released model on the free tier sheds load as HTTP 500 with a high-demand message BEFORE any quota 429 appears, and sheds a long prompt while a trivial one on the same key succeeds seconds earlier. A circuit breaker keyed on 429 alone reads this as a server fault and retries straight into the real quota wall: count consecutive 500s toward the same breaker.
-- Quota is parked per model per key. A fallback model across several keys → order as the primary on every key first, then the fallback: a key whose primary is spent still has fallback quota.
+- Quota is tracked per model per key. Several keys with a fallback model -> spend the primary on every key before the fallback on any key: a key whose primary is spent still holds fallback quota.
 - Interactions API's 429 is a **different, strictly worse shape**: HTTP 200 with an SSE-embedded error, no `retryDelay`/`quotaId`/scope fields at all. No severity can be parsed out of the response; use a persistence-based circuit breaker (consecutive failures over a time window). A severity classifier built on legacy `generateContent` `RetryInfo` fields does not port: legacy retry wiring in the input is a migration defect to flag, never a path to tune.
 
 ## Moved content
@@ -261,7 +260,7 @@ Second-level routing, additive to this file:
 - Freshness clauses present on Flash-tier targets with time-sensitive or knowledge-grounded tasks; strict-grounding clause present on any 3.x target answering from context or judging submitted work (4).
 - No planning block ported without a named failure and a `thinking_level` step-up tried first; none on a managed-agent target by default, and no ported policy duplicated across system instruction and instruction file; no ported dimension in text shared across model strings; ported dimensions are policy-carrying (2, 5, 9), never reasoning-describing (1, 3, 4, 7); each emitted as a clause rather than a label and arbitrated against rule 5 (6, 6a-6d).
 - No tagged or serialized block is required immediately before a tool call; pre-tool notes route to a declared `update` call or to Markdown headers (6e).
-- Every call has a named `thinking_level` and the job behind it, never a token budget; any change rests on an anchor bench; no level raised for a prompt-caused or run-to-run failure; a higher level on long structured output carries an output cap and a truncation warning (8).
+- Every call names its `thinking_level` and job, never a token budget; any change rests on an 8.3 bench; no level raised for an 8.4 cause; long structured output carries an output cap, plus a truncation warning above medium (8).
 - Any recommended model swap names its currency caveat, tested on which generation and re-verify before porting, rather than standing as fact (9); a Flash successor is never assumed to be `gemini-3.8-flash` (9, `GEMINI_MIGRATION.md` 5).
 - Any 429/quota recommendation is written for Interactions (persistence-based circuit breaker), and legacy retry wiring is flagged as a migration defect rather than tuned (10).
 

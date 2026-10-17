@@ -42,13 +42,14 @@ and which model the script calls:
 Claude sends the prompt to the agent, applies the fixes, and shows you what
 changed.
 
-Every report ends with three lines Claude acts on:
+Every report ends with up to four lines Claude acts on:
 
 - **Input**: what the request was missing (like which model the script calls) or sent that wasn't needed, so the next request is better.
 - **Recheck**: the fixes changed the prompt's structure, so the revised version should go back for a second look.
 - **Compaction**: the prompt carries dead weight (rules stated twice, rules for things that no longer exist, patches stacked on patches) and should be trimmed.
+- **Next**: always there. Within 5 minutes of the report, a question about it or a revised version of the same prompt goes back to the same agent, which has already read everything, so only the new text costs full price. A different prompt, or anything later, starts a new agent.
 
-When both apply, they happen in one call.
+When Recheck and Compaction both apply, they happen in one call.
 
 Choices that change students' grades, like which way to break a tie, come back
 to you. It won't decide those.

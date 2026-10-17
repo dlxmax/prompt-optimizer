@@ -85,7 +85,7 @@ contract forced, not a choice.
 ### Artifact 5: calibration checklist
 
 1. Dry-run each section on a small set of real source material per material type. Compose from the failure surface (`GRADING_PIPELINE.md` artifact 5, item 2): source too short to fill the section, off-topic source, source missing an element the section requires.
-2. Generic, repetitive, or off-topic output = insufficient reasoning depth before it is bad wording. Raise the target's reasoning control one step and re-run this dry run; the control and its valid values are a mechanics lookup in the loaded family file, never assumed. Still generic → add L7 structured-commitment fields. Wording changes last. No family file loaded → report the symptom, state the assumption, guess no parameter.
+2. Generic, repetitive, or off-topic output = insufficient reasoning depth before it is bad wording. Raise the target's reasoning control one step (Gemini target: rule 8.3 bench) and re-run this dry run; the control and its valid values are a mechanics lookup in the loaded family file, never assumed. Still generic → add L7 structured-commitment fields. Wording changes last. No family file loaded → report the symptom, state the assumption, guess no parameter.
 3. Re-run after any scaffold or per-section template change.
 
 ## Output skeletons
