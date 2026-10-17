@@ -93,7 +93,7 @@ Scan and delete: "double-check your answer", "re-verify before responding",
 Replacement = a chained call, not a deleted check: draft, review against
 criteria, refine, as separate calls. Self-correction inside one call is the
 defect; across calls it is the architecture (`GRADING_PIPELINE.md` G1,
-`GENERIC_REVIEW.md` item 3).
+`GENERIC_REVIEW.md` item 3.4).
 
 Not re-check scaffolding: an agent instruction to run a real check (tests,
 build, type-checker, the changed command) before reporting a code change done.
@@ -124,7 +124,7 @@ to fix the first failure can silently override a count constraint elsewhere.
 Lowering `effort` cuts thinking, not output length. Two lengths, two
 instructions:
 
-6.1. **Conversational response.** One conciseness directive, repeated as a short reminder near the end of a long prompt (`GENERIC_REVIEW.md` item 3).
+6.1. **Conversational response.** One conciseness directive, repeated as a short reminder near the end of a long prompt (`GENERIC_REVIEW.md` item 3.2).
 6.2. **Written deliverable.** Anything written to a file runs long and pads with filler sections independently of 6.1. LESSON prompts emitting a material to disk state what it must cover and that padding is a defect.
 
 ## 7. Calibrate imperative force where it drives triggering

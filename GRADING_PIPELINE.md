@@ -150,7 +150,14 @@ catching drift.
 2. Compose the labeled set from the failure surface, not clean mid-range work: empty and off-task submissions, overlong ones, submissions carrying injection-shaped text, boundary cases where human graders disagreed.
 3. Dry-run per assignment type. Compare per-criterion agreement; expect and correct harsh bias on mechanics-type criteria.
 4. Compare score distributions, not only agreement: flag variance compression.
-5. Symptom set, any family: vague or evidence-thin comments, or ignored AND-gated clauses = insufficient reasoning depth, not bad wording (G1.1 fires -> decompose first). Raise the reasoning control one step, benched per item 8, before spending item 6's refinement round. Run-to-run swings at a fixed level -> G8 (3), never a reasoning-depth fix. Control and valid values = mechanics lookup in the family file already loaded for the declared target, never assumed. This lookup never loads a second family's file: read only the one the target routed to. Claude target → that file's rule 1 (`effort` and thinking config; name the version verified against). Gemini target → that file's rule 8 (level per call from its job; raise only via an 8.3 bench; 8.4's exclusions win). No family file loaded → report the symptom, state the assumption, guess no parameter.
+5. Symptom set, any family: vague or evidence-thin comments, or ignored AND-gated clauses = insufficient reasoning depth, not bad wording.
+   5.1. G1.1 fires -> decompose first.
+   5.2. Raise the reasoning control one step, benched per item 8, before spending item 6's refinement round.
+   5.3. Run-to-run swings at a fixed level -> G8 (3), never a reasoning-depth fix.
+   5.4. Control and valid values = mechanics lookup in the family file already loaded for the declared target, never assumed. This lookup never loads a second family's file.
+   5.5. Claude target → that file's rule 1 (`effort` and thinking config; name the version verified against).
+   5.6. Gemini target → that file's rule 8 (level per call from its job; raise only via a rule 8.3 bench; rule 8.4's exclusions win).
+   5.7. No family file loaded → report the symptom, state the assumption, guess no parameter.
 6. <=1 rubric-wording refinement round; further rounds overfit the labeled set.
 7. Re-run the dry run after any wording change to templates or descriptors.
 8. Before any full run, run each named anchor case (a labeled-set item a finding names) 3 times uncached, including cases already right. Testing only, never a production vote (G8 (3)). Runs agreeing is not proof of correctness: compare against the human label. Runs disagreeing = instability -> G8 (3).
