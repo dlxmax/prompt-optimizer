@@ -243,6 +243,7 @@ docs deferral, same as rule 8.
 
 - `gemini-3.1-flash-lite` has an empirically confirmed per-minute token ceiling well below its context window. A generic auto-retry loop (short fixed sleep, many attempts) on a long prompt exhausts it inside one wall-clock minute, producing repeated zero-output failures that read as model failures but are pacing failures. Long-prompt Flash-Lite work → single-shot calls with wide spacing (90+ seconds) over blind auto-retry. Re-verify whether the ceiling carries to `gemini-3.5-flash-lite`.
 - A newly released model on the free tier sheds load as HTTP 500 with a high-demand message BEFORE any quota 429 appears, and sheds a long prompt while a trivial one on the same key succeeds seconds earlier. A circuit breaker keyed on 429 alone reads this as a server fault and retries straight into the real quota wall: count consecutive 500s toward the same breaker.
+- Quota is parked per model per key. A fallback model across several keys → order as the primary on every key first, then the fallback: a key whose primary is spent still has fallback quota.
 - Interactions API's 429 is a **different, strictly worse shape**: HTTP 200 with an SSE-embedded error, no `retryDelay`/`quotaId`/scope fields at all. No severity can be parsed out of the response; use a persistence-based circuit breaker (consecutive failures over a time window). A severity classifier built on legacy `generateContent` `RetryInfo` fields does not port: legacy retry wiring in the input is a migration defect to flag, never a path to tune.
 
 ## Moved content

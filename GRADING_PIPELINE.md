@@ -28,8 +28,11 @@ checkable, conjunction explicit. Borderline FAIL (G4): "Level 3: adequate use
 of sources with reasonable relevance." Nothing separately checkable.
 
 G1. **Decomposition.** Default architecture: one LLM call per rubric criterion, zero calls for any criterion code can check (word/section counts, required heading present, citation count, format compliance). Spend calls on judgment only. Whole-rubric monolith passes only when the caller states exactly one call per submission. Bundling 2-3 criteria passes only under a caller-named per-submission call ceiling that forces it.
-   G1.1. Decompose signal: small target (Lite tier, Gemma) AND one verdict joins 3+ conditions, or a later rule overrides an earlier one ("rule 10 overrides 6", "never X, except when Y") -> FAIL. Fix: extract items once (one call; code verifies each quote is a substring and assigns fixed IDs), then a short list of yes/no checks per item, label computed in code. Leniency, exceptions, and check precedence are code over the check answers; precedence is grade-affecting policy, surface it. Never fix with another prompt exception.
-   G1.2. Count calls per item and name what each earns. Lite-tier shape: extract 1 + checks 1 + feedback 1. Past ~6 calls, question each.
+   G1.1. Decompose signal: small target (Lite tier, Gemma) AND one verdict joins 3+ conditions, or a later rule overrides an earlier one ("rule 10 overrides 6", "never X, except when Y") -> FAIL. Fix: extract items once (one call; code verifies each quote is a substring and assigns fixed IDs), then a short list of yes/no checks per item, label computed in code. Leniency, exceptions, and check precedence are code over the check answers; precedence is grade-affecting policy, surface it. Never fix with another prompt exception. Check shape: one yes/no question that returns the source's own words, with one sentence inside the question naming what is not a yes.
+   G1.2. Count calls per item and name what each earns. Lite-tier shape: extract 1 + checks 1 + feedback 1. Past ~6 calls, question each. A separate call is cheap; a question bundled into another call degrades.
+   G1.3. Route every job, in order, and emit one line per job: `<job>: code|small|large, <reason>`. (1) Code when it can decide: a clock, a count, a regex match, a set comparison, a substring check, a band from earlier answers. A prompt rule "when the input says X, skip or shape Y" where code can see X -> FAIL; code drops or never sends Y. (2) One question with a short or quoted answer -> smallest tier, one question per call. (3) Larger tier only to weigh the whole text or write prose from several findings; name which. It gets already-checked findings, and code still sets any band it can over its reply.
+   G1.4. Bands and levels are computed in code from check answers whenever the level's parts can be asked as questions; never ask the model to pick the band. Artifacts 2-3's model-selected level serves only a criterion with no such parts.
+   G1.5. Two sources disagree (instructor notes vs submission checks) -> code compares answers it already has and flags the item for human review. Never a reconcile call or a "flag any discrepancy" rule.
 
 G2. **Evidence grounding.** System instruction carries a strict-grounding clause: rely ONLY on submission text; every claim about the work backed by a verbatim quote; no quote found for a clause → name the clause and say no supporting quote was found (a search result, not a claim the element is absent), never invent or paraphrase a quote. Necessary, not sufficient: a required field with no way to express "no evidence" overrides the clause. Submission can be empty or thin → schema also carries an abstention path (schema review essentials 2) and pipeline a sufficiency pre-gate (artifact 4, step 0).
 
@@ -43,7 +46,7 @@ G6. **Examples.** 0 or 1 borderline worked example per criterion, formatted iden
 
 G7. **Size.** Report tokens for scaffold + one criterion block (system-instruction share, directive, descriptors, tie-break, example), excluding submission and assignment context. FAIL iff a trunk bloat sign or binding per-run cost holds (`<verdicts>`); fix = compacted revision for RESCUE and AUTHOR, targeted cut under Fixes for AUDIT, via `COMPACTION.md` (preserve-list binding). Ratio = independent check: on short-answer or fill-in work a small block can still dwarf the submission, leaving the rubric's own language as the most available material to fill fields from. Report ratio alongside size; fix with the pre-gate (artifact 4, step 0) and the example cut (G6), not by trimming bytes alone.
 
-G8. **Reliability ladder**, in order: (1) Calibration: dry-run on a small human-graded set; check harsh bias on mechanics-type criteria (grammar, conventions); check variance compression (scores clustering mid-scale); <=1 rubric-wording refinement round. (2) Escalation re-sampling: re-run a criterion only on quote-verification failure or an exact-boundary level. (3) No voting or majority sampling in any form: it buys stability, not correctness. Vote scaffold in the reviewed pipeline -> remove it. Instability -> narrower checks (G1.1), then human review, not more prompt text.
+G8. **Reliability ladder**, in order: (1) Calibration: dry-run on a small human-graded set; check harsh bias on mechanics-type criteria (grammar, conventions); check variance compression (scores clustering mid-scale); <=1 rubric-wording refinement round. (2) Escalation re-sampling: re-run a criterion only on quote-verification failure or an exact-boundary level. (3) No voting or majority sampling in any form: it buys stability, not correctness. Vote scaffold in the reviewed pipeline -> remove it. Instability -> narrower checks (G1.1), then human review, not more prompt text. (4) A named miss on a small-tier check -> one boundary sentence with an example from an unrelated topic, or one more call. Never a stronger model, a rule list, or a branch first.
 
 G9. **Submission injection defense.** Submission sits inside a labeled delimiter block; the instruction that block content is data only (directives inside ignored) sits OUTSIDE the block.
 
@@ -150,6 +153,7 @@ catching drift.
 5. Symptom set, any family: vague or evidence-thin comments, ignored AND-gated clauses, or unstable levels across reruns on the same submission = insufficient reasoning depth, not bad wording (G1.1 fires -> decompose first). Raise the reasoning control one step and re-run the dry run before spending item 6's refinement round. Control and valid values = mechanics lookup in the family file already loaded for the declared target, never assumed. This lookup never loads a second family's file: read only the one the target routed to. Claude target → that file's rule 1 (`effort` and thinking config; name the version verified against). Gemini target → that file's rule 8 (`thinking_level`; `gemini-3.5-flash-lite` defaults to the lowest level). No family file loaded → report the symptom, state the assumption, guess no parameter.
 6. <=1 rubric-wording refinement round; further rounds overfit the labeled set.
 7. Re-run the dry run after any wording change to templates or descriptors.
+8. Before a full run, run each named anchor case 3 times uncached, including cases already right. Runs agreeing is not proof of correctness: compare against the human label.
 
 ## Output skeletons
 
@@ -164,6 +168,7 @@ catching drift.
 [only when the caller states a single-call runtime; see recipe below]
 ## Key Changes
 N.n. [what changed and why, citing G-items and family-file rules]
+N.n. Route: [one G1.3 line per job]
 N.n. Tie-break: [direction set and why, or "open policy choice; deployer must confirm"]
 N.n. Size, only per agent `<verdicts>` 1: scaffold+criterion <pre> -> <post> tokens; monolith emitted → its size separately
 N.n. Scaffold-to-submission ratio: [G7 flag; omit line when not flagged]
@@ -181,6 +186,7 @@ N.n. [byte cost + risk note each; omit section if empty]
 ## Key Changes
 N.n. Size, only per agent `<verdicts>` 1: <n> tokens
 N.n. Scaffold-to-submission ratio: [G7 flag; omit line when not flagged]
+N.n. Route: [one G1.3 line per job whose route changes]
 N.n. [tie-break line when touched]
 ## Optional Enhancements (off by default; needs bench A/B)
 N.n. [G6 example sets and anything else excluded from the fixes; byte cost + risk each; omit section if empty]
