@@ -188,7 +188,7 @@ use the nearest level the target accepts.
    8.2.1. Copy or split word for word: minimal. The model decides where an item ends: low.
    8.2.2. One yes/no check against a definition: medium.
    8.2.3. Lines written from already-checked findings: low.
-   8.2.4. One verdict over the whole text: high.
+   8.2.4. One verdict over the whole text: medium; high only after the 8.3 bench shows medium misses.
    8.2.5. Long structured output: medium, with an output cap.
 8.3. Change a level only after a bench on anchor cases: the level below and the level above, the same anchors including cases already right, uncached, one model, time per call reported. Levels tie -> keep the lower: faster, less truncation. Report the model that answered; a fallback partway through voids the comparison.
 8.4. Never raise the level for quote echoing, broken bans, content a rule forbids or a step filters out, or answers that swing between runs at a fixed level. A higher level tidies grammar; it does not recover filtered content. Fix the prompt, or narrow the question or move the decision to code (`GRADING_PIPELINE.md` G1.1).
