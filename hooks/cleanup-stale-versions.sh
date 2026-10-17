@@ -16,6 +16,10 @@ for d in "$parent"/*/; do
   name="$(basename "$d")"
   [ "$name" = "$current" ] && continue
   case "$name" in
-    [0-9]*.[0-9]*.[0-9]*) rm -rf "$d" ;;
+    [0-9]*.[0-9]*.[0-9]*) ;;
+    *) continue ;;
   esac
+  # Keep newer versions: an old session starting must not delete them.
+  older="$(printf '%s\n%s\n' "$name" "$current" | sort -V | head -n1)"
+  if [ "$older" = "$name" ]; then rm -rf "$d"; fi
 done
