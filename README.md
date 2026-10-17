@@ -9,7 +9,7 @@ and fixes those prompts. I'm sharing it with educators who do the same.
 It reviews a prompt your script sends to an AI model, or builds one from a
 rubric, and returns what's wrong and how to fix it:
 
-- **Grading prompts.** Stops the AI from inventing quotes, or mixing up criteria by grading them all at once.
+- **Grading prompts.** Stops the AI from inventing quotes, or mixing up criteria by grading them all at once. Says which jobs your script should do itself (counts, bands, comparing two sources), and which need the cheap model or the bigger one.
 - **Feedback comments.** Stops empty praise ("Great job!") and comments about things the student never wrote.
 - **Lesson materials.** Worksheets, warm-ups, exam questions, and lesson plans that come out generic or repetitive.
 - **Any other prompt**, on request.

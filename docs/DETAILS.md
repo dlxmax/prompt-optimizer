@@ -10,7 +10,7 @@ what each reference file covers, and what drives cost.
 | Diagnosis | line 1: `Task: <SHAPE>, domain: <DOMAIN>` |
 | Checklist findings | one line per item, PASS / FAIL / N/A, each citing the evidence or its absence |
 | Fixes *or* Pipeline Spec | targeted fixes for failing items (AUDIT), or artifacts 1-5 for a full build (RESCUE / AUTHOR) |
-| Key Changes | what changed and why, citing item and rule numbers, plus deployer-verify items |
+| Key Changes | what changed and why, citing item and rule numbers, plus deployer-verify items; grading adds one `Route:` line per job (AUDIT: only jobs whose route changes) |
 | Optional Enhancements | behavior-shaping additions held back from the main spec, off by default |
 | `Input:` line | `complete`, or what to paste or omit on the next call and what the agent assumed meanwhile |
 | `Recheck:` / `Compaction:` lines | `not needed` with a reason, or the call to run next and why; both needed → one call |
@@ -42,6 +42,16 @@ Three independent axes, combined per call:
 Each axis loads its own reference file, additively. A GRADING/RESCUE call
 targeting Claude loads the grading rulebook plus the Claude rules; a generic
 REVIEW with no target loads one file.
+
+### Grading: what runs where
+
+Each job in a grading pipeline is routed, in order:
+
+- **Code** when it can decide: a clock, a count, a regex match, a set comparison, a substring check, a band computed from earlier answers. A prompt rule like "when the notes mention pauses, skip the pause line" moves to code, which never sends the line.
+- **The smallest tier** for one question with a short or quoted answer, one question per call.
+- **The larger tier** only to weigh the whole text or to write prose from several findings. It gets already-checked findings, and code still sets any band it can.
+
+Bands and levels come from code over yes/no check answers; the model never picks the band when its parts can be asked as questions. When two sources disagree (instructor notes vs. transcript), code compares the answers and flags the item for a human, with no reconcile call. A miss on the small tier gets one boundary sentence or one more call, not a bigger model or a longer rule list. Every added sentence needs a run where it fixed a named case. Before a full run, each anchor case runs 3 times uncached; runs agreeing is not proof they are right. No voting.
 
 ### Claude targets: deployment surface
 
