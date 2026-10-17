@@ -113,8 +113,8 @@ calibration-time instability detector only, never production voting (G8).
 
 Instructions are read literally. Two failures:
 
-- **Under-generalization.** Instruction shown on one criterion or section is not extended to the rest. Write "apply to every criterion below".
-- **Scope expansion.** Narrow tasks pick up unrequested steps. Name the deliverable, state that work beyond it is out of scope.
+5.1. **Under-generalization.** Instruction shown on one criterion or section is not extended to the rest. Write "apply to every criterion below".
+5.2. **Scope expansion.** Narrow tasks pick up unrequested steps. Name the deliverable, state that work beyond it is out of scope.
 
 Re-run the count-versus-universal scan after any scope edit: a universal added
 to fix the first failure can silently override a count constraint elsewhere.
@@ -141,9 +141,9 @@ injection-defense clauses.
 
 Distinct from escape-hatch elimination (invariant 1, item 14). Both hold:
 
-- "Try to cite a quote when possible": softening. Defect.
-- "CRITICAL: YOU MUST ALWAYS CITE A QUOTE!!!": over-forcing. Defect.
-- "Cite a verbatim quote for every claim about the submission.": correct.
+7.1. "Try to cite a quote when possible": softening. Defect.
+7.2. "CRITICAL: YOU MUST ALWAYS CITE A QUOTE!!!": over-forcing. Defect.
+7.3. "Cite a verbatim quote for every claim about the submission.": correct.
 
 Restraint over-fires the same way: "only use tools when strictly necessary",
 "minimize tool calls" are followed literally, so the model answers from training
@@ -180,11 +180,11 @@ reliably override the schema.
 
 Fix at the schema:
 
-- Every required enum over a judgment the input may not support carries an insufficient-evidence member.
-- Abstention path = a **fixed literal**, never "say if you are unsure": free-form doubt is undetectable downstream (invariant 2). Vendor examples name the exact string ("No relevant quotes found").
-- No `minItems` floor on abstainable arrays (`CLAUDE_STRUCTURED_OUTPUTS.md` 3; `GRADING_PIPELINE.md` schema review essentials 2 where loaded).
-- Prefer required + abstention member over optional or nullable; on Claude, optional members also cost grammar budget (`CLAUDE_STRUCTURED_OUTPUTS.md` 7).
-- Keep the prose grounding clause; additive, not a substitute.
+9.1. Every required enum over a judgment the input may not support carries an insufficient-evidence member.
+9.2. Abstention path = a **fixed literal**, never "say if you are unsure": free-form doubt is undetectable downstream (invariant 2). Vendor examples name the exact string ("No relevant quotes found").
+9.3. No `minItems` floor on abstainable arrays (`CLAUDE_STRUCTURED_OUTPUTS.md` 3; `GRADING_PIPELINE.md` schema review essentials 2 where loaded).
+9.4. Prefer required + abstention member over optional or nullable; on Claude, optional members also cost grammar budget (`CLAUDE_STRUCTURED_OUTPUTS.md` 7).
+9.5. Keep the prose grounding clause; additive, not a substitute.
 
 Resistance is not monotonic in model size. A pipeline calling two Claude tiers
 validates the abstention path on each tier it calls, not on the largest.
@@ -204,10 +204,10 @@ directive.
 
 Claude-targeted prompts, not schema-constrained calls:
 
-- Multi-source input nests: `<documents>` wrapping `<document index="n">`, each with `<source>` and `<document_content>`. Use for assignment-plus-submission, multi-artifact grading, LESSON source material.
-- Examples in `<example>` tags, multiple in `<examples>`.
-- No schema wired → grounding contract is two tags: numbered quotes first, then claims citing quote numbers. Numbering makes the link mechanically checkable: an uncited claim, or a citation to a missing number, is detectable. Pair with a closed-world clause ("base the analysis only on the extracted quotes") and rule 9's no-quote literal.
-- `{{double_curly}}` placeholders (invariant 3). Agent surface: none, rule 12.
+11.1. Multi-source input nests: `<documents>` wrapping `<document index="n">`, each with `<source>` and `<document_content>`. Use for assignment-plus-submission, multi-artifact grading, LESSON source material.
+11.2. Examples in `<example>` tags, multiple in `<examples>`.
+11.3. No schema wired → grounding contract is two tags: numbered quotes first, then claims citing quote numbers. Numbering makes the link mechanically checkable: an uncited claim, or a citation to a missing number, is detectable. Pair with a closed-world clause ("base the analysis only on the extracted quotes") and rule 9's no-quote literal.
+11.4. `{{double_curly}}` placeholders (invariant 3). Agent surface: none, rule 12.
 
 Vendor guidance recommends 3-5 examples for general steering. G6's 0-or-1
 borderline example per criterion is narrower on purpose: judge examples anchor

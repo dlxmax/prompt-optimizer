@@ -83,14 +83,14 @@ check is unenforced.
 
 Floor v2.1.210. Scans the final message and mutates in place, never removes:
 
-- Backslash inserted into harness-shaped text: a `<system-reminder>`-style tag, or a line beginning `Human:` / `Assistant:`.
-- A `[harness: subagent output matched instruction-shaped pattern(s): ...]` line PREPENDED on control-tag imitation or on mentioning permission settings (`bypassPermissions`, `--dangerously-skip-permissions`, `.claude/settings.json`).
+4.1. Backslash inserted into harness-shaped text: a `<system-reminder>`-style tag, or a line beginning `Human:` / `Assistant:`.
+4.2. A `[harness: subagent output matched instruction-shaped pattern(s): ...]` line PREPENDED on control-tag imitation or on mentioning permission settings (`bypassPermissions`, `--dangerously-skip-permissions`, `.claude/settings.json`).
 
 Three constraints on any output format emitted:
 
-4.1. Never use a delimiter imitating a harness control tag. `<system-reminder>` and lookalikes get corrupted mid-token.
-4.2. Never anchor extraction on "line 1". A prepended marker line displaces it. Anchor on a labeled line or a fenced block.
-4.3. Emitted examples must not start a line with `Human:` or `Assistant:`.
+4.3. Never use a delimiter imitating a harness control tag. `<system-reminder>` and lookalikes get corrupted mid-token.
+4.4. Never anchor extraction on "line 1". A prepended marker line displaces it. Anchor on a labeled line or a fenced block.
+4.5. Emitted examples must not start a line with `Human:` or `Assistant:`.
 
 Scanning is not a permission boundary and does not judge content; parser hazard
 only.
@@ -111,9 +111,9 @@ No parent history, no parent system prompt, no parent tool results.
 **No substitution engine.** The body is a static file; `{{placeholder}}` is
 literal text nothing fills. Overrides invariant 3 on this surface:
 
-- Variable per-run input (submission text, rubric, criterion) arrives in the invocation prompt string. The body describes the shape it arrives in and never templates it.
-- A placeholder in the body is a defect unless the deployer substitutes it at file-write time. Flag it.
-- Reference files resolve at runtime from the working directory. A path the body names must exist relative to cwd; the body cannot inline it.
+6.1. Variable per-run input (submission text, rubric, criterion) arrives in the invocation prompt string. The body describes the shape it arrives in and never templates it.
+6.2. A placeholder in the body is a defect unless the deployer substitutes it at file-write time. Flag it.
+6.3. Reference files resolve at runtime from the working directory. A path the body names must exist relative to cwd; the body cannot inline it.
 
 User, project, and local `CLAUDE.md`, rules files, and `AGENTS.md` load unless
 `omitClaudeMd: true` (floor v2.1.271; managed policy still loads). Main-session

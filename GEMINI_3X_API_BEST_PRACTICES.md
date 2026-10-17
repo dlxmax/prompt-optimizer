@@ -49,20 +49,20 @@ loads `GEMINI_MIGRATION.md` (cross-family facts; same docs-MCP-first policy).
 Large-context prompt (books, codebases, long videos, student submissions),
 required shape:
 
-- Governing directives (role, output schema, refusal rules) at START.
-- Large context block (data, transcripts, submissions) in MIDDLE.
-- Specific query at END, anchored "Based on the preceding information..." or domain equivalent.
-- Governing directive repeated at the very end as recency reminder (universal start-and-end rule holds).
+2.1. Governing directives (role, output schema, refusal rules) at START.
+2.2. Large context block (data, transcripts, submissions) in MIDDLE.
+2.3. Specific query at END, anchored "Based on the preceding information..." or domain equivalent.
+2.4. Governing directive repeated at the very end as recency reminder (universal start-and-end rule holds).
 
 ## 3. Prompting changes for 3.x
 
-- **Precise instructions:** be concise. Verbose prompt-engineering built for older models → over-analysis. Drop CoT scaffolding ("think step by step in detail before answering"); tune `thinking_level` instead (mechanics: rule 1).
-- **Output verbosity:** 3.x terse by default (observed on 3, 3.1; re-confirm per release). Conversational tone → steer explicitly ("Explain this as a friendly, talkative assistant"). Never rely on the default.
-- **Consistent structure:** XML XOR Markdown for section delimiters. Pick one, convert the minority. Anti-pattern: per-section XML (`<rule_1>`) around already-Markdown sections (`## 1. Foo`) "for scope"; header already delimits, wrapper creates the prohibited mix. Whole-document meta blocks (`<role>`, `<scope>`) are not section delimiters and may coexist with a Markdown body. Curly-brace substitution is unrelated.
-- **Critical-instructions placement:** persona | behavioral constraints | output format → System Instruction, or the very start of the user prompt. Never after long context or examples. Start-and-end recency still applies as a closing reminder.
-- **Multimodal equal-class:** image/audio/video passed alongside text → reference each modality explicitly. Never name only the text input.
-- **Thinking-boost lever (narrow fallback):** highest `thinking_level` tried and named insufficient → "Think very hard before answering" buys performance with thinking tokens. Never default scaffolding.
-- **Context management:** rule 2.
+3.1. **Precise instructions:** be concise. Verbose prompt-engineering built for older models → over-analysis. Drop CoT scaffolding ("think step by step in detail before answering"); tune `thinking_level` instead (mechanics: rule 1).
+3.2. **Output verbosity:** 3.x terse by default (observed on 3, 3.1; re-confirm per release). Conversational tone → steer explicitly ("Explain this as a friendly, talkative assistant"). Never rely on the default.
+3.3. **Consistent structure:** XML XOR Markdown for section delimiters. Pick one, convert the minority. Anti-pattern: per-section XML (`<rule_1>`) around already-Markdown sections (`## 1. Foo`) "for scope"; header already delimits, wrapper creates the prohibited mix. Whole-document meta blocks (`<role>`, `<scope>`) are not section delimiters and may coexist with a Markdown body. Curly-brace substitution is unrelated.
+3.4. **Critical-instructions placement:** persona | behavioral constraints | output format → System Instruction, or the very start of the user prompt. Never after long context or examples. Start-and-end recency still applies as a closing reminder.
+3.5. **Multimodal equal-class:** image/audio/video passed alongside text → reference each modality explicitly. Never name only the text input.
+3.6. **Thinking-boost lever (narrow fallback):** highest `thinking_level` tried and named insufficient → "Think very hard before answering" buys performance with thinking tokens. Never default scaffolding.
+3.7. **Context management:** rule 2.
 
 ## 4. Gemini 3 Flash freshness and grounding clauses
 
@@ -72,9 +72,9 @@ task is time-sensitive or knowledge-grounded. Clause 3 fires on ANY Gemini 3.x
 target, Pro included, that answers from provided context or judges submitted
 work. Recommend in Key Changes:
 
-- **Current-day clause** (time-sensitive queries, tool-call freshness): follow the provided current date and year in search queries; state the year explicitly. The year is a runtime value the caller injects, never a literal typed into the prompt: a baked year is correct until it silently is not. Flash otherwise defaults to stale assumptions about "now".
-- **Knowledge-cutoff clause** (facts near the boundary): state the cutoff so the model defers to grounding for post-cutoff facts instead of parametric memory (confirm the current cutoff via rule 1; it moves with each release).
-- **Strict-grounding clause** (RAG / context-only answering; grading and judge prompts over a submission): rely ONLY on facts in the provided context or submission, never own knowledge or inference; anything not in context is unsupported; state when the answer or evidence is not present. Single highest-leverage clause for hallucination-sensitive grounded deployments, including rubric graders whose comments must anchor in the student's text.
+4.1. **Current-day clause** (time-sensitive queries, tool-call freshness): follow the provided current date and year in search queries; state the year explicitly. The year is a runtime value the caller injects, never a literal typed into the prompt: a baked year is correct until it silently is not. Flash otherwise defaults to stale assumptions about "now".
+4.2. **Knowledge-cutoff clause** (facts near the boundary): state the cutoff so the model defers to grounding for post-cutoff facts instead of parametric memory (confirm the current cutoff via rule 1; it moves with each release).
+4.3. **Strict-grounding clause** (RAG / context-only answering; grading and judge prompts over a submission): rely ONLY on facts in the provided context or submission, never own knowledge or inference; anything not in context is unsupported; state when the answer or evidence is not present. Single highest-leverage clause for hallucination-sensitive grounded deployments, including rubric graders whose comments must anchor in the student's text.
 
 ## 5. Reduce tool-call overuse, two levers in order
 
@@ -121,8 +121,8 @@ applies twice.
 cannot infer from the task earns its tokens. A dimension describing how to reason
 duplicates native thinking and competes with it.
 
-- Port: (2) risk assessment, which tool calls mutate state versus read; (5) information availability, what counts as unknown rather than inferable; (9) inhibit-response gate, when to stop and ask. Add (6) precision and grounding where exact-string or type fidelity matters, and (8) persistence only to set a retry limit.
-- Omit: (1) logical dependencies, (3) abductive reasoning, (4) outcome evaluation, (7) completeness. Written into the prompt they buy verbosity, not planning.
+6.1. Port: (2) risk assessment, which tool calls mutate state versus read; (5) information availability, what counts as unknown rather than inferable; (9) inhibit-response gate, when to stop and ask. Add (6) precision and grounding where exact-string or type fidelity matters, and (8) persistence only to set a retry limit.
+6.2. Omit: (1) logical dependencies, (3) abductive reasoning, (4) outcome evaluation, (7) completeness. Written into the prompt they buy verbosity, not planning.
 
 Triangulated, not probed: the vendor scopes the template's evaluation to
 complex-rulebook plus user-interaction agents, which is the policy class. That
@@ -172,8 +172,8 @@ prompt of it.
 
 Recommend in Key Changes:
 
-- Recent or obscure facts → Google Search grounding.
-- Any arithmetic, counting, calculation → code execution; never trust in-token computation.
+7.1. Recent or obscure facts → Google Search grounding.
+7.2. Any arithmetic, counting, calculation → code execution; never trust in-token computation.
 
 (Tool-declaration syntax is call-site mechanics: rule 1.)
 
@@ -228,41 +228,41 @@ bounded task (grading, extraction, classification) → re-test on both
 
 **Cross-cutting patterns (durable across generations):**
 
-- **Rankings are task-specific, not global.** Never port a win across task types without re-testing. Never emit a family-wide good/bad verdict from one task.
-- **Lite-tier models tend toward surface-pattern matching over semantic judgment** on tasks needing discrimination between real and superficially similar content: recall gaps on implicit evidence in grading, surface-feature gaming in item construction. Mitigate with an explicit enumeration/scan requirement (forces the surface-vs-semantic gap into a checkable list, per `FEEDBACK_GENERATION.md` F3), shaped as a fixed list walked with a per-item present/absent verdict, never a findings quota: a surface-matcher told to return N returns N, padded with lookalikes. Budget a second-order cost too: piling scan requirements onto a small model crowds out attention for other prompt-carried rules. A fix genuinely competing with another rule for attention → move the competing rule code-side rather than adding prompt text.
-- **Bigger/smarter is not automatically better**, and may not be worth its cost: one finding rejected a heavier reasoning model that shared the same constrained quota bucket, was slower, and gained no quality on that task. Check quota-sharing AND task-relevant quality gain before recommending a tier step-up.
-- **Instability is never a temperature fix.** Run-to-run flips on a 3.x target -> narrower checks (`GRADING_PIPELINE.md` G1.1), never a non-default temperature (default and deprecation status per rule 1). Caller already lowered it -> recommend restoring the default.
-- **A single clean benchmark run is the upper tail of variance**, not a stable baseline, at default sampling. Treat one clean result as optimistic; recommend a small multi-run check before declaring a winner, especially on a close call.
-- **A same-family "gold standard" inflates agreement.** Labels generated by one family and graded by the same family showed near-perfect agreement that dropped sharply against an independent non-LLM ground truth. Prefer independent ground truth over another LLM's opinion, especially same-family.
+9.1. **Rankings are task-specific, not global.** Never port a win across task types without re-testing. Never emit a family-wide good/bad verdict from one task.
+9.2. **Lite-tier models tend toward surface-pattern matching over semantic judgment** on tasks needing discrimination between real and superficially similar content: recall gaps on implicit evidence in grading, surface-feature gaming in item construction. Mitigate with an explicit enumeration/scan requirement (forces the surface-vs-semantic gap into a checkable list, per `FEEDBACK_GENERATION.md` F3), shaped as a fixed list walked with a per-item present/absent verdict, never a findings quota: a surface-matcher told to return N returns N, padded with lookalikes. Budget a second-order cost too: piling scan requirements onto a small model crowds out attention for other prompt-carried rules. A fix genuinely competing with another rule for attention → move the competing rule code-side rather than adding prompt text.
+9.3. **Bigger/smarter is not automatically better**, and may not be worth its cost: one finding rejected a heavier reasoning model that shared the same constrained quota bucket, was slower, and gained no quality on that task. Check quota-sharing AND task-relevant quality gain before recommending a tier step-up.
+9.4. **Instability is never a temperature fix.** Run-to-run flips on a 3.x target -> narrower checks (`GRADING_PIPELINE.md` G1.1), never a non-default temperature (default and deprecation status per rule 1). Caller already lowered it -> recommend restoring the default.
+9.5. **A single clean benchmark run is the upper tail of variance**, not a stable baseline, at default sampling. Treat one clean result as optimistic; recommend a small multi-run check before declaring a winner, especially on a close call.
+9.6. **A same-family "gold standard" inflates agreement.** Labels generated by one family and graded by the same family showed near-perfect agreement that dropped sharply against an independent non-LLM ground truth. Prefer independent ground truth over another LLM's opinion, especially same-family.
 
 ## 10. Quota and rate-limit behavior the hosted docs don't cover
 
 Empirical production findings, not documented mechanics: exception to rule 1's
 docs deferral, same as rule 8.
 
-- `gemini-3.1-flash-lite` has an empirically confirmed per-minute token ceiling well below its context window. A generic auto-retry loop (short fixed sleep, many attempts) on a long prompt exhausts it inside one wall-clock minute, producing repeated zero-output failures that read as model failures but are pacing failures. Long-prompt Flash-Lite work → single-shot calls with wide spacing (90+ seconds) over blind auto-retry. Re-verify whether the ceiling carries to `gemini-3.5-flash-lite`.
-- A newly released model on the free tier sheds load as HTTP 500 with a high-demand message BEFORE any quota 429 appears, and sheds a long prompt while a trivial one on the same key succeeds seconds earlier. A circuit breaker keyed on 429 alone reads this as a server fault and retries straight into the real quota wall: count consecutive 500s toward the same breaker.
-- Quota is tracked per model per key. Several keys with a fallback model -> spend the primary on every key before the fallback on any key: a key whose primary is spent still holds fallback quota.
-- Interactions API's 429 is a **different, strictly worse shape**: HTTP 200 with an SSE-embedded error, no `retryDelay`/`quotaId`/scope fields at all. No severity can be parsed out of the response; use a persistence-based circuit breaker (consecutive failures over a time window). A severity classifier built on legacy `generateContent` `RetryInfo` fields does not port: legacy retry wiring in the input is a migration defect to flag, never a path to tune.
+10.1. `gemini-3.1-flash-lite` has an empirically confirmed per-minute token ceiling well below its context window. A generic auto-retry loop (short fixed sleep, many attempts) on a long prompt exhausts it inside one wall-clock minute, producing repeated zero-output failures that read as model failures but are pacing failures. Long-prompt Flash-Lite work → single-shot calls with wide spacing (90+ seconds) over blind auto-retry. Re-verify whether the ceiling carries to `gemini-3.5-flash-lite`.
+10.2. A newly released model on the free tier sheds load as HTTP 500 with a high-demand message BEFORE any quota 429 appears, and sheds a long prompt while a trivial one on the same key succeeds seconds earlier. A circuit breaker keyed on 429 alone reads this as a server fault and retries straight into the real quota wall: count consecutive 500s toward the same breaker.
+10.3. Quota is tracked per model per key. Several keys with a fallback model -> spend the primary on every key before the fallback on any key: a key whose primary is spent still holds fallback quota.
+10.4. Interactions API's 429 is a **different, strictly worse shape**: HTTP 200 with an SSE-embedded error, no `retryDelay`/`quotaId`/scope fields at all. No severity can be parsed out of the response; use a persistence-based circuit breaker (consecutive failures over a time window). A severity classifier built on legacy `generateContent` `RetryInfo` fields does not port: legacy retry wiring in the input is a migration defect to flag, never a path to tune.
 
 ## Moved content
 
 Second-level routing, additive to this file:
 
-- **`GEMINI_MIGRATION.md`**: cross-family migration facts the docs don't state (tools + response_format scope across families, Gemma 4 schema-shape porting, prefilled model-turn validation, `thinking_level` shrinkage, the `gemini-3.8-flash` behavior break). Load one-time per prompt when EITHER legacy `generateContent` forms appear anywhere in the input OR the prompt is being carried across Gemini generations or served by a chain or router spanning them, or from Gemma 4 / Gemini 2.5, to a 3.x target. The trunk routes only the first trigger, so the second is this file's to fire.
+**`GEMINI_MIGRATION.md`**: cross-family migration facts the docs don't state (tools + response_format scope across families, Gemma 4 schema-shape porting, prefilled model-turn validation, `thinking_level` shrinkage, the `gemini-3.8-flash` behavior break). Load one-time per prompt when EITHER legacy `generateContent` forms appear anywhere in the input OR the prompt is being carried across Gemini generations or served by a chain or router spanning them, or from Gemma 4 / Gemini 2.5, to a 3.x target. The trunk routes only the first trigger, so the second is this file's to fire.
 
 ## Verify after changes
 
-- No API-mechanics claim (model ID, parameter, endpoint, request/response shape) answered from this file instead of the docs MCP (1).
-- Long-context prompts end on the query, not the data (2).
-- A `thinking_level` shared across a fallback chain or router is valid on every leg, or set per leg (5.1).
-- Chain-of-thought scaffolding replaced with a `thinking_level` recommendation, not left in place (3).
-- Freshness clauses present on Flash-tier targets with time-sensitive or knowledge-grounded tasks; strict-grounding clause present on any 3.x target answering from context or judging submitted work (4).
-- No planning block ported without a named failure and a `thinking_level` step-up tried first; none on a managed-agent target by default, and no ported policy duplicated across system instruction and instruction file; no ported dimension in text shared across model strings; ported dimensions are policy-carrying (2, 5, 9), never reasoning-describing (1, 3, 4, 7); each emitted as a clause rather than a label and arbitrated against rule 5 (6, 6a-6d).
-- No tagged or serialized block is required immediately before a tool call; pre-tool notes route to a declared `update` call or to Markdown headers (6e).
-- Every call names its `thinking_level` and job, never a token budget; any change rests on an 8.3 bench; no level raised for an 8.4 cause; long structured output carries an output cap, plus a truncation warning above medium (8).
-- Any recommended model swap names its currency caveat, tested on which generation and re-verify before porting, rather than standing as fact (9); a Flash successor is never assumed to be `gemini-3.8-flash` (9, `GEMINI_MIGRATION.md` 5).
-- Any 429/quota recommendation is written for Interactions (persistence-based circuit breaker), and legacy retry wiring is flagged as a migration defect rather than tuned (10).
+1. No API-mechanics claim (model ID, parameter, endpoint, request/response shape) answered from this file instead of the docs MCP (1).
+2. Long-context prompts end on the query, not the data (2).
+3. A `thinking_level` shared across a fallback chain or router is valid on every leg, or set per leg (5.1).
+4. Chain-of-thought scaffolding replaced with a `thinking_level` recommendation, not left in place (3).
+5. Freshness clauses present on Flash-tier targets with time-sensitive or knowledge-grounded tasks; strict-grounding clause present on any 3.x target answering from context or judging submitted work (4).
+6. No planning block ported without a named failure and a `thinking_level` step-up tried first; none on a managed-agent target by default, and no ported policy duplicated across system instruction and instruction file; no ported dimension in text shared across model strings; ported dimensions are policy-carrying (2, 5, 9), never reasoning-describing (1, 3, 4, 7); each emitted as a clause rather than a label and arbitrated against rule 5 (6, 6a-6d).
+7. No tagged or serialized block is required immediately before a tool call; pre-tool notes route to a declared `update` call or to Markdown headers (6e).
+8. Every call names its `thinking_level` and job, never a token budget; any change rests on an 8.3 bench; no level raised for an 8.4 cause; long structured output carries an output cap, plus a truncation warning above medium (8).
+9. Any recommended model swap names its currency caveat, tested on which generation and re-verify before porting, rather than standing as fact (9); a Flash successor is never assumed to be `gemini-3.8-flash` (9, `GEMINI_MIGRATION.md` 5).
+10. Any 429/quota recommendation is written for Interactions (persistence-based circuit breaker), and legacy retry wiring is flagged as a migration defect rather than tuned (10).
 
 ## Closing directive recap
 

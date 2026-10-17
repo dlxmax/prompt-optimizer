@@ -62,9 +62,9 @@ text = interaction.output_text
 ```
 
 Observed:
-- Zeroes thinking: `usage.total_thought_tokens` -> 0, MALFORMED -> 0%. The `thought` step STAYS in `steps[]`, empty. Never assert `len(steps)==1` or `steps[0]=='model_output'`; branch on `usage.total_thought_tokens`.
-- ~30-40x wall-clock speedup on short outputs.
-- Only reliable Gemma 4 thinking suppression. `thinking_level` unsupported (rule 6).
+1.1. Zeroes thinking: `usage.total_thought_tokens` -> 0, MALFORMED -> 0%. The `thought` step STAYS in `steps[]`, empty. Never assert `len(steps)==1` or `steps[0]=='model_output'`; branch on `usage.total_thought_tokens`.
+1.2. ~30-40x wall-clock speedup on short outputs.
+1.3. Only reliable Gemma 4 thinking suppression. `thinking_level` unsupported (rule 6).
 
 Reasoning wanted -> bounded `reasoning` field in the schema (rule 3 property
 order). `thinking_summaries` is not a Gemma 4 control (rule 14); never offer it
@@ -91,10 +91,10 @@ following `string` inflates to justify it. Length caps in `description` ("max 10
 words") are weakly enforced once the verdict commits.
 
 **Application:**
-- Judge/audit schemas: order `index, reasoning, verdict, reason` (or equivalent decision field). Reasoning `string` defined first.
-- Keep `verdict` a tight `enum` (`KEEP`/`DROP`) so it parses cleanly once committed.
-- Keep `reasoning` and `reason` separate where both an audit trail and a short downstream tag are needed; else collapse to one length-capped `reasoning`.
-- Applies at any schema width. Rules 2 and 4, which used to restrict this to narrow schemas and to one unbounded `string` per `object`, no longer reproduce.
+3.1. Judge/audit schemas: order `index, reasoning, verdict, reason` (or equivalent decision field). Reasoning `string` defined first.
+3.2. Keep `verdict` a tight `enum` (`KEEP`/`DROP`) so it parses cleanly once committed.
+3.3. Keep `reasoning` and `reason` separate where both an audit trail and a short downstream tag are needed; else collapse to one length-capped `reasoning`.
+3.4. Applies at any schema width. Rules 2 and 4, which used to restrict this to narrow schemas and to one unbounded `string` per `object`, no longer reproduce.
 
 **Caveat:** property-order honouring is empirical, not documented. Belt-and-
 braces: order `properties` in the desired generation order AND add an explicit
@@ -167,11 +167,11 @@ never tune it down to control thinking.
 
 Never share one retry policy across these classes:
 
-- **HTTP 5xx (500/503 INTERNAL)** -> fast exponential backoff, same parameters, max 4 attempts. Baseline transient rate ~20%, the expected Interactions baseline.
-- **HTTP 429 RATE_LIMIT_EXCEEDED** -> read the body before routing. Substring-check `error.details[].violations[].quotaId` for `"PerDay"`: present = RPD (hard exhaustion), advance the chain permanently; absent = RPM (transient, ~60s window), stay on the same model with backoff. Status code alone does not distinguish. Free Gemma 4 = 15 RPM: a naive "429 means exhausted, advance" handler permanently drops the model after a 60s burst; the standard 1s + 10s + 30s schedule reaches the RPM clear window naturally.
-- **`MALFORMED_RESPONSE`** (empty visible output, large `usage.total_thought_tokens`) -> parameter changes (temperature 1.0 -> 0.85 -> 0.75, or enable `response_format` if off), max 3 attempts. The same call repeated fails the same way.
-- **`MAX_TOKENS` with degenerate output** -> rule 2's loop no longer reproduces; treat as a normal retry, re-probe rule 2 if it recurs.
-- **Alternating 400/500 on a schema-bearing call** -> rule 4's crash no longer reproduces, so do not assume a schema fault. Bisect anyway before exhausting retries; the bisect is cheap and settles it.
+8.1. **HTTP 5xx (500/503 INTERNAL)** -> fast exponential backoff, same parameters, max 4 attempts. Baseline transient rate ~20%, the expected Interactions baseline.
+8.2. **HTTP 429 RATE_LIMIT_EXCEEDED** -> read the body before routing. Substring-check `error.details[].violations[].quotaId` for `"PerDay"`: present = RPD (hard exhaustion), advance the chain permanently; absent = RPM (transient, ~60s window), stay on the same model with backoff. Status code alone does not distinguish. Free Gemma 4 = 15 RPM: a naive "429 means exhausted, advance" handler permanently drops the model after a 60s burst; the standard 1s + 10s + 30s schedule reaches the RPM clear window naturally.
+8.3. **`MALFORMED_RESPONSE`** (empty visible output, large `usage.total_thought_tokens`) -> parameter changes (temperature 1.0 -> 0.85 -> 0.75, or enable `response_format` if off), max 3 attempts. The same call repeated fails the same way.
+8.4. **`MAX_TOKENS` with degenerate output** -> rule 2's loop no longer reproduces; treat as a normal retry, re-probe rule 2 if it recurs.
+8.5. **Alternating 400/500 on a schema-bearing call** -> rule 4's crash no longer reproduces, so do not assume a schema fault. Bisect anyway before exhausting retries; the bisect is cheap and settles it.
 
 ## 9. Schema-shape patterns for batch JSON output
 

@@ -62,8 +62,8 @@ JSON OUTPUT. Never leave a grading call with neither.
 `response_format={"type": "json_object"}` is V4's only JSON-shape enforcement;
 no `responseSchema` analogue on the native API. Two prompt-text requirements:
 
-- System OR user message MUST contain the literal word "json". Without it: HTTP 400, `Prompt must contain the word 'json' in some form to use 'response_format' of type 'json_object'`. Fails fast; the old whitespace-until-`max_tokens` hang no longer reproduces, so budget no timeout for it.
-- Include a concrete JSON example block. EXAMPLE INPUT + EXAMPLE JSON OUTPUT reduces the empty-response rate; docs prescribe "modify the prompt" for occasional empty content.
+2.1. System OR user message MUST contain the literal word "json". Without it: HTTP 400, `Prompt must contain the word 'json' in some form to use 'response_format' of type 'json_object'`. Fails fast; the old whitespace-until-`max_tokens` hang no longer reproduces, so budget no timeout for it.
+2.2. Include a concrete JSON example block. EXAMPLE INPUT + EXAMPLE JSON OUTPUT reduces the empty-response rate; docs prescribe "modify the prompt" for occasional empty content.
 
 JSON mode binds no schema. Carry the schema in prose, validate parsed output
 caller-side. Set `max_tokens` >=2x the longest expected output so truncation
@@ -82,9 +82,9 @@ Empty content is intermittent: at most 2 identical retries, 3rd attempt changes
 a parameter. Past that, the same call with the same parameters fails the same
 way. Change one of:
 
-- Step temperature down (1.0 → 0.85 → 0.7).
-- Add or expand the in-prompt JSON example.
-- Tighten the schema description to reduce prompt-text drift.
+3.1. Step temperature down (1.0 → 0.85 → 0.7).
+3.2. Add or expand the in-prompt JSON example.
+3.3. Tighten the schema description to reduce prompt-text drift.
 
 ## 4. Disable thinking before tuning sampling parameters
 
@@ -106,18 +106,18 @@ Default `tools` returns "best-effort" JSON; arguments may include parameters
 outside the schema. Strict mode forces schema-conformant arguments, under three
 constraints:
 
-1. `base_url="https://api.deepseek.com/beta"`.
-2. Every `function` in `tools` sets `"strict": true`.
-3. Server validates the JSON Schema, rejects non-conforming.
+6.1. `base_url="https://api.deepseek.com/beta"`.
+6.2. Every `function` in `tools` sets `"strict": true`.
+6.3. Server validates the JSON Schema, rejects non-conforming.
 
 Strict-mode schema rules (prompt-design constraints, not just mechanics):
 
-- Every `object` MUST list every property in `required`. No "optional field" concept: a property absent from `required` → 400 `Required properties must match all properties in the object`. This is the one hard schema rejection.
-- `additionalProperties: false` is convention, not enforced: omitting it returns 200.
-- `minLength`, `maxLength`, `minItems`, `maxItems`, `minimum`, `pattern`, `format`, `anyOf` are all ACCEPTED (200). Acceptance is not enforcement, and enforcement is untested; the schema cannot carry these, so keep length and count constraints in the prompt body and validate caller-side regardless.
-- Forced `tool_choice` + default thinking → 400 `Thinking mode does not support this tool_choice`. Strict tool calls need `thinking: {"type": "disabled"}` (rule 1).
-- Supported: `object`, `string`, `number`, `integer`, `boolean`, `array`, `enum`, `anyOf`, plus `$ref`/`$def` for reuse and recursion.
-- Max 128 functions per call.
+6.4. Every `object` MUST list every property in `required`. No "optional field" concept: a property absent from `required` → 400 `Required properties must match all properties in the object`. This is the one hard schema rejection.
+6.5. `additionalProperties: false` is convention, not enforced: omitting it returns 200.
+6.6. `minLength`, `maxLength`, `minItems`, `maxItems`, `minimum`, `pattern`, `format`, `anyOf` are all ACCEPTED (200). Acceptance is not enforcement, and enforcement is untested; the schema cannot carry these, so keep length and count constraints in the prompt body and validate caller-side regardless.
+6.7. Forced `tool_choice` + default thinking → 400 `Thinking mode does not support this tool_choice`. Strict tool calls need `thinking: {"type": "disabled"}` (rule 1).
+6.8. Supported: `object`, `string`, `number`, `integer`, `boolean`, `array`, `enum`, `anyOf`, plus `$ref`/`$def` for reuse and recursion.
+6.9. Max 128 functions per call.
 
 ## 7. Forward `reasoning_content` on every follow-up turn after a tool call [OpenAI]
 
@@ -150,15 +150,15 @@ inferring it.
 V4 uses sliding-window attention (DSA: DeepSeek Sparse Attention) with a
 disk-based prefix cache. Prefix units persist at three points:
 
-1. End of each user input and end of each model output (two cache units per call).
-2. Common prefix detected across multiple requests.
-3. Fixed token intervals for long inputs or outputs.
+9.1. End of each user input and end of each model output (two cache units per call).
+9.2. Common prefix detected across multiple requests.
+9.3. Fixed token intervals for long inputs or outputs.
 
 A later request hits cache only on a **full** match of a persisted prefix unit.
 
-- Stable content (role, schema, evaluation criteria) at the very top, so it participates in every cache unit.
-- Volatile content (timestamps, request IDs) below the stable block, never at the top.
-- Monitor `usage.prompt_cache_hit_tokens` / `usage.prompt_cache_miss_tokens` to verify structure.
+9.4. Stable content (role, schema, evaluation criteria) at the very top, so it participates in every cache unit.
+9.5. Volatile content (timestamps, request IDs) below the stable block, never at the top.
+9.6. Monitor `usage.prompt_cache_hit_tokens` / `usage.prompt_cache_miss_tokens` to verify structure.
 
 Cache state does not change output randomness; cached and fresh calls differ at
 non-zero temperature.
@@ -279,8 +279,8 @@ re-prompting; never auto-retry.
 
 While a request waits for scheduling the API emits:
 
-- Non-streaming: continuous empty lines on the open HTTP connection.
-- Streaming: SSE keep-alive comments (`: keep-alive`).
+16.1. Non-streaming: continuous empty lines on the open HTTP connection.
+16.2. Streaming: SSE keep-alive comments (`: keep-alive`).
 
 No JSON in either. Parse line-by-line only after filtering blank lines and `:
 keep-alive`; a parser treating every non-blank line as content breaks.
@@ -289,9 +289,9 @@ timeouts to that ceiling.
 
 ## 17. Back off and retry on 429 against the same model; never advance a fallback chain
 
-- `429 Rate Limit Reached` reflects **current server concurrency**, not exhausted quota. Back off, retry the same model. Never advance a fallback chain on 429.
-- `500 Server Error` and `503 Server Overloaded` are transient. Standard exponential backoff (1s + 10s + 30s).
-- 429 persisting past the full 1s + 10s + 30s schedule → route to a different vendor, not to the next V4 model in a fallback chain: both V4 models share the concurrency pool, so advancing within it changes nothing. No per-account quota increase is available.
+17.1. `429 Rate Limit Reached` reflects **current server concurrency**, not exhausted quota. Back off, retry the same model. Never advance a fallback chain on 429.
+17.2. `500 Server Error` and `503 Server Overloaded` are transient. Standard exponential backoff (1s + 10s + 30s).
+17.3. 429 persisting past the full 1s + 10s + 30s schedule → route to a different vendor, not to the next V4 model in a fallback chain: both V4 models share the concurrency pool, so advancing within it changes nothing. No per-account quota increase is available.
 
 No per-day quota distinction analogous to the Gemini free tier; 429 is purely
 transient.
@@ -349,11 +349,11 @@ constraints there even where the SDK accepts the field. Strict tool-calling on
 and type constraints are enforced and are not anti-patterns. Outside strict
 mode, refuse these phrases in Key Changes:
 
-- "add field X before Y for property-order emission"
-- "make field X required to force emission"
-- "add an enum constraint to bound output"
-- "constrain via nested object shape"
-- "position field BEFORE Y in schema"
+22.1. "add field X before Y for property-order emission"
+22.2. "make field X required to force emission"
+22.3. "add an enum constraint to bound output"
+22.4. "constrain via nested object shape"
+22.5. "position field BEFORE Y in schema"
 
 On V4 all behavioral steering goes in prose: directive text, EXAMPLE INPUT +
 EXAMPLE JSON OUTPUT, concrete rubric language. Gemma 4 schema-shape patterns do
@@ -386,11 +386,11 @@ twelve (`tool_calls` on tool-bearing paths; both are success), parseable JSON,
 zero empty `content`. `finish_reason=length` on any of the twelve = `max_tokens`
 ceiling too low, not a prompt defect. On failure:
 
-- Empty content under JSON mode → rule 2 (add example, ensure "json" literal) or rule 3 (parameter change, not same-call retry).
-- Hang or 10-minute timeout → prose schema was ambiguous; tighten.
-- 400 on a tool-bearing follow-up turn → rule 7 (forward `reasoning_content` from the prior tool-using assistant turn).
-- 429 burst → rule 17 (back off, do not chain-advance).
-- Unexpected Flash behavior on a Pro request via the Anthropic endpoint → rule 10 (model name validation).
+1. Empty content under JSON mode → rule 2 (add example, ensure "json" literal) or rule 3 (parameter change, not same-call retry).
+2. Hang or 10-minute timeout → prose schema was ambiguous; tighten.
+3. 400 on a tool-bearing follow-up turn → rule 7 (forward `reasoning_content` from the prior tool-using assistant turn).
+4. 429 burst → rule 17 (back off, do not chain-advance).
+5. Unexpected Flash behavior on a Pro request via the Anthropic endpoint → rule 10 (model name validation).
 
 ## Closing reminder
 
