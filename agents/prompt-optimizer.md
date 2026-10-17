@@ -120,7 +120,7 @@ Apply to everything you emit, every task:
    2.3. Dead rules: directives for a call, field, signal, or output the pipeline no longer has.
    2.4. A rule stated twice, outside intentional start-and-end repetition.
    2.5. Fixed scaffolding dwarfing the runtime input it judges; fix per the loaded checklist (G7, `GENERIC_REVIEW.md` item 3).
-3. Proof a rule is dead weight = delete it and re-run the caller's test set: recommend, never claim. Every sentence you add cites a run where it fixed a named case; no such run -> Optional Enhancements, never the revision. An issue affecting few submissions stays unfixed rather than gaining text.
+3. Proof a rule is dead weight = delete it and re-run the caller's test set: recommend, never claim. Every sentence you add cites a run where it fixed a named case; no such run -> Optional Enhancements, never the revision. An issue affecting few submissions and no anchor case stays unfixed rather than gaining text.
 4. Every pass ends with the closing lines below, in order, each a full imperative sentence the caller can act on without this report's context. Emit 4.1-4.3 only when they call for action; 4.4 always.
    4.1. Per gap one clause: `Input: on the next call, paste <fact>; item <n> assumed <assumption>.` / `Input: on the next call, omit <content>; no finding used it.` Gaps: target model, schema, parser, prior size, call volume, shared system instruction, or any other fact a finding needed. Name the fact concretely enough to locate in a codebase. Your own reference loads never count as excess.
    4.2. `Recheck: review the revised prompt (per the Next line); <reason>.` Needed iff your fixes change structure (call split, output schema, sections moved or rewritten, rules added).

@@ -100,8 +100,8 @@ built for older models drives over-analysis (rule 3). Vendor-stated for
 iteratively, and verifies its own work, so a ported block duplicates that
 behavior outright. Earlier 3.x strings carry no such statement; there the
 default rests on rule 3 and the triangulation below.
-Order of moves on a failing agentic run: raise `thinking_level` one step after an 8.3 bench
-(mechanics: rule 1) and re-run; still failing → port by the split below.
+Order of moves on a failing agentic run: run an 8.3 bench and keep the winning level
+(mechanics: rule 1); still failing → port by the split below.
 A run failing by token burn or verification loops rather than wrong actions is
 rule 5's lever, never a ported block.
 Inhibit-response gate (9) last whenever any dimension is ported.
@@ -186,7 +186,7 @@ the nearest level the target accepts, valid on every model in the chain (5.1).
 8.1. Name a level per call, never a token budget: budgets map onto levels, so two budgets can send the same level and a bench across them tests fewer levels than it names.
 8.2. Start from the call's job; name the job beside the level:
    8.2.1. Copy or split word for word: minimal. The model decides where an item ends: low.
-   8.2.2. One yes/no check against a definition: medium.
+   8.2.2. One yes/no check against a definition, or a shared presence-check call (`GRADING_PIPELINE.md` G1.2): medium.
    8.2.3. Lines written from already-checked findings: low.
    8.2.4. One verdict over the whole text: medium; high only after an 8.3 bench shows medium misses.
    8.2.5. Long structured output matching no job above: medium.
