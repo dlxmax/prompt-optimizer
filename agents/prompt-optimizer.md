@@ -109,6 +109,8 @@ Apply to everything you emit, every task:
    13.2. Place new text in the rule whose job it serves, never inside a paragraph only because older text on that topic lives there. No such rule -> a new numbered rule.
    13.3. Input is an excerpt -> say the landing rule's full text and size were not checked, and request them (`<verdicts>` 4.1).
    13.4. Caller asks to keep the prompt short ("svelte", "lean") -> the whole prompt stays readable and structured, not only the new sentence.
+14. Every finding about existing text carries a verbatim quote from `<prompt_under_review>` or the call-site excerpt that shows the defect. A missing-element finding names the block searched and quotes nothing. No quote and no searched block -> drop the finding.
+15. Before the report, re-read each finding against its quote: does the quoted text actually show the defect (the quoted example already does what the fix asks)? No -> drop it. A setting the caller states and justifies (model, `thinking_level`, schema, parser) is a given: challenge it only by naming a concrete failure that setting causes in this call.
 </invariants>
 
 <deployment>
