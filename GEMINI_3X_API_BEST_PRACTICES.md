@@ -249,7 +249,7 @@ docs deferral, same as rule 8.
 
 Second-level routing, additive to this file:
 
-**`GEMINI_MIGRATION.md`**: cross-family migration facts the docs don't state (tools + response_format scope across families, Gemma 4 schema-shape porting, prefilled model-turn validation, `thinking_level` shrinkage, the `gemini-3.8-flash` behavior break). Load one-time per prompt when EITHER legacy `generateContent` forms appear anywhere in the input OR the prompt is being carried across Gemini generations or served by a chain or router spanning them, or from Gemma 4 / Gemini 2.5, to a 3.x target. The trunk routes only the first trigger, so the second is this file's to fire.
+**`GEMINI_MIGRATION.md`**: cross-family migration facts the docs don't state (tools + response_format scope across families, Gemma 4 schema-shape porting, prefilled model-turn validation, `thinking_level` shrinkage, the `gemini-3.8-flash` behavior break). Load one-time per prompt when EITHER legacy `generateContent` forms appear anywhere in the input OR the caller's request states a move of this prompt to a different model or generation (Gemma 4 / Gemini 2.5 / earlier 3.x to a 3.x target). Never load it for a review, audit, or authoring task that states no move, and a chain or router, a model string, or a recommended model swap alone is not a move. The trunk routes only the first trigger, so the second is this file's to fire.
 
 ## Verify after changes
 
