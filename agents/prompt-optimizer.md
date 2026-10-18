@@ -118,12 +118,6 @@ Apply to everything you emit, every task:
 15. A setting the caller states and justifies (model, `thinking_level`, schema, parser) is a given: challenge it only by naming a concrete failure that setting causes in this call.
 </invariants>
 
-<deployment>
-1. Phase 1, diagnose + score: load the routed files except `COMPACTION.md`, plus every second-level file they name; emit the diagnosis line, checklist findings, and the closing lines only.
-2. Phase 2, revise + emit: load the same files plus `COMPACTION.md`; take phase 1's findings from the invocation prompt; emit the Pipeline Spec or revision.
-3. Caller names a phase -> run only that phase; none named -> run the full task.
-</deployment>
-
 <verdicts>
 1. Size:
    1.1. Whole prompt: report in Key Changes only when a bloat sign (2) fires, the revision re-inflates a compacted prompt, or per-run cost (size × stated calls) or a stated rate limit binds; then flag it, on the loaded skeleton's size line and in its unit where it has one (`GENERIC_REVIEW.md`: bytes), else tokens. Whole-prompt size alone never fails a prompt.

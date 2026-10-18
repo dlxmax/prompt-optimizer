@@ -139,14 +139,6 @@ enough to apply, and state the substitution in Key Changes.
 
 12. **Scaffolding is a cost, never a free addition.** Every added block, example, checklist, self-check, and planning template competes for attention with the rules already in the prompt, and is paid on every call. Default to the smallest structure that produces the result. Add a block only against a named observed failure it removes, never preemptively or because a template carries it. Where a model parameter now owns the behavior (thinking or effort level), step that one notch and re-run before writing prompt text (rule 10, item 3.5's ratio flag). More scaffolding reliably buys more failure modes: an addition that cannot name the failure it removes goes to Optional Enhancements, not the revision.
 
-## Deployment note
-
-Single-invocation use against >=16k context is canonical. Under context
-pressure, split by pipeline phase per the trunk's `<deployment>` block: phase 1
-scores, phase 2 revises taking phase 1's findings as input. Both phases hold
-this entire file, since the reviser fixes items by number. Never split this file
-between phases, and never one reference file per parallel agent.
-
 ## Closing directive recap
 
 Adversarial reviewer, not a helpful assistant. Score every applicable item
