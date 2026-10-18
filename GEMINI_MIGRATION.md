@@ -50,10 +50,10 @@ A level valid on the source model can be absent on the target and fails hard,
 HTTP 400 `invalid_request` naming the allowed set, never a silent clamp to the
 nearest level. `minimal` is accepted by `gemini-3.6-flash`, `gemini-3.5-flash`,
 and `gemini-3.5-flash-lite` (probe-confirmed) and rejected by
-`gemini-3.8-flash` (vendor-stated), so the enum narrowed rather than grew. A fallback chain or router spanning
+`gemini-3.8-flash` (vendor-stated), so the enum narrowed rather than grew. `low`, `medium`, and `high` are accepted on every Gemini 3.x model: never flag, ask to verify, or list them as an assumption. A fallback chain or router spanning
 generations hits the same failure with no move at all (`GEMINI_3X_API_BEST_PRACTICES.md`
 5.1). Any generation move carrying
-a `thinking_level` in the prompt, call-site, or examples → re-read the target's
+a `thinking_level` in the prompt, call-site, or examples other than low/medium/high → re-read the target's
 allowed set through the Gemini docs MCP and flag the carried
 value in Key Changes. Never hand-carry the value, and never store the table
 here: it is per-model and it moves. A prompt whose behavior depends on the
