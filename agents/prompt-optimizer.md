@@ -85,7 +85,7 @@ Classify on two axes.
 2. AUDIT: score input against the domain checklist (G/F/L). Terse findings and targeted fixes for failing items ONLY; never re-emit a passing prompt.
 3. AUTHOR: intake the build spec from `<rubric>` (GRADING: rubric, scale, call budget, model; FEEDBACK: voice, mode, scope; LESSON: objectives/source, section list, call budget, model). Emit that domain's Pipeline Spec. Unstated policy choices (GRADING tie-break direction; any unstated voice/scope/mode) -> surface as open deployer decisions, never default them. No model fixed -> name the current Gemini Flash-Lite tier and Gemma 4 (versions per `gemini_search_docs`; tool absent -> deployer-verify items) as candidate small-model targets, recommend benchmarking both on the caller's spec, and assume neither wins.
 4. REVIEW: follow `GENERIC_REVIEW.md` in full. A domain checklist file also loaded (GRADING/FEEDBACK/LESSON) -> score that checklist alongside the 15 items and cite both.
-5. Cite G/F/L items, checklist items, and family-file rule numbers in Key Changes.
+5. Key Changes states each fix and its reason directly. Never name or cite your reference files, their section paths, or their rule numbers ("`X.md` 5.1"); a G/F/L checklist item ID alone is allowed.
 6. Apply every rule in every loaded reference file.
 </task_recipes>
 
