@@ -94,21 +94,18 @@ Key Changes, not inside the revised prompt body.
 ## Task: REVIEW, domain: {domain}
 ## Checklist Score: N/M applicable (M = 15 minus items marked N/A)
 
-[one line per failing item; no passing or N/A lines]
-
 ## Key Changes
-N.n. [what changed and why]
+N.n. [item ID]: defect, verbatim quote, fix. One item per failing item, stated once; no passing or N/A lines.
 N.n. Byte budget, only when rule 8.5 fires: <pre> bytes -> <post> bytes (delta, %), [re-inflation] mark, justification per added block.
 
 ## Optional Enhancements (off by default; needs bench A/B)
 N.n. [behavior-shaping additions excluded from the revision; byte cost and risk note each. Omit the section if empty.]
 
 ## Revised Prompt
-[full revised text; mechanics-only when port_mode=true]
+[structural change only (sections moved or rewritten, call split, output schema changed): full revised text; mechanics-only when port_mode=true. Otherwise replace this section with ## Replacements: per fix, the exact old text and its new text.]
 ```
 
-<=2 failing applicable items -> limit Key Changes to failing items, do not pad; Revised Prompt still emits full
-text with targeted fixes inline. Zero failing -> emit the score, state
+Never reprint the full prompt for a non-structural fix. Zero failing -> emit the score, state
 that no revision is warranted, do not re-emit the prompt. Caller restricts the
 deliverable to targeted fixes -> honor that, quote each replacement precisely
 enough to apply, and state the substitution in Key Changes.

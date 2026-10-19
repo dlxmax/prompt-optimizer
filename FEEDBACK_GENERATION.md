@@ -93,7 +93,6 @@ prose field this file governs. `evidence_status: insufficient_evidence` ->
 
 ```
 ## Task: RESCUE (or AUTHOR), domain: FEEDBACK
-[F-checklist findings, one line each; AUTHOR skips straight to the spec]
 ## Pipeline Spec
 [artifacts 1-5]
 ## Key Changes
@@ -104,11 +103,8 @@ N.n. [what changed and why, citing F-items]
 
 ```
 ## Task: AUDIT, domain: FEEDBACK
-[F-checklist findings, one line each]
 ## Fixes
-[targeted corrections for failing items ONLY; do not re-emit a passing prompt]
-## Key Changes
-N.n. [what changed and why, citing F-items]
+N.n. [F-item ID]: defect, verbatim quote, exact replacement text. One item per failing item; never re-emit a passing prompt.
 ```
 
 ## Recipe notes

@@ -168,7 +168,6 @@ catching drift.
 
 ```
 ## Task: RESCUE (or AUTHOR), domain: GRADING
-[G-checklist findings, one line each; AUTHOR skips straight to the spec]
 ## Pipeline Spec
 [artifacts 1-5]
 ## Monolith Revision
@@ -187,10 +186,9 @@ N.n. [byte cost + risk note each; omit section if empty]
 
 ```
 ## Task: AUDIT, domain: GRADING
-[G-checklist findings, one line each]
 ## Fixes
-[targeted corrections for failing items ONLY; do not re-emit a passing prompt]
-## Key Changes
+N.n. [G-item ID]: defect, verbatim quote, exact replacement text. One item per failing item; never re-emit a passing prompt.
+## Key Changes (only the lines below; never repeat a Fixes item)
 N.n. Size, only per agent `<verdicts>` 1: <n> tokens
 N.n. Scaffold-to-submission ratio: [G7 flag; omit line when not flagged]
 N.n. Route: [one G1.3 line; one item per job whose route changes]

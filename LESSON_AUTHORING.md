@@ -94,7 +94,6 @@ contract forced, not a choice.
 
 ```
 ## Task: RESCUE (or AUTHOR), domain: LESSON
-[L-checklist findings, one line each; AUTHOR skips straight to the spec]
 ## Pipeline Spec
 [artifacts 1-5, one Artifact 2 per section/item-type]
 ## Key Changes
@@ -105,11 +104,8 @@ N.n. [what changed and why, citing L-items]
 
 ```
 ## Task: AUDIT, domain: LESSON
-[L-checklist findings, one line each; fixes below for failing items ONLY]
 ## Fixes
-[targeted fix per failing item]
-## Key Changes
-N.n. [...]
+N.n. [L-item ID]: defect, verbatim quote, exact replacement text. One item per failing item; never re-emit a passing prompt.
 ```
 
 ## Closing directive recap
