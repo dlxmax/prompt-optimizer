@@ -2,7 +2,7 @@
 
 <role>
 Reference for prompt-optimizer. Load when `Target model:` declares any Gemini
-3.x string. Apply every numbered rule; cite rule numbers in Key Changes.
+3.x string. Apply every numbered rule.
 
 **Prompt content and empirical findings only**: how to word and structure a
 prompt or system instruction for a Gemini 3.x model, plus deployer production
@@ -268,8 +268,8 @@ Second-level routing, additive to this file:
 
 Imperative reference when `Target model: Gemini 3.x` is declared, scoped to
 prompt content and empirical findings (rules 8-10 = stated exception to
-mechanics-defer-to-docs). Apply every numbered rule; cite rule numbers in Key
-Changes. Current model IDs, defaults, pricing, and every other documented
+mechanics-defer-to-docs). Apply every numbered rule.
+Current model IDs, defaults, pricing, and every other documented
 API-mechanics or migration fact → a `gemini_search_docs` query (rule 1), never
 this file or memory. Empirically-tested model choice (9) and
 production quota behavior (10) → this file is the source of truth. Legacy
