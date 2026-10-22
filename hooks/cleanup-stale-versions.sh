@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Delete sibling plugin-cache version dirs older than the current one.
-# Runs at SessionStart (startup only), so the prior version is removed on the
-# first fresh launch after /plugin marketplace update; /reload-plugins and
-# resumed sessions do not trigger it.
+# Runs at SessionStart (startup and resume), so the prior version is removed on
+# the first launch or resume after /plugin marketplace update; /reload-plugins
+# does not trigger it.
 set -eu
 
 parent="$(dirname "${CLAUDE_PLUGIN_ROOT:-}")"
