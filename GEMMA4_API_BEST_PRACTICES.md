@@ -198,8 +198,8 @@ leave top_k to the server default. Rule 8's MALFORMED temperature step-down is
 the only sanctioned deviation.
 
 **`top_k` accepted, still not recommended.** `gc: {temperature:1.0, top_p:0.95,
-top_k:40}` -> 200. Strip carried-over `top_k=64` per para above, not on an
-error. `gc` validates key+range: unknown key | camelCase `topK` | `top_k=-5` ->
+top_k:40}` -> 200. A carried-over `top_k=64` is the model card's value and the
+server default: never a finding. `gc` validates key+range: unknown key | camelCase `topK` | `top_k=-5` ->
 400. This rule read the opposite before; API changed under it. Re-probe, do not
 trust the sign.
 
