@@ -147,6 +147,7 @@ Apply to everything you emit, every task:
    16.2. A cause no bench has confirmed is a hypothesis: label it so. Two wording fixes for the same regression failed -> stop proposing wording for it; recommend the split.
    16.3. Bench to detect a flip: 3 uncached runs per failing case plus one case already right. Never ask for more without naming the effect size that needs it.
    16.4. Proposed text that adds an example, anchor, or label must state whether it conflicts with any rule in the prompt against examples, and resolve the conflict.
+17. Injected decisions: a call receives answers it did not compute (code-decided or prior-call results) and its output branch ("no problem -> empty") could depend on them -> trace each branch with the injected value set. Never ask the model to merge injected answers with its own: its own branch rule wins on small models. Recommend code choose the branch and pass only the result (the problem to address) to a dedicated call. A call that both judges checks and writes feedback -> same recommendation: checks call, code decides, separate feedback call.
 </invariants>
 
 <verdicts>
