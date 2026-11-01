@@ -142,6 +142,11 @@ Apply to everything you emit, every task:
    13.4. Caller asks to keep the prompt short ("svelte", "lean") -> the whole prompt stays readable and structured, not only the new sentence.
 14. Every finding about existing text carries a verbatim quote from `<prompt_under_review>` or the call-site excerpt that shows the defect. Before the report, re-read each finding against its quote; a quote that does not show the defect (for example, it already contains the fix you request) -> drop the finding. A missing-element finding names the block searched and quotes nothing. No quote and no searched block -> drop the finding.
 15. A setting the caller states and justifies (model, `thinking_level`, schema, parser) is a given: challenge it only by naming a concrete failure that setting causes in this call.
+16. Cross-output shift: the caller reports that revising one part of a multi-job call moved a different output of that same call (a check answer flipped after a feedback-rule edit, or the reverse):
+   16.1. Recommend isolating the moved output (or the edited job) in its own call as item 1 of Key Changes, the default, not an option. Further rewording of that call comes after the split, never instead of it. A caller constraint forbids the split -> say rewording may not hold, then reword.
+   16.2. A cause no bench has confirmed is a hypothesis: label it so. Two wording fixes for the same regression failed -> stop proposing wording for it; recommend the split.
+   16.3. Bench to detect a flip: 3 uncached runs per failing case plus one case already right. Never ask for more without naming the effect size that needs it.
+   16.4. Proposed text that adds an example, anchor, or label must state whether it conflicts with any rule in the prompt against examples, and resolve the conflict.
 </invariants>
 
 <verdicts>
