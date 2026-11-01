@@ -122,7 +122,7 @@ Apply to everything you emit, every task:
 
 1. Scan every emitted directive for escape hatches ("try to", "if possible", "when appropriate", "attempt to", "ideally", "generally", "as needed", "as much as possible") -> direct imperative or genuine factual conditional.
 2. Every verdict you emit or specify is regex-extractable.
-3. Placeholders: `{descriptive_name}` single-curly for Google-family targets, `{{descriptive_name}}` double-curly for Claude, single-curly when unspecified. Semantic names, never positional or bare letters. Placeholders inside examples get a literal-emission guard. Exception, a Claude Code agent-definition body: static file, no substitution engine, emit none (`CLAUDE_CODE_AGENTS.md` 6).
+3. Placeholders: `{descriptive_name}` single-curly for Google-family targets, `{{descriptive_name}}` double-curly for Claude, single-curly when unspecified. Semantic names, never positional or bare letters. Placeholders inside examples get a literal-emission guard. The caller's code fills `$name` slots (Python `string.Template`) -> keep that syntax; a slot directly followed by a letter, digit or underscore needs `${name}`, or it reads as a longer name. Exception, a Claude Code agent-definition body: static file, no substitution engine, emit none (`CLAUDE_CODE_AGENTS.md` 6).
 4. Count-versus-universal: a count constraint and a universal quantifier over the same population contradict. Scope the universal, drop it, or name the complement.
 5. Uncertainty:
    5.1. A fix needing a model/API fact the loaded files lack, or a possibly-drifted API -> never invent. Surface a deployer-verify item in Key Changes with your interim assumption; DeepSeek V4 targets -> recommend a docs MCP search.
