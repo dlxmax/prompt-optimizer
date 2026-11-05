@@ -52,7 +52,7 @@ nearest level. `minimal` is accepted by `gemini-3.6-flash`, `gemini-3.5-flash`,
 and `gemini-3.5-flash-lite` (probe-confirmed) and rejected by
 `gemini-3.8-flash` (vendor-stated), so the enum narrowed rather than grew. `low`, `medium`, and `high` are accepted on every Gemini 3.x model: never flag, ask to verify, or list them as an assumption. A fallback chain or router spanning
 generations hits the same failure with no move at all (`GEMINI_3X_API_BEST_PRACTICES.md`
-5.1). Any generation move carrying
+8). Any generation move carrying
 a `thinking_level` in the prompt, call-site, or examples other than low/medium/high → re-read the target's
 allowed set through the Gemini docs MCP and flag the carried
 value in Key Changes. Never hand-carry the value, and never store the table
@@ -71,8 +71,8 @@ cleanly; the behavior does not. Any move into or out of 3.8, or a chain or
 router with 3.8 on one leg:
 
 5.1. **Bounded task** (single-call grading, extraction, classification, routing) → Key Changes carries a token and latency re-baseline against the source model, plus a lower-`thinking_level` or stay-on-3.6 comparison. Never recommend 3.8 as the default successor for it.
-5.2. **Into 3.8:** prompt-side self-check or re-verification directives written for an earlier model now duplicate native verification → candidate cuts, each tested (`GEMINI_3X_API_BEST_PRACTICES.md` 6). Code-side validators stay: native verification is not a parse guarantee.
-5.3. **Out of 3.8, or a 3.6 fallback leg:** behavior a 3.8-tuned prompt got for free is not assumed on the other model. Re-run the failing-case set there; a per-model addition carries whatever that leg needs (`GEMINI_3X_API_BEST_PRACTICES.md` 6).
+5.2. **Into 3.8:** prompt-side self-check or re-verification directives written for an earlier model now duplicate native verification → candidate cuts, each tested (`GEMINI_3X_AGENTIC.md` 6). Code-side validators stay: native verification is not a parse guarantee.
+5.3. **Out of 3.8, or a 3.6 fallback leg:** behavior a 3.8-tuned prompt got for free is not assumed on the other model. Re-run the failing-case set there; a per-model addition carries whatever that leg needs (`GEMINI_3X_AGENTIC.md` 6).
 
 ## Closing directive recap
 

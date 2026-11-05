@@ -76,98 +76,6 @@ work. Recommend in Key Changes:
 4.2. **Knowledge-cutoff clause** (facts near the boundary): state the cutoff so the model defers to grounding for post-cutoff facts instead of parametric memory (confirm the current cutoff via rule 1; it moves with each release).
 4.3. **Strict-grounding clause** (RAG / context-only answering; grading and judge prompts over a submission): rely ONLY on facts in the provided context or submission, never own knowledge or inference; anything not in context is unsupported; state when the answer or evidence is not present. Single highest-leverage clause for hallucination-sensitive grounded deployments, including rubric graders whose comments must anchor in the student's text.
 
-## 5. Reduce tool-call overuse, two levers in order
-
-5.1. **Lower the thinking level** (mechanics: rule 1). Higher levels encourage tool use for exploration and verification. The floor is per-model and not always available: confirm the target's allowed set before naming `minimal` or any level outside low/medium/high (those three are valid on every 3.x model, never flagged) (`GEMINI_MIGRATION.md` 4). A config shared across models (fallback chain, router) sets the level per leg or uses one valid on every leg: a bottom level valid on the primary can 400 the fallback exactly when it is needed.
-5.2. **System instruction bounding tool calls**: "You have a limited action budget of {tool_call_budget} tool calls. Use them efficiently." Substitute the real number before emitting; never emit the literal `{tool_call_budget}`. Pair the cap with an under-budget path: budget exhausted and the answer still unsupported -> report the gap, never fall back to parametric memory. A cap with no stated way out converts a grounding task into a guessing task at the boundary.
-
-Rule 6's persistence dimension pulls against both levers; 6c arbitrates.
-
-## 6. Agentic workflows: the 9-point planning template, added sparingly
-
-Prompt drives an agentic workflow (model reasons, plans, executes across tool
-calls) → 9-point system-instruction template: (1) logical dependencies and
-constraints, (2) risk assessment, (3) abductive reasoning and hypothesis
-exploration, (4) outcome evaluation and adaptability, (5) information
-availability, (6) precision and grounding, (7) completeness, (8) persistence
-and patience, (9) inhibit-response gate.
-
-**Default: port none of it.** Scaffolding is a cost paid on every call
-(`GENERIC_REVIEW.md` rule 12). A nine-directive planning block bought a
-capability older models lacked. Vendor-stated for all 3.x: prompt engineering
-built for older models drives over-analysis (rule 3). Vendor-stated for
-`gemini-3.8-flash` only: it by design takes smaller reasoning steps, calls tools
-iteratively, and verifies its own work, so a ported block duplicates that
-behavior outright. Earlier 3.x strings carry no such statement; there the
-default rests on rule 3 and the triangulation below.
-Order of moves on a failing agentic run: run an 8.3 bench and keep the winning level
-(mechanics: rule 1); still failing → port by the split below.
-A run failing by token burn or verification loops rather than wrong actions is
-rule 5's lever, never a ported block.
-Inhibit-response gate (9) last whenever any dimension is ported.
-
-**One prompt, several generations** (fallback chain, router, staged rollout):
-the port decision is per target string. A dimension ported against a failure
-named on one model reaches another only after that failure reproduces there.
-Shared text carries no ported dimension; a per-model addition carries it.
-
-**Managed-agent target** (a prebuilt agent harness rather than a bare model):
-the harness already plans and executes, and the deployer's system instruction
-and the environment's instruction file are additive, both applied. Port none by
-default. Any ported policy lives in exactly one of the two; stated in both, it
-applies twice.
-
-**Port policy, never reasoning.** A dimension carrying external policy the model
-cannot infer from the task earns its tokens. A dimension describing how to reason
-duplicates native thinking and competes with it.
-
-6.1. Port: (2) risk assessment, which tool calls mutate state versus read; (5) information availability, what counts as unknown rather than inferable; (9) inhibit-response gate, when to stop and ask. Add (6) precision and grounding where exact-string or type fidelity matters, and (8) persistence only to set a retry limit.
-6.2. Omit: (1) logical dependencies, (3) abductive reasoning, (4) outcome evaluation, (7) completeness. Written into the prompt they buy verbosity, not planning.
-
-Triangulated, not probed: the vendor scopes the template's evaluation to
-complex-rulebook plus user-interaction agents, which is the policy class. That
-is not a benchmark. Re-test before trusting the omit list on a new deployment.
-
-**Hurt case, named.** Read-only exploratory agents (codebase search, database
-triage): risk assessment plus the inhibit gate reclassify benign reads as
-permission-worthy and the agent stops to ask instead of paging, while
-completeness has no end-state to satisfy on an open-ended search and drives
-keyword-variation loops. Read-only high-throughput work → port none.
-
-**The dimensions govern reasoning, not output.** The block is completed in the
-model's thinking. Emit it only where a human or a log consumes the plan, and
-then by 6e's ladder, never as a tagged block.
-
-**Adapt, never paste.** Vendor frames it as an example to fit to the use case,
-tuning a stated cost-versus-accuracy trade-off. Four dimensions invert when
-ported as a bare label:
-
-6a. (6) is a quote-grounding directive, not a tone word: verify each claim by
-quoting the exact applicable source or policy. Emit the clause, never the label.
-6b. (7) scopes to the PLAN, every requirement and constraint exhaustively
-incorporated into it. Ported as output exhaustiveness it becomes a quota and
-manufactures findings (`GENERIC_REVIEW.md` item 5).
-6c. (8) "do not give up until the reasoning is exhausted" costs tokens and risks
-loops, vendor-stated, and pulls against rule 5. Say which governs this
-deployment; never emit both unarbitrated. Persistence binds the reasoning, never
-the abstention path: reasoning exhausted with no support found is a completed
-task, not a failure to push through.
-6d. (5) resolves missing information by consulting the user. No user in a batch
-or scoring pipeline -> substitute the fixed abstention literal, else the model
-assumes instead of asking.
-
-6e. **No structured text immediately before a tool call.** A directive to emit a
-tagged or serialized block (`<UPDATE>`, a JSON or YAML object) as the turn's
-first output and then call a tool intermittently corrupts the call into a
-malformed-function-call error. The 9-point block is the common source: it is
-completed BEFORE any tool call. Three fixes in order: move the notes into a
-declared `update` function the model calls first, so the notes call and the real
-call leave in one step; demote the block to Markdown headers (`# PLAN`); drop the
-pre-tool text requirement. Markdown headers here override rule 3's
-single-delimiter choice, for these note blocks only. Vendor-stated for the whole
-Gemini 3 series. The failure is intermittent: a clean dry run does not clear a
-prompt of it.
-
 ## 7. Tool enablement by task type
 
 Recommend in Key Changes:
@@ -181,7 +89,7 @@ Recommend in Key Changes:
 
 Valid levels and per-model defaults: rule 1, never this file. Levels below
 are empirical, verified on `gemini-3.5-flash-lite` and `gemini-3.8-flash`; use
-the nearest level the target accepts, valid on every model in the chain (5.1).
+the nearest level the target accepts, valid on every model in the chain. A config shared across models (fallback chain, router) sets the level per leg or uses one valid on every leg: a bottom level valid on the primary can 400 the fallback exactly when it is needed.
 
 8.1. Name a level per call, never a token budget: budgets map onto levels, so two budgets can send the same level and a bench across them tests fewer levels than it names.
 8.2. Start from the call's job; name the job beside the level:
@@ -191,40 +99,13 @@ the nearest level the target accepts, valid on every model in the chain (5.1).
    8.2.4. One verdict over the whole text: medium; high only after an 8.3 bench shows medium misses.
    8.2.5. Long structured output matching no job above: medium.
 8.3. Change a level only after a bench on anchor cases: the level below and the level above, the same anchors including cases already right, uncached, one model, time per call reported. Levels tie -> keep the lower: faster, less truncation. Report the model that answered; a fallback partway through voids the comparison.
-8.4. Never raise the level for quote echoing, broken bans, output carrying content a rule forbids, content an earlier step filtered out, or answers that swing between runs at a fixed level. A higher level tidies grammar; it does not recover filtered content. Fix the prompt, narrow the question, or move the decision to code (`GRADING_PIPELINE.md` G1.1).
+8.4. Never raise the level for quote echoing, broken bans, output carrying content a rule forbids, content an earlier step filtered out, or answers that swing between runs at a fixed level. A higher level tidies grammar; it does not recover filtered content. Fix the prompt, narrow the question, or move the decision to code (`GRADING_PIPELINE.md` G1.1). A call below its 8.2 level is exempt: raise it to that level.
+8.5. Flash-Lite: medium is the default. High has fixed named misses at medium and has also backfired, so try it only through an 8.3 bench that includes cases already right.
 8.5. Thinking tokens share the output cap. Long structured output always carries an output cap; above medium, also warn that the JSON tail may be truncated (empty replies, 500s).
 
-## 9. Empirical model choice by task type (probe-verified, not vendor guidance)
+## 9. Model choice patterns
 
-Deployer production A/B testing, not Google documentation; the docs cannot
-state task-specific results, so this stays hand-maintained regardless of rule 1.
-No row in the table below was probed on a model newer than `gemini-3.5-flash`; every Gemini
-release after it is untested here (current list: rule 1). The string tested is
-named in each row, never generalized to a generation. Each
-mapping is a hypothesis to re-verify on
-the current generation, not a standing fact. The patterns below the table are
-the durable part.
-
-A row records which tier won a task on the generation tested, never which
-string to call today. Liveness and the current successor for any string below
-= the docs MCP's job (rule 1); this file asserts neither. Never name a table model
-as the recommendation for new work. Read a row as "this task type suited that
-tier", map to the current successor, put the re-test in Key Changes.
-
-**The newest Flash is not automatically the successor.** `gemini-3.8-flash` is
-a behavior break, not an increment (`GEMINI_MIGRATION.md` 5). A Flash row on a
-bounded task (grading, extraction, classification) → re-test on both
-`gemini-3.6-flash` and `gemini-3.8-flash`, never assume 3.8 wins.
-
-| Task type | Model that won, as tested | Why | Currency |
-|---|---|---|---|
-| Open-ended multimodal extraction (transcription, speaker labeling, phase detection) | `gemini-3.5-flash` (free tier) | Matched paid `gemini-2.5-pro` exactly on a multi-speaker code-switched video; free-tier `gemini-3.1-flash-lite`/`gemini-2.5-flash` under-counted speakers or mislabeled phases | Re-verify on the current successor (rule 1); `gemini-2.5-pro` since lost production access |
-| Constrained rubric-tier grading needing internally consistent verdicts | `gemini-3-flash-preview` over `gemini-3.5-flash` | `gemini-3.5-flash` produced internally inconsistent grades (all-praise justification paired with a sub-Excellent tier) in one production chain; `gemini-3-flash-preview` held consistent | Re-verify: same model won the extraction row and lost here, so task-specific, not a ranking |
-| TERMINAL-mode feedback register discipline | `gemini-3-flash-preview` over `gemini-3.1-flash-lite` | Flash-Lite lapsed to draft-register phrasing, used banned forward-framing language, doubled point values, intermittent JSON truncation on first pass | Re-verify on `gemini-3.5-flash-lite` |
-| Discrimination/distractor-construction (odd-one-out items) | `gemini-3.5-flash` over `gemini-3.1-flash-lite` | Flash-Lite built distractors around surface word-form patterns (the one gerund among plain nouns) rather than semantic outliers; a stricter surface-uniformity gate made this worse on Flash-Lite specifically, neutral-to-helpful on 3.5-flash | Re-verify on `gemini-3.5-flash-lite`, documented as stronger on reasoning/multimodal than 3.1 Flash-Lite |
-| Narrow perceptual tasks (handwriting OCR) | `gemini-3.1-flash-lite` over heavier models | Beat a reasoning-tier model despite being cheaper and lighter | Directionally durable: never assume a "smarter" model wins a narrow perceptual task |
-| Semantic claim-vs-finding verification (does a citation's claim match what it found) | Gemini-class over Gemma-class | Independent prompt-wording iterations failed to close a Gemma 4 ceiling; a Gemini reasoning model got it right on the same prompt | `GEMMA4_API_BEST_PRACTICES.md` for the Gemma-side ceiling; route this sub-step to Gemini even inside an otherwise-Gemma pipeline |
-| Coarse binary classification (screening only, not graded tiers) | `gemini-3-flash-preview` | Best binary agreement among tested models, despite being weak on fine-grained tier classification on the same data (row 2) | Illustrates task-specificity more than a standing recommendation |
+Task-by-task results: `GEMINI_3X_MODEL_CHOICE.md`.
 
 **Cross-cutting patterns (durable across generations):**
 
@@ -249,20 +130,22 @@ docs deferral, same as rule 8.
 
 Second-level routing, additive to this file:
 
+**`GEMINI_3X_AGENTIC.md`**: rules 5-6. Load when the prompt under review declares tools or function calling, runs a multi-step agent, or carries a planning block. Never for a single-call prompt without tools.
+
+**`GEMINI_3X_MODEL_CHOICE.md`**: task-by-task model results. Load when the caller asks which model to use, or before you recommend a model or tier change.
+
 **`GEMINI_MIGRATION.md`**: cross-family migration facts the docs don't state (tools + response_format scope across families, Gemma 4 schema-shape porting, prefilled model-turn validation, `thinking_level` shrinkage, the `gemini-3.8-flash` behavior break). Load one-time per prompt when EITHER legacy `generateContent` forms appear anywhere in the input OR the caller's request states a move of this prompt to a different model or generation (Gemma 4 / Gemini 2.5 / earlier 3.x to a 3.x target). Never load it for a review, audit, or authoring task that states no move, and a chain or router, a model string, or a recommended model swap alone is not a move. The trunk routes only the first trigger, so the second is this file's to fire.
 
 ## Verify after changes
 
 1. No API-mechanics claim (model ID, parameter, endpoint, request/response shape) answered from this file instead of the docs MCP (1).
 2. Long-context prompts end on the query, not the data (2).
-3. A `thinking_level` shared across a fallback chain or router is valid on every leg, or set per leg (5.1).
+3. A `thinking_level` shared across a fallback chain or router is valid on every leg, or set per leg (8).
 4. Chain-of-thought scaffolding replaced with a `thinking_level` recommendation, not left in place (3).
 5. Freshness clauses present on Flash-tier targets with time-sensitive or knowledge-grounded tasks; strict-grounding clause present on any 3.x target answering from context or judging submitted work (4).
-6. No planning block ported without a named failure and a `thinking_level` step-up tried first; none on a managed-agent target by default, and no ported policy duplicated across system instruction and instruction file; no ported dimension in text shared across model strings; ported dimensions are policy-carrying (2, 5, 9), never reasoning-describing (1, 3, 4, 7); each emitted as a clause rather than a label and arbitrated against rule 5 (6, 6a-6d).
-7. No tagged or serialized block is required immediately before a tool call; pre-tool notes route to a declared `update` call or to Markdown headers (6e).
-8. Every call names its `thinking_level` and job, never a token budget; any change rests on an 8.3 bench; no level raised for an 8.4 cause; long structured output carries an output cap, plus a truncation warning above medium (8).
-9. Any recommended model swap names its currency caveat, tested on which generation and re-verify before porting, rather than standing as fact (9); a Flash successor is never assumed to be `gemini-3.8-flash` (9, `GEMINI_MIGRATION.md` 5).
-10. Any 429/quota recommendation is written for Interactions (persistence-based circuit breaker), and legacy retry wiring is flagged as a migration defect rather than tuned (10).
+6. Every call names its `thinking_level` and job, never a token budget; any change rests on an 8.3 bench; no level raised for an 8.4 cause; long structured output carries an output cap, plus a truncation warning above medium (8).
+7. Any recommended model swap names its currency caveat, tested on which generation and re-verify before porting, rather than standing as fact (9); a Flash successor is never assumed to be `gemini-3.8-flash` (9, `GEMINI_MIGRATION.md` 5).
+8. Any 429/quota recommendation is written for Interactions (persistence-based circuit breaker), and legacy retry wiring is flagged as a migration defect rather than tuned (10).
 
 ## Closing directive recap
 

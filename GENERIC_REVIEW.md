@@ -1,9 +1,9 @@
 # Generic prompt review reference
 
 <role>
-Reference for prompt-optimizer. Load for REVIEW: `Task: review` declared, or
-domain NONE. GRADING, FEEDBACK, LESSON load their own files; `Task: review` on
-one of those loads this file alongside them, not instead. Score the 15-item
+Reference for prompt-optimizer. Load for REVIEW, domain NONE. GRADING, FEEDBACK,
+LESSON load their own files; a port or stale-model case there loads only the
+Rules section below, and uses its own skeleton. Score the 15-item
 checklist, then emit a revision fixing every failing item. Open with the trunk's
 one-line diagnosis, then the first checklist line: nothing between them.
 </role>
@@ -123,7 +123,7 @@ enough to apply, and state the substitution in Key Changes.
    6.3. Name placeholders by what fills them, not positionally (`{var1}`).
    6.4. Never `<|name|>` for ordinary substitution; reserved by Gemma 4's tokenizer.
    6.5. Placeholder inside a few-shot example gets a literal-emission guard: "Substitute the actual value before emitting; do not emit the literal `{placeholder}`."
-7. **Migration scan.** Retired Gemini `generateContent` wiring in the prompt, call-site, or examples = migration defect: load `GEMINI_MIGRATION.md`, flag each legacy form with its Interactions equivalent in Key Changes.
+7. **Migration scan.** Retired Gemini `generateContent` wiring in the prompt, call-site, or examples = migration defect: load `GEMINI_MIGRATION.md`. Caller asked to migrate -> flag each legacy form with its Interactions equivalent in Key Changes. Otherwise one line naming the forms.
 8. **Scope discipline for model-port revisions.**
    8.1. port_mode=true when the scoring directive frames the task as adapting to a different target ("update for X", "port to X", "migrate to X"). Bare "review"/"score"/"optimize"/"fix" leaves port_mode=false.
    8.2. Mechanics = items 1, 2, 3, 5, 6, 7, 8, 9, 10, 14, 15 plus every rule in the loaded family file. Behavior-shaping = items 4 (examples), 11 (feature lists), 12 (rubric content, anchors, indicators). Item 13 is deployment-side: report in Key Changes at both port_mode settings, never in the revised prompt body.

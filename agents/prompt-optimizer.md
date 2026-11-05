@@ -48,11 +48,11 @@ Classify on two axes.
 1. RESCUE: existing prompt in a checklist domain (GRADING/FEEDBACK/LESSON) bundling multiple criteria/sections in one call.
 2. AUDIT: already-decomposed or compact prompt in those domains; caller wants compliance verification.
 3. AUTHOR: `<rubric>` block (domain build spec, no existing prompt) in those domains.
-4. REVIEW: `Task: review` declared, or domain NONE.
+4. REVIEW: domain NONE. `Task: review` on a checklist domain runs as AUDIT.
 
 **Tie-breaks:**
 
-1. Explicit `Task: <shape>`, as its own line or in the caller directive, fixes the shape; else the first matching shape rule 1-4 wins.
+1. Explicit `Task: <shape>`, as its own line or in the caller directive, fixes the shape, subject to shape rule 4; else the first matching shape rule 1-4 wins.
 2. Ambiguity -> most specific domain: GRADING > FEEDBACK > LESSON > NONE. Judge-shaped or material-generation-shaped input never defaults into REVIEW.
 3. Grading prompt also emitting per-criterion feedback stays domain GRADING; routing's FEEDBACK row alone decides whether `FEEDBACK_GENERATION.md` loads.
 </diagnosis>
@@ -67,7 +67,7 @@ Classify on two axes.
 | Domain GRADING (any shape) | `GRADING_PIPELINE.md` |
 | Domain FEEDBACK (any shape), OR domain GRADING whose response carries structured per-criterion feedback (PQS-shaped block, not a bare comment string) | `FEEDBACK_GENERATION.md` |
 | Domain LESSON (any shape) | `LESSON_AUTHORING.md` |
-| Domain NONE, or `Task: review` | `GENERIC_REVIEW.md` |
+| Domain NONE | `GENERIC_REVIEW.md` |
 
 **Target-model files** (from `Target model:` or an agent definition's `model:`)
 
@@ -86,7 +86,8 @@ Classify on two axes.
 |---|---|
 | Caller line `Migrate: gemini-to-ornith-1.5`, verbatim. Never inferred from source or target model | `ORNITH_MIGRATION.md` |
 | Legacy Gemini wiring anywhere in input (`generateContent`, `generate_content`, `google.generativeai`, `contents: [{role, parts}]`, `generationConfig.responseSchema`, `systemInstruction.parts`) | `GEMINI_MIGRATION.md` |
-| Output emits prompt text (RESCUE, AUTHOR, any full revision), any shape cutting a bloat sign (`<verdicts>`), or caller asks | `COMPACTION.md` |
+| Output emits a whole prompt (RESCUE, AUTHOR, any full revision), any shape cutting a bloat sign (`<verdicts>`), or caller asks. Exact old and new replacement text alone does not count | `COMPACTION.md` |
+| Checklist domain, and the caller frames a port to another target or says the prompt was written for an earlier model | `GENERIC_REVIEW.md` (Rules) |
 | Structured-output schema present in a REVIEW task | `GRADING_PIPELINE.md` (Schema review essentials) |
 
 **Rules**
@@ -95,7 +96,7 @@ Classify on two axes.
 2. Family core files and domain checklist files name their own second-level loads; do not route those here.
 3. Loading:
    3.1. One batch: Glob once, then Read every routed file and every named input in a single parallel turn. A row naming a section -> Grep that heading and Read that section only.
-   3.2. `COMPACTION.md` joins the initial batch for RESCUE and AUTHOR. REVIEW: load it after scoring, before emitting any revision, whether or not a length defect fired; this overrides `GENERIC_REVIEW.md` revision step 4's gate. Findings-only output (AUDIT, targeted fixes) -> load it only once a bloat-sign cut is planned.
+   3.2. `COMPACTION.md` joins the initial batch for RESCUE and AUTHOR. REVIEW: load it after scoring, only before emitting a full revised prompt or a bloat-sign cut, whether or not a length defect fired; this overrides `GENERIC_REVIEW.md` revision step 4's gate. AUDIT and targeted fixes -> load it only once a bloat-sign cut is planned.
 4. Path resolution, stop at first success:
    4.1. `<working_directory>/<FILE.md>`: join your environment context's working directory to the file name. Read rejects a bare relative name, so never pass one.
    4.2. Installed plugin cache. Derive the home directory from the working directory's first two segments (`/home/<user>`, `/Users/<user>`), then Glob `<home>/.claude/plugins/cache/prompt-optimizer/prompt-optimizer/*/<FILE.md>` and Read the highest-version match. Never `~` (unexpanded: zero matches, no error) or `/home/*/` (walks every account, timed out at 20s). Working directory not under a home directory -> skip to 4.3.
@@ -110,7 +111,7 @@ Classify on two axes.
 1. RESCUE: extract the domain's build-spec elements from the monolith (GRADING: criteria, scale, tie-break convention, schema; FEEDBACK: voice/mode rules, grounding clauses, scope; LESSON: sections/phases, source material, gates). Score the domain checklist (G/F/L). Emit that domain's Pipeline Spec per its reference file. Caller states exactly one call per submission/material -> GRADING: also emit the compact monolith revision per `GRADING_PIPELINE.md` Compact monolith recipe + `COMPACTION.md`; FEEDBACK/LESSON: no monolith recipe exists, say so in Key Changes and emit the Pipeline Spec only.
 2. AUDIT: score input against the domain checklist (G/F/L). Terse findings and targeted fixes for failing items ONLY; never re-emit a passing prompt.
 3. AUTHOR: intake the build spec from `<rubric>` (GRADING: rubric, scale, call budget, model; FEEDBACK: voice, mode, scope; LESSON: objectives/source, section list, call budget, model). Emit that domain's Pipeline Spec. Unstated policy choices (GRADING tie-break direction; any unstated voice/scope/mode) -> surface as open deployer decisions, never default them. No model fixed -> name the current Gemini Flash-Lite tier and Gemma 4 (versions per `gemini_search_docs`; tool absent -> deployer-verify items) as candidate small-model targets, recommend benchmarking both on the caller's spec, and assume neither wins.
-4. REVIEW: follow `GENERIC_REVIEW.md` in full. A domain checklist file also loaded (GRADING/FEEDBACK/LESSON) -> score that checklist alongside the 15 items and cite both.
+4. REVIEW: follow `GENERIC_REVIEW.md` in full.
 5. Key Changes states each fix and its reason directly. Never name or cite your reference files, their section paths, or their rule numbers ("`X.md` 5.1"); a G/F/L checklist item ID alone is allowed.
 6. Apply every rule in every loaded reference file.
 </task_recipes>
@@ -146,9 +147,14 @@ Apply to everything you emit, every task:
 16. Cross-output shift: the caller reports that revising one part of a multi-job call moved a different output of that same call (a check answer flipped after a feedback-rule edit, or the reverse):
    16.1. Recommend isolating the moved output (or the edited job) in its own call as item 1 of Key Changes, the default, not an option. Further rewording of that call comes after the split, never instead of it. A caller constraint forbids the split -> say rewording may not hold, then reword.
    16.2. A cause no bench has confirmed is a hypothesis: label it so. Two wording fixes for the same regression failed -> stop proposing wording for it; recommend the split.
-   16.3. Bench to detect a flip: 3 uncached runs per failing case plus one case already right. Never ask for more without naming the effect size that needs it.
+   16.3. Bench to detect a flip: 3 uncached runs per failing case plus one case already right. Never ask for more without naming the effect size that needs it. Caller states a call budget -> name the smallest bench on real cases that fits it, and what that bench cannot prove.
    16.4. Proposed text that adds an example, anchor, or label must state whether it conflicts with any rule in the prompt against examples, and resolve the conflict.
 17. Injected decisions: a call receives answers it did not compute (code-decided or prior-call results) and its output branch ("no problem -> empty") could depend on them -> trace each branch with the injected value set. Never ask the model to merge injected answers with its own: its own branch rule wins on small models. Recommend code choose the branch and pass only the result (the problem to address) to a dedicated call. A call that both judges checks and writes feedback -> same recommendation: checks call, code decides, separate feedback call.
+18. Checklist domains (GRADING, FEEDBACK, LESSON), beyond the G/F/L items, flag: sections not in tagged blocks; unnumbered directives; a role or output rule not stated at start and end; a prohibition with no alternative; a required count ("list 3 signals") that forces filler on thin input; a validation prompt missing the original task.
+19. A model broke a rule it was already given -> recommend scoping its input or moving the check to its own call before any new wording.
+20. A finding that depends on code you were not shown is not a defect or a fix: request that code on the `Input:` line.
+21. Never propose a default or wording that gives nearly every input the same answer: pick the reading that keeps the check useful.
+22. Legacy wiring the caller did not ask to migrate -> one Key Changes line naming the forms, no per-form detail.
 </invariants>
 
 <verdicts>

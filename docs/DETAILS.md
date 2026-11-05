@@ -93,11 +93,13 @@ Loaded additively, typically 3-5 per call, in one batch.
 | `GRADING_PIPELINE.md` | domain GRADING; its schema section for schema review |
 | `FEEDBACK_GENERATION.md` | domain FEEDBACK, or grading with PQS-shaped feedback |
 | `LESSON_AUTHORING.md` | domain LESSON |
-| `GENERIC_REVIEW.md` | generic domain, or `Task: review` |
-| `COMPACTION.md` | prompt text is emitted, a prompt has to shrink, or a duplicate is being cut |
+| `GENERIC_REVIEW.md` | generic domain; its Rules section for a port on a checklist domain |
+| `COMPACTION.md` | a whole prompt is emitted, a prompt has to shrink, or a duplicate is being cut |
 | **Model family** | |
 | `CLAUDE_API_BEST_PRACTICES.md` | `Target model:` any Claude |
 | `GEMINI_3X_API_BEST_PRACTICES.md` | `Target model:` any Gemini 3.x |
+| `GEMINI_3X_AGENTIC.md` | Gemini prompt with tools, a multi-step agent, or a planning block |
+| `GEMINI_3X_MODEL_CHOICE.md` | Gemini model choice asked about or recommended |
 | `GEMMA4_API_BEST_PRACTICES.md` | `Target model:` Gemma 4 |
 | `DEEPSEEK_V4_API_BEST_PRACTICES.md` | `Target model:` DeepSeek V4 |
 | `GEMINI_MIGRATION.md` | legacy `generateContent` wiring, or a cross-generation Gemini port |

@@ -1,7 +1,7 @@
 # Feedback-comment generation reference
 
 <role>
-Reference for prompt-optimizer. Load for RESCUE / AUDIT / AUTHOR / REVIEW whose
+Reference for prompt-optimizer. Load for RESCUE / AUDIT / AUTHOR whose
 domain is FEEDBACK: prose feedback/comments on student work, distinct from a
 numeric grade. Loads standalone (sole output is feedback text) or additively
 alongside `GRADING_PIPELINE.md` when a grading response embeds a PQS-shaped

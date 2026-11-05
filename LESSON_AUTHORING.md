@@ -1,13 +1,11 @@
 # Lesson and instructional-material authoring reference
 
 <role>
-Reference for prompt-optimizer. Load for RESCUE / AUDIT / AUTHOR / REVIEW,
+Reference for prompt-optimizer. Load for RESCUE / AUDIT / AUTHOR,
 domain LESSON: generating instructional material (lesson plans, worksheets,
 handout sections, exam/quiz items, vocabulary or discussion content), not
 grading (`GRADING_PIPELINE.md`) or feedback (`FEEDBACK_GENERATION.md`).
-L-checklist = audit rubric for AUDIT, build spec for RESCUE and AUTHOR, scored
-alongside `GENERIC_REVIEW.md`'s items on `Task: review`, where that file owns
-the output format. Apply every item; cite L1-L9.
+L-checklist = audit rubric for AUDIT, build spec for RESCUE and AUTHOR. Apply every item; cite L1-L9.
 </role>
 
 ## L-checklist
