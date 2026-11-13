@@ -6,7 +6,7 @@ Reference for prompt-optimizer. Decides whether a grading or classification step
 
 ## What it is
 
-Returns calibrated probabilities over a yes/no question, a choice list, or an ordered score scale. No text output; billed on input only; same input gives the same probabilities. No reasoning, quotes, abstain, or comment.
+Returns calibrated probabilities over a yes/no question, a choice list, or an ordered score scale. No text output; billed on input only; same input gives the same probabilities. No reasoning, quotes, abstain, or comment. Unknown keys in a question get HTTP 400: strip comment or `_` keys before sending.
 
 ## Use it when
 
@@ -25,11 +25,14 @@ Returns calibrated probabilities over a yes/no question, a choice list, or an or
 1. Gates first, in code: missing sections, length, detector flags.
 2. Decisions picks the quality level, one score question per criterion, rubric descriptors verbatim, lowest level at index 0.
 3. A generating call writes the comment from the fixed level.
-4. Send the full text the judgment depends on (who speaks, earlier setup), nothing unrelated. Cutting input to the judged span fails true items. To chain calls, let step 1's answer name the span in step 2's question; keep the input whole.
-5. One question per item, its true/false criteria naming each failure kind. Splitting it into narrow sub-questions scores true items low and misses no more.
+4. Send the full text the judgment depends on (who speaks, earlier setup), never other items' text (other points, other claims). Cutting input to the judged span fails true items. To chain calls, let step 1's answer name the span in step 2's question; keep the input whole.
+5. One question per item, its true/false criteria naming each failure kind. Splitting it into narrow sub-questions scores true items low and misses no more. A bare yes/no ("is this unclear") sits near 0.5 on everything; a choice of contrasting failure kinds separates.
 6. A choice question with a "none" option: P(none) is a usable signal on its own.
 7. Never add an option to a calibrated choice question: it shifts what the threshold means. Ask a separate yes/no question instead.
 8. Expect low confidence (0.45-0.7 on a 3-level rubric). Set any review threshold from the teacher's own graded set, never a default.
+9. Score questions: score every item in one request and compare each to the same text's other items, plus an absolute floor; a floor alone does not separate across texts.
+10. As a confirm step after a generating call that over-flags: keep a flag only past the threshold, and store the probabilities on the row for audit.
+11. Bench end to end: the decision is stable, the generating calls upstream are not.
 
 ## Measured (EFL speech scripts, posted teacher levels as truth)
 
