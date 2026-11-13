@@ -25,9 +25,11 @@ Returns calibrated probabilities over a yes/no question, a choice list, or an or
 1. Gates first, in code: missing sections, length, detector flags.
 2. Decisions picks the quality level, one score question per criterion, rubric descriptors verbatim, lowest level at index 0.
 3. A generating call writes the comment from the fixed level.
-4. Send each question only the text it judges; extra text lets the model find support elsewhere.
-5. Never add an option to a calibrated choice question: it shifts what the threshold means. Ask a separate yes/no question instead.
-6. Expect low confidence (0.45-0.7 on a 3-level rubric). Set any review threshold from the teacher's own graded set, never a default.
+4. Send the full text the judgment depends on (who speaks, earlier setup), nothing unrelated. Cutting input to the judged span fails true items. To chain calls, let step 1's answer name the span in step 2's question; keep the input whole.
+5. One question per item, its true/false criteria naming each failure kind. Splitting it into narrow sub-questions scores true items low and misses no more.
+6. A choice question with a "none" option: P(none) is a usable signal on its own.
+7. Never add an option to a calibrated choice question: it shifts what the threshold means. Ask a separate yes/no question instead.
+8. Expect low confidence (0.45-0.7 on a 3-level rubric). Set any review threshold from the teacher's own graded set, never a default.
 
 ## Measured (EFL speech scripts, posted teacher levels as truth)
 
