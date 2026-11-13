@@ -27,7 +27,7 @@ A vector per input; cosine similarity says how alike two inputs are in topic and
 1. Same task prefix (or `taskType`) on both sides of a comparison; the prefix shifts every score (classification prefix raised the peer median 0.73 to 0.80).
 2. Gate inputs in code first: extraction junk, binary files, and oversized texts. `2` truncates silently past its limit; `001` refused them.
 3. 768 dimensions rank the same as 3072; store 768 unless a test says otherwise.
-4. Free-tier quotas bite on long texts: one call at a time with backoff, or the Batch API.
+4. Pace by the account limit (3,000 RPM, 1M TPM), tokens first. One unchecked input can use up the minute's tokens: a 435k-word binary read as text did, and every later call got 429.
 
 ## Measured (EFL speech scripts, BGO, n=33 drafts, 17 finals)
 
@@ -36,7 +36,7 @@ A vector per input; cosine similarity says how alike two inputs are in topic and
 | Peer similarity, same assignment | 0.62-0.87 (`001`), 0.62-0.84 (`2`); highest pair shared a topic, not text. No copying found |
 | Draft to final, same student | median 0.98-0.99; own final ranked first for 16/16 (`001`), 16/17 (`2`). Most students barely revised |
 | Lowest draft-to-final (0.68) | the draft was an image file read as text; a junk gate, not a revision signal |
-| Level from 3 nearest graded scripts | 7-17 of n, always below always-guess-the-majority-level |
+| Level from 3 nearest graded scripts | drafts 12-17/33 vs 20, finals 7-12/17 vs 14 for always guessing the most common level |
 | `2` at 768 vs 3072 dims | same nearest pairs and ranks |
 
 Lesson-material retrieval is untested here; test on the course's own files before relying on it.
