@@ -1,7 +1,7 @@
 # Gemini Decisions API: when to use it
 
 <role>
-Reference for prompt-optimizer. Decides whether a grading or classification step goes to `gemini-decision-1` (Decisions API) instead of a generating call. API shape and limits: the docs MCP, never this file.
+Reference for prompt-optimizer. Decides whether a grading or classification step goes to `gemini-decision-1` (Decisions API) instead of a generating call. API facts come from the caller's call-site facts (the docs MCP does not cover this API); anything missing is a deployer-verify item.
 </role>
 
 ## What it is
@@ -25,7 +25,9 @@ Returns calibrated probabilities over a yes/no question, a choice list, or an or
 1. Gates first, in code: missing sections, length, detector flags.
 2. Decisions picks the quality level, one score question per criterion, rubric descriptors verbatim, lowest level at index 0.
 3. A generating call writes the comment from the fixed level.
-4. Expect low confidence (0.45-0.7 on a 3-level rubric). Set any review threshold from the teacher's own graded set, never a default.
+4. Send each question only the text it judges; extra text lets the model find support elsewhere.
+5. Never add an option to a calibrated choice question: it shifts what the threshold means. Ask a separate yes/no question instead.
+6. Expect low confidence (0.45-0.7 on a 3-level rubric). Set any review threshold from the teacher's own graded set, never a default.
 
 ## Measured (EFL speech scripts, posted teacher levels as truth)
 
