@@ -25,8 +25,7 @@ Returns calibrated probabilities over a yes/no question, a choice list, or an or
 1. Gates first, in code: missing sections, length, detector flags.
 2. Decisions picks the quality level, one score question per criterion, rubric descriptors verbatim, lowest level at index 0.
 3. A generating call writes the comment from the fixed level.
-4. One question per criterion multiplies calls by criteria; gate oversized inputs first, since one can use up a key's minute of tokens. Pacing numbers live in the grader, not in prompts.
-5. Expect low confidence (0.45-0.7 on a 3-level rubric). Set any review threshold from the teacher's own graded set, never a default.
+4. Expect low confidence (0.45-0.7 on a 3-level rubric). Set any review threshold from the teacher's own graded set, never a default.
 
 ## Measured (EFL speech scripts, posted teacher levels as truth)
 

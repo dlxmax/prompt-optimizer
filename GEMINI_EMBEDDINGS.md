@@ -25,9 +25,9 @@ A vector per input; cosine similarity says how alike two inputs are in topic and
 ## Rules
 
 1. Same task prefix (or `taskType`) on both sides of a comparison; the prefix shifts every score (classification prefix raised the peer median 0.73 to 0.80).
-2. Gate inputs in code first: extraction junk, binary files, and oversized texts. `2` truncates silently past its limit; `001` refused them.
+2. Gate junk, binary, and oversized inputs in code first; `2` truncates silently, and one huge input spends the key's minute of tokens.
 3. 768 dimensions rank the same as 3072; store 768 unless a test says otherwise.
-4. Embed once and store; daily caps are small. One unchecked input can use up a key's minute of tokens: a 435k-word binary read as text did, and every later call got 429. Pacing numbers live in the grader, not in prompts.
+4. Embed once and store.
 
 ## Measured (EFL speech scripts, BGO, n=33 drafts, 17 finals)
 
