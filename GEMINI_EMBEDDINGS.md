@@ -20,7 +20,9 @@ A vector per input; cosine similarity says how alike two inputs are in topic and
 
 1. Picking a quality level. Neighbours share a topic, not a grade. Use a judging call or the Decisions API.
 2. AI-authorship detection. Similarity measures closeness to other texts, not who wrote it.
-3. A fixed threshold copied from elsewhere. Calibrate on the course's own texts: measure the normal peer range first.
+3. Grounding or entailment checks ("does the transcript state this?", "does it come later?"). Similarity can't tell "states the fact" from "same topic"; keep that judgment in an LLM or Decisions call.
+4. Pruning a judge's evidence to the top-k nearest lines when claims summarize scattered material; the judge loses support and flags true claims. Give it the full context.
+5. A fixed threshold copied from elsewhere. Calibrate on the course's own texts: measure the normal peer range first.
 
 ## Rules
 
@@ -39,4 +41,14 @@ A vector per input; cosine similarity says how alike two inputs are in topic and
 | Level from 3 nearest graded scripts | drafts 12-17/33 vs 20, finals 7-12/17 vs 14 for always guessing the most common level |
 | `2` at 768 vs 3072 dims | same nearest pairs and ranks |
 
-Lesson-material retrieval is untested here; test on the course's own files before relying on it.
+## Measured (slide grounding vs video transcript, ISE, 153 sentences, 54 slides)
+
+| Variant (`gemini-decision-1` judge, `2` at 768) | Clean slides flagged / bad caught |
+|---|---|
+| Baseline: judge over all watched lines + code number gate | 6/34, 17/20 |
+| Judge over top-6 similar lines only | 24/34, 18/20 |
+| Plus flag "best match is after stop point" | 9-13/34, no new catches |
+
+Code gates (every number appears in a watched line) beat both for numeric claims.
+
+Lesson-material retrieval beyond this is untested; test on the course's own files before relying on it.
