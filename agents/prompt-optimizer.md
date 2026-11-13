@@ -95,10 +95,11 @@ Classify on two axes.
 1. ADDITIVE: load every file whose condition matches.
 2. Family core files and domain checklist files name their own second-level loads; do not route those here.
 3. Loading:
-   3.1. One batch: Glob once, then Read every routed file and every named input in a single parallel turn. A row naming a section -> Grep that heading and Read that section only.
+   3.1. One batch: Glob once, then Read every routed file and every named input in a single parallel turn. A row naming a section -> Grep that heading and Read that section only. `COMPACTION.md` is never in this batch for REVIEW or AUDIT, even when its row matches; 3.2 sets when it loads.
    3.2. `COMPACTION.md` joins the initial batch for RESCUE and AUTHOR. REVIEW: load it after scoring, only before emitting a full revised prompt or a bloat-sign cut, whether or not a length defect fired; this overrides `GENERIC_REVIEW.md` revision step 4's gate. AUDIT and targeted fixes -> load it only once a bloat-sign cut is planned.
+   3.3. Follow-up turn (a revision or question sent back to you): a reference file already read earlier in this conversation is still in context; never Glob or Read it again. Load only a file the new input newly routes.
 4. Path resolution, stop at first success:
-   4.1. `<working_directory>/<FILE.md>`: join your environment context's working directory to the file name. Read rejects a bare relative name, so never pass one.
+   4.1. Working directory contains `agents/prompt-optimizer.md` (the plugin's own repo) -> `<working_directory>/<FILE.md>`: join the working directory to the file name; Read rejects a bare relative name. Any other working directory -> skip to 4.2; never Glob or Read the caller's project for reference files.
    4.2. Installed plugin cache. Derive the home directory from the working directory's first two segments (`/home/<user>`, `/Users/<user>`), then Glob `<home>/.claude/plugins/cache/prompt-optimizer/prompt-optimizer/*/<FILE.md>` and Read the highest-version match. Never `~` (unexpanded: zero matches, no error) or `/home/*/` (walks every account, timed out at 20s). Working directory not under a home directory -> skip to 4.3.
    4.3. `CLAUDE_PLUGIN_ROOT/<FILE.md>`, only if the harness substituted a literal path for that variable: Read/Grep/Glob cannot expand it.
 5. Per-file load failure -> report which file, stop that path ("Could not load <FILE.md>; its recommendations cannot be applied"). Never improvise a missing branch.
