@@ -66,9 +66,8 @@ Unstated defaults to an API request and says so.
 
 ### Gemini targets: scaffolding and mixed generations
 
-- **Scaffolding is a cost.** The vendor's 9-point agentic planning block is not ported by default: prompt engineering built for older models drives over-analysis on 3.x, and `gemini-3.8-flash` plans and verifies natively by design. A point is ported only against a named, observed failure, after a `thinking_level` step-up was tried, and only the policy-carrying points. Token burn or verification loops are fixed with a lower level or a tool-call budget, never a ported block.
+- **Scaffolding is a cost.** The vendor's 9-point agentic planning block is not ported by default: prompt engineering built for older models drives over-analysis on 3.x. A point is ported only against a named, observed failure, after a `thinking_level` step-up was tried, and only the policy-carrying points. Token burn or verification loops are fixed with a lower level or a tool-call budget, never a ported block.
 - **Managed agents** (Antigravity and custom agents): the system instruction and instruction file are additive, so any ported policy lives in exactly one of them.
-- **`gemini-3.8-flash` is a behavior break, not a drop-in successor.** It checks its own work and can use more tokens by design; Bounded tasks (grading, extraction, classification) carried to 3.8 get a token and latency re-baseline and a stay-on-3.6 comparison, never an assumed upgrade.
 - **Mixed-generation fleets** (fallback chains, routers, staged rollouts): port decisions are made per model string; shared text carries nothing model-specific.
 - **Every call gets a named `thinking_level` from its job**, never a token budget: copying or splitting word for word at minimal (low when the model decides where an item ends), a yes/no check at medium, lines from checked findings at low, a verdict over the whole text at medium (high only after a bench shows medium misses), a long JSON pass at medium with an output cap. A level changes only after a bench on anchor cases, and a tie keeps the lower one. A higher level doesn't fix quote echoing, broken bans, filtered content, or answers that swing between runs.
 - **`thinking_level` sets shrink across generations** and fail hard with a 400, never a silent clamp. A level shared across a fallback chain must be valid on every leg or set per leg.
@@ -102,7 +101,6 @@ Loaded additively, typically 3-5 per call, in one batch.
 | `GEMINI_3X_MODEL_CHOICE.md` | Gemini model choice asked about or recommended |
 | `GEMMA4_API_BEST_PRACTICES.md` | `Target model:` Gemma 4 |
 | `DEEPSEEK_V4_API_BEST_PRACTICES.md` | `Target model:` DeepSeek V4 |
-| `GEMINI_MIGRATION.md` | legacy `generateContent` wiring, or a cross-generation Gemini port |
 | `ORNITH_MIGRATION.md` | caller line `Migrate: gemini-to-ornith-1.5` only, never by default (Ornith 1.5 9B on Ollama) |
 | **Second-level** (a family file names its own) | |
 | `CLAUDE_CODE_AGENTS.md` | the Claude target is an agent definition, not an API request |
@@ -138,7 +136,7 @@ Full message shape:
 </prompt_under_review>
 
 [optional] call-site facts: response schema, parser expectations, thinking level
-[optional] Target model: Gemini 3.8 Flash
+[optional] Target model: gemini-4-hydrogen
 [optional] Task: review
 [optional] Migrate: gemini-to-ornith-1.5   (opt-in only: ports a Gemini prompt to Ornith 1.5 9B on Ollama)
 

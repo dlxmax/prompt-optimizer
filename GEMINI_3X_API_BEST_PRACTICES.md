@@ -14,16 +14,14 @@ behavior no docs search can know.
 </role>
 
 <scope>
-Family: any `gemini-3.x` string. Liveness and the current successor for any
+Family: any `gemini-3.x` or `gemini-4-*` string. `gemini-4-hydrogen` succeeds `gemini-3.8-flash`. Liveness and the current successor for any
 string = the docs MCP's job (rule 1); this file stores no model list.
 
 **Surface scope.** Interactions API only. Evidence written against
 `generateContent` (doc page, example, forum answer) neither confirms nor
 overrides an Interactions fact; never port it to an Interactions call without
 verification. Shared doc paths cover both surfaces: check which endpoint an
-example calls before treating it as evidence. Legacy wiring in a prompt or
-call-site = migration defect (`GEMINI_MIGRATION.md`), never an alternative to
-recommend.
+example calls before treating it as evidence.
 
 Current defaults/pricing and every API-mechanics fact = the docs MCP's job
 (rule 1). Gemma 4 → `GEMMA4_API_BEST_PRACTICES.md`; DeepSeek V4 →
@@ -41,8 +39,7 @@ multi-turn/thought-preservation, streaming, SDK/migration facts. Query
 or reviewing call-site code, `gemini_get_doc` when the snippet lacks context;
 state the resulting fact, never its source. Tool absent or erroring → deployer-verify
 item recommending that query, with your interim assumption. Never point to the
-`gemini-interactions-api` skill: you cannot see whether the caller has it. Legacy `generateContent` wiring additionally
-loads `GEMINI_MIGRATION.md` (cross-family facts; same docs-MCP-first policy).
+`gemini-interactions-api` skill: you cannot see whether the caller has it.
 
 ## 2. Long-context: query at the end, anchored to the context
 
@@ -89,7 +86,7 @@ Recommend in Key Changes:
 
 Valid levels and per-model defaults: rule 1, never this file. Levels below
 are empirical, verified on `gemini-3.5-flash-lite` and `gemini-3.8-flash`; use
-the nearest level the target accepts, valid on every model in the chain. A config shared across models (fallback chain, router) sets the level per leg or uses one valid on every leg: a bottom level valid on the primary can 400 the fallback exactly when it is needed.
+the nearest level the target accepts, valid on every model in the chain. `low`, `medium`, `high` are valid on every model. `minimal` is rejected (HTTP 400) by `gemini-3.8-flash` and `gemini-4-hydrogen`, and so is a `thinking_budget`; a bottom-level call moved there has no equal floor, so say so rather than silently going up a level. `gemini-4-hydrogen` adds `xhigh`; default `high`. A config shared across models (fallback chain, router) sets the level per leg or uses one valid on every leg: a bottom level valid on the primary can 400 the fallback exactly when it is needed.
 
 8.1. Name a level per call, never a token budget: budgets map onto levels, so two budgets can send the same level and a bench across them tests fewer levels than it names.
 8.2. Start from the call's job; name the job beside the level:
@@ -112,7 +109,7 @@ Task-by-task results: `GEMINI_3X_MODEL_CHOICE.md`.
 9.1. **Rankings are task-specific, not global.** Never port a win across task types without re-testing. Never emit a family-wide good/bad verdict from one task.
 9.2. **Lite-tier models tend toward surface-pattern matching over semantic judgment** on tasks needing discrimination between real and superficially similar content: recall gaps on implicit evidence in grading, surface-feature gaming in item construction. Mitigate with an explicit enumeration/scan requirement (forces the surface-vs-semantic gap into a checkable list, per `FEEDBACK_GENERATION.md` F3), shaped as a fixed list walked with a per-item present/absent verdict, never a findings quota: a surface-matcher told to return N returns N, padded with lookalikes. Budget a second-order cost too: piling scan requirements onto a small model crowds out attention for other prompt-carried rules. A fix genuinely competing with another rule for attention → move the competing rule code-side rather than adding prompt text.
 9.3. **Bigger/smarter is not automatically better**, and may not be worth its cost: one finding rejected a heavier reasoning model that shared the same constrained quota bucket, was slower, and gained no quality on that task. Check quota-sharing AND task-relevant quality gain before recommending a tier step-up.
-9.4. **Instability is never a temperature fix.** Run-to-run flips on a 3.x target -> narrower checks (`GRADING_PIPELINE.md` G1.1), never a temperature change. Caller sets `temperature`, `top_p`, or `top_k` at any value -> recommend deleting the parameter from the request, never a value to set it to (not even 1.0: an older docs page names it, the 3.x guidance says remove).
+9.4. **Instability is never a temperature fix.** Run-to-run flips on a 3.x target -> narrower checks (`GRADING_PIPELINE.md` G1.1), never a temperature change. Caller sets `temperature`, `top_p`, or `top_k` at any value -> recommend deleting the parameter from the request, never a value to set it to (not even 1.0: an older docs page names it, the 3.x guidance says remove). `gemini-4-hydrogen` fixes sampling (1.0 / 0.95 / 64) and ignores any value.
 9.5. **A single clean benchmark run is the upper tail of variance**, not a stable baseline, at default sampling. Treat one clean result as optimistic; recommend a small multi-run check before declaring a winner, especially on a close call.
 9.6. **A same-family "gold standard" inflates agreement.** Labels generated by one family and graded by the same family showed near-perfect agreement that dropped sharply against an independent non-LLM ground truth. Prefer independent ground truth over another LLM's opinion, especially same-family.
 
@@ -124,7 +121,7 @@ docs deferral, same as rule 8.
 10.1. `gemini-3.1-flash-lite` has an empirically confirmed per-minute token ceiling well below its context window. A generic auto-retry loop (short fixed sleep, many attempts) on a long prompt exhausts it inside one wall-clock minute, producing repeated zero-output failures that read as model failures but are pacing failures. Long-prompt Flash-Lite work → single-shot calls with wide spacing (90+ seconds) over blind auto-retry. Re-verify whether the ceiling carries to `gemini-3.5-flash-lite`.
 10.2. A newly released model on the free tier sheds load as HTTP 500 with a high-demand message BEFORE any quota 429 appears, and sheds a long prompt while a trivial one on the same key succeeds seconds earlier. A circuit breaker keyed on 429 alone reads this as a server fault and retries straight into the real quota wall: count consecutive 500s toward the same breaker.
 10.3. Quota is tracked per model per key. Several keys with a fallback model -> spend the primary on every key before the fallback on any key: a key whose primary is spent still holds fallback quota.
-10.4. Interactions API's 429 is a **different, strictly worse shape**: HTTP 200 with an SSE-embedded error, no `retryDelay`/`quotaId`/scope fields at all. No severity can be parsed out of the response; use a persistence-based circuit breaker (consecutive failures over a time window). A severity classifier built on legacy `generateContent` `RetryInfo` fields does not port: legacy retry wiring in the input is a migration defect to flag, never a path to tune.
+10.4. Interactions API's 429 is a **different, strictly worse shape**: HTTP 200 with an SSE-embedded error, no `retryDelay`/`quotaId`/scope fields at all. No severity can be parsed out of the response; use a persistence-based circuit breaker (consecutive failures over a time window).
 
 ## Moved content
 
@@ -134,8 +131,6 @@ Second-level routing, additive to this file:
 
 **`GEMINI_3X_MODEL_CHOICE.md`**: task-by-task model results. Load when the caller asks which model to use, or before you recommend a model or tier change.
 
-**`GEMINI_MIGRATION.md`**: cross-family migration facts the docs don't state (tools + response_format scope across families, Gemma 4 schema-shape porting, prefilled model-turn validation, `thinking_level` shrinkage, the `gemini-3.8-flash` behavior break). Load one-time per prompt when EITHER legacy `generateContent` forms appear anywhere in the input OR the caller's request states a move of this prompt to a different model or generation (Gemma 4 / Gemini 2.5 / earlier 3.x to a 3.x target). Never load it for a review, audit, or authoring task that states no move, and a chain or router, a model string, or a recommended model swap alone is not a move. The trunk routes only the first trigger, so the second is this file's to fire.
-
 ## Verify after changes
 
 1. No API-mechanics claim (model ID, parameter, endpoint, request/response shape) answered from this file instead of the docs MCP (1).
@@ -144,8 +139,8 @@ Second-level routing, additive to this file:
 4. Chain-of-thought scaffolding replaced with a `thinking_level` recommendation, not left in place (3).
 5. Freshness clauses present on Flash-tier targets with time-sensitive or knowledge-grounded tasks; strict-grounding clause present on any 3.x target answering from context or judging submitted work (4).
 6. Every call names its `thinking_level` and job, never a token budget; any change rests on an 8.3 bench; no level raised for an 8.4 cause; long structured output carries an output cap, plus a truncation warning above medium (8).
-7. Any recommended model swap names its currency caveat, tested on which generation and re-verify before porting, rather than standing as fact (9); a Flash successor is never assumed to be `gemini-3.8-flash` (9, `GEMINI_MIGRATION.md` 5).
-8. Any 429/quota recommendation is written for Interactions (persistence-based circuit breaker), and legacy retry wiring is flagged as a migration defect rather than tuned (10).
+7. Any recommended model swap names its currency caveat, tested on which generation and re-verify before porting, rather than standing as fact (9).
+8. Any 429/quota recommendation is written for Interactions (persistence-based circuit breaker) (10).
 
 ## Closing directive recap
 
@@ -155,5 +150,4 @@ mechanics-defer-to-docs). Apply every numbered rule.
 Current model IDs, defaults, pricing, and every other documented
 API-mechanics or migration fact → a `gemini_search_docs` query (rule 1), never
 this file or memory. Empirically-tested model choice (9) and
-production quota behavior (10) → this file is the source of truth. Legacy
-`:generateContent` wiring additionally loads `GEMINI_MIGRATION.md`.
+production quota behavior (10) → this file is the source of truth.

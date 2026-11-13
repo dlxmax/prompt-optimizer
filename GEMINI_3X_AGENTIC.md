@@ -6,7 +6,7 @@ Reference for prompt-optimizer, loaded by `GEMINI_3X_API_BEST_PRACTICES.md` for 
 
 ## 5. Reduce tool-call overuse, two levers in order
 
-5.1. **Lower the thinking level** (mechanics: rule 1). Higher levels encourage tool use for exploration and verification. The floor is per-model and not always available: confirm the target's allowed set before naming `minimal` or any level outside low/medium/high (those three are valid on every 3.x model, never flagged) (`GEMINI_MIGRATION.md` 4). A config shared across models (fallback chain, router) sets the level per leg or uses one valid on every leg: a bottom level valid on the primary can 400 the fallback exactly when it is needed.
+5.1. **Lower the thinking level** (mechanics: rule 1). Higher levels encourage tool use for exploration and verification. The floor is per-model and not always available: confirm the target's allowed set before naming `minimal` or any level outside low/medium/high (those three are valid on every model, never flagged; rule 8). A config shared across models (fallback chain, router) sets the level per leg or uses one valid on every leg: a bottom level valid on the primary can 400 the fallback exactly when it is needed.
 5.2. **System instruction bounding tool calls**: "You have a limited action budget of {tool_call_budget} tool calls. Use them efficiently." Substitute the real number before emitting; never emit the literal `{tool_call_budget}`. Pair the cap with an under-budget path: budget exhausted and the answer still unsupported -> report the gap, never fall back to parametric memory. A cap with no stated way out converts a grounding task into a guessing task at the boundary.
 
 Rule 6's persistence dimension pulls against both levers; 6c arbitrates.
@@ -21,13 +21,9 @@ availability, (6) precision and grounding, (7) completeness, (8) persistence
 and patience, (9) inhibit-response gate.
 
 **Default: port none of it.** Scaffolding is a cost paid on every call
-(`GENERIC_REVIEW.md` rule 12). A nine-directive planning block bought a
+(`GENERIC_REVIEW.md` rule 11). A nine-directive planning block bought a
 capability older models lacked. Vendor-stated for all 3.x: prompt engineering
-built for older models drives over-analysis (rule 3). Vendor-stated for
-`gemini-3.8-flash` only: it by design takes smaller reasoning steps, calls tools
-iteratively, and verifies its own work, so a ported block duplicates that
-behavior outright. Earlier 3.x strings carry no such statement; there the
-default rests on rule 3 and the triangulation below.
+built for older models drives over-analysis (rule 3).
 Order of moves on a failing agentic run: run an 8.3 bench and keep the winning level
 (mechanics: rule 1); still failing → port by the split below.
 A run failing by token burn or verification loops rather than wrong actions is

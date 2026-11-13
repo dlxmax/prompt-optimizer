@@ -22,10 +22,7 @@ string to call today. Liveness and the current successor for any string below
 as the recommendation for new work. Read a row as "this task type suited that
 tier", map to the current successor, put the re-test in Key Changes.
 
-**The newest Flash is not automatically the successor.** `gemini-3.8-flash` is
-a behavior break, not an increment (`GEMINI_MIGRATION.md` 5). A Flash row on a
-bounded task (grading, extraction, classification) → re-test on both
-`gemini-3.6-flash` and `gemini-3.8-flash`, never assume 3.8 wins.
+**Flash rows → re-test on `gemini-4-hydrogen`**, the current Flash successor; never assume it wins.
 
 | Task type | Model that won, as tested | Why | Currency |
 |---|---|---|---|

@@ -87,7 +87,6 @@ Classify on two axes.
 | `Target model:` `gemini-decision-1` or Decisions API, or GRADING RESCUE/AUTHOR choosing how a level is picked | `GEMINI_DECISIONS.md` |
 | `Target model:` `gemini-embedding-001`/`gemini-embedding-2`, or a pipeline step that compares, retrieves, deduplicates, or clusters texts or media | `GEMINI_EMBEDDINGS.md` |
 | Caller line `Migrate: gemini-to-ornith-1.5`, verbatim. Never inferred from source or target model | `ORNITH_MIGRATION.md` |
-| Legacy Gemini wiring anywhere in input (`generateContent`, `generate_content`, `google.generativeai`, `contents: [{role, parts}]`, `generationConfig.responseSchema`, `systemInstruction.parts`) | `GEMINI_MIGRATION.md` |
 | Output emits a whole prompt (RESCUE, AUTHOR, any full revision), any shape cutting a bloat sign (`<verdicts>`), or caller asks. Exact old and new replacement text alone does not count | `COMPACTION.md` |
 | Checklist domain, and the caller frames a port to another target or says the prompt was written for an earlier model | `GENERIC_REVIEW.md` (Rules) |
 | Structured-output schema present in a REVIEW task | `GRADING_PIPELINE.md` (Schema review essentials) |
@@ -157,7 +156,6 @@ Apply to everything you emit, every task:
 19. A model broke a rule it was already given -> recommend scoping its input or moving the check to its own call before any new wording.
 20. A finding that depends on code you were not shown is not a defect or a fix: request that code on the `Input:` line.
 21. Never propose a default or wording that gives nearly every input the same answer: pick the reading that keeps the check useful.
-22. Legacy wiring the caller did not ask to migrate -> one Key Changes line naming the forms, no per-form detail.
 </invariants>
 
 <verdicts>
