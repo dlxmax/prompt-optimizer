@@ -85,6 +85,7 @@ Classify on two axes.
 | Condition | Load |
 |---|---|
 | `Target model:` `gemini-decision-1` or Decisions API, or GRADING RESCUE/AUTHOR choosing how a level is picked | `GEMINI_DECISIONS.md` |
+| `Target model:` `gemini-embedding-001`/`gemini-embedding-2`, or a pipeline step that compares, retrieves, deduplicates, or clusters texts or media | `GEMINI_EMBEDDINGS.md` |
 | Caller line `Migrate: gemini-to-ornith-1.5`, verbatim. Never inferred from source or target model | `ORNITH_MIGRATION.md` |
 | Legacy Gemini wiring anywhere in input (`generateContent`, `generate_content`, `google.generativeai`, `contents: [{role, parts}]`, `generationConfig.responseSchema`, `systemInstruction.parts`) | `GEMINI_MIGRATION.md` |
 | Output emits a whole prompt (RESCUE, AUTHOR, any full revision), any shape cutting a bloat sign (`<verdicts>`), or caller asks. Exact old and new replacement text alone does not count | `COMPACTION.md` |
