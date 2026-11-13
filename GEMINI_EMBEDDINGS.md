@@ -27,7 +27,7 @@ A vector per input; cosine similarity says how alike two inputs are in topic and
 1. Same task prefix (or `taskType`) on both sides of a comparison; the prefix shifts every score (classification prefix raised the peer median 0.73 to 0.80).
 2. Gate inputs in code first: extraction junk, binary files, and oversized texts. `2` truncates silently past its limit; `001` refused them.
 3. 768 dimensions rank the same as 3072; store 768 unless a test says otherwise.
-4. Pace by the account limit (3,000 RPM, 1M TPM), tokens first. One unchecked input can use up the minute's tokens: a 435k-word binary read as text did, and every later call got 429.
+4. Pace per key: 100 RPM, 30K TPM, 1K requests per day, tokens first. Four 8K-token inputs to `2` fill a key's minute; embed once and store, since the daily cap ends a large re-embed. One unchecked input can use up the minute's tokens: a 435k-word binary read as text did, and every later call got 429.
 
 ## Measured (EFL speech scripts, BGO, n=33 drafts, 17 finals)
 
