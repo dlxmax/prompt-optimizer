@@ -5,7 +5,7 @@ description: Use when adding a Gemini API call (google-genai, generateContent, I
 
 # Gemini call design
 
-Decide the architecture before writing the prompt. Cited guides sit in the plugin root, two levels above this file (`../../`). Read a cited guide when you set the parameter or route that line names.
+Decide the architecture before writing the prompt. Cited guides sit in the plugin root: join this skill's base directory (shown when the skill loads) with `../../<GUIDE>.md` and Read that absolute path. Read a cited guide when you set the parameter or route that line names.
 
 ## 1. Route each job, first match wins
 
@@ -27,7 +27,7 @@ Decide the architecture before writing the prompt. Cited guides sit in the plugi
 2. Misses persist at medium: try **high** on a small bench. Still failing: **split into two medium calls**. Never raise the level for flips, quote echo, or broken bans; fix the wording or move it to code.
 3. Split: each judgment check gets its own call; presence checks may share one. Also split when a call joins 3+ conditions in one verdict, bundles feedback with checks, or one check flips. Past about 6 calls per item, question each. Already split once: fix wording or route to code/Decisions before splitting again. (`GRADING_PIPELINE.md` G1.1, G1.2)
 4. Flaky output: narrower checks, code, or Decisions. Never voting, majority runs, or temperature. Delete `temperature`, `top_p`, `top_k`. (`GRADING_PIPELINE.md` G8; best practices 9.4)
-5. Schema: reasoning and quotes before the verdict; no model-computed counts or totals; an abstain path for thin input; output cap on long output. Student or source text inside a labeled block stated as data only; the prompt says to rely only on that text. (`GRADING_PIPELINE.md` schema essentials, G2, G9)
+5. Schema: reasoning and quotes before the verdict; no model-computed counts or totals; an abstain path for thin input; output cap on long output. Student or source text inside a labeled block, with the data-only instruction stated outside that block; the prompt says to rely only on that text. (`GRADING_PIPELINE.md` schema essentials, G2, G9)
 6. Fallback chain:
    6.1. Never a Lite model after a Flash model; no retired models. (best practices 9.7)
    6.2. Thinking level valid on every leg; log which model answered.
