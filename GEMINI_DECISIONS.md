@@ -32,10 +32,11 @@ Returns calibrated probabilities over a yes/no question, a choice list, or an or
 7. Ask a choice among contrasting failure kinds, not a bare yes/no. "Is this clue unclear" scored 0.31-0.52 on every point; a 4-option contrasting choice separated them.
 8. Exempt items that assert nothing (opinion questions) in code before asking. A "facts it takes for granted" clause scores them low: exempting "?" sentences cut wrongly flagged true sentences 20 of 123 to 7, missing 1 more false one (8 of 30).
 9. A choice question with a "none" option: read P(none) as its own signal. It caught 4 unsupported claims.
-10. Set every threshold from the teacher's own graded set, never a default: one checker's best cutoff was 0.4, while a 3-level rubric's confidence ran 0.45-0.7.
+10. Set every threshold from the teacher's own graded set, never a default: one checker's best cutoff was 0.4, while a 3-level rubric's confidence ran 0.45-0.7, and true repeat-question pairs often scored 0.3-0.5 (cutoff 0.3: 19/24 caught, 2/40 false flags; 0.5: 14/24, 0/40).
 11. Relative scoring: score each point in its own question, then in code compare each score to the same draft's other points plus an absolute floor. A floor alone did not separate points across drafts.
 12. Confirm step after a generating call that over-flags: keep a flag only when its probability passes the threshold.
 13. Bench end to end: the decision is stable, the generating calls upstream are not. Keep bench data in a persistent folder (e.g. ~/.tabot/benches), never /tmp or a session scratchpad: a reboot wiped one.
+14. Keep "not a match" exclusions in the criteria narrow. A broad no-rule ("own habits vs rules/society") pulled true repeats that cross it to No (statement vs question on the same central claim: 0.07-0.48).
 
 ## Measured (EFL speech scripts, posted teacher levels as truth)
 

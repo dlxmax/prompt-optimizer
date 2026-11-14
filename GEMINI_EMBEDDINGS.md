@@ -22,7 +22,8 @@ A vector per input; cosine similarity says how alike two inputs are in topic and
 2. AI-authorship detection. Similarity measures closeness to other texts, not who wrote it.
 3. Grounding or entailment checks ("does the transcript state this?", "does it come later?"). Similarity can't tell "states the fact" from "same topic"; keep that judgment in an LLM or Decisions call.
 4. Pruning a judge's evidence to the top-k nearest lines when claims summarize scattered material; the judge loses support and flags true claims. Give it the full context.
-5. A fixed threshold copied from elsewhere. Calibrate on the course's own texts: measure the normal peer range first.
+5. "Same question?" among items that share one topic (repeats within a lesson). Shared scenes and topic words dominate: true repeats 0.75-0.91, non-repeats up to 0.875. Subtracting the set's mean vector made it worse; as a pre-filter it pruned almost nothing. Use a Decisions or LLM pair check.
+6. A fixed threshold copied from elsewhere. Calibrate on the course's own texts: measure the normal peer range first.
 
 ## Rules
 
@@ -30,6 +31,7 @@ A vector per input; cosine similarity says how alike two inputs are in topic and
 2. Gate junk, binary, and oversized inputs in code first; `2` truncates silently, and one huge input spends the key's minute of tokens.
 3. 768 dimensions rank the same as 3072; store 768 unless a test says otherwise.
 4. Embed once and store.
+5. Embed only the part being compared: strip shared anchor sentences and scaffolds first (question-only text caught 15/24 repeats at 0 false flags, the best variant).
 
 ## Measured (EFL speech scripts, BGO, n=33 drafts, 17 finals)
 
@@ -50,5 +52,14 @@ A vector per input; cosine similarity says how alike two inputs are in topic and
 | Plus flag "best match is after stop point" | 9-13/34, no new catches |
 
 Code gates (every number appears in a watched line) beat both for numeric claims.
+
+## Measured (repeat questions within one lesson, ISE, 33 items, 24 repeat pairs)
+
+| Variant (768 dims) | Result |
+|---|---|
+| Full item text | AUC 0.945-0.953; non-repeats up to 0.875 |
+| Question only, `001` / `2` | 15/24 / 7/24 caught at 0 of 486 false flags |
+| Minus lesson mean vector | AUC 0.90-0.93 |
+| Pre-filter keeping 22-24/24 repeats | 180-430 of 528 pairs pass |
 
 Lesson-material retrieval beyond this is untested; test on the course's own files before relying on it.
