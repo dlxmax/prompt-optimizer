@@ -52,5 +52,6 @@ Unbenched: <choices with no bench yet, and the minimal bench for each>
 ## 5. After writing the prompt
 
 1. New or rewritten prompt: send it to `prompt-optimizer:prompt-optimizer` with the prompt inline first, then call-site facts (model and fallbacks, thinking level, schema, parser, prior size for a revision, calls sharing its system instruction), then the request last.
+2. Without asking the user: apply its fixes (or state why one is declined), send the revision to the same agent per its `Next:` line, and repeat until it says PASS.
 
 Edits that change no call's job, prompt, model, thinking, schema or fallback chain skip this skill.
