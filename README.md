@@ -19,6 +19,15 @@ Claude Code agents), Gemini, Gemma 4, and DeepSeek V4. Add the line
 `Migrate: gemini-to-ornith-1.5` to port a Gemini prompt to Ornith 1.5 9B on
 Ollama; it never runs otherwise. It only reads; it never changes your files.
 
+## Design skill
+
+The plugin also ships a skill, `prompt-optimizer:gemini-call-design`. It loads
+in your main Claude Code session whenever a Gemini call is added or changed,
+and decides up front what goes to code, the Decisions API, embeddings,
+Flash-Lite or Flash, at which thinking level, and how small the bench is. It
+posts that design before writing code, then sends the finished prompt to the
+agent for review.
+
 ## Install
 
 In Claude Code:
