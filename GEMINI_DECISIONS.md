@@ -19,6 +19,7 @@ Returns calibrated probabilities over a yes/no question, a choice list, or an or
 1. A level is defined by countable or missing parts (sections present, word count, number of points). Use yes/no checks plus code.
 2. A level depends on originality or AI authorship. It cannot judge either; use detectors or the teacher.
 3. The step must produce feedback text or evidence quotes. Keep a generating call; pass it the chosen level as a fixed input.
+4. The check must tell "the source says X" from "the source leads up to X" (facts said only after a stop point). Facts said just after the stop scored P(supported) 0.46-0.81; adding the later lines as a separate block, a second "first said later?" question, or a watched/later/neither choice caught at most 1 of 5 for 3 new false flags. Forbid causes and later events beyond the stop in the generation prompt, or have a person check them.
 
 ## Shape of a Decisions step
 
@@ -34,7 +35,7 @@ Returns calibrated probabilities over a yes/no question, a choice list, or an or
 10. Set every threshold from the teacher's own graded set, never a default: one checker's best cutoff was 0.4, while a 3-level rubric's confidence ran 0.45-0.7.
 11. Relative scoring: score each point in its own question, then in code compare each score to the same draft's other points plus an absolute floor. A floor alone did not separate points across drafts.
 12. Confirm step after a generating call that over-flags: keep a flag only when its probability passes the threshold.
-13. Bench end to end: the decision is stable, the generating calls upstream are not.
+13. Bench end to end: the decision is stable, the generating calls upstream are not. Keep bench data in a persistent folder (e.g. ~/.tabot/benches), never /tmp or a session scratchpad: a reboot wiped one.
 
 ## Measured (EFL speech scripts, posted teacher levels as truth)
 
