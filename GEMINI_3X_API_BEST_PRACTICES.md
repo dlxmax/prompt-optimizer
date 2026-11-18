@@ -97,8 +97,8 @@ the nearest level the target accepts, valid on every model in the chain. `low`, 
    8.2.5. Long structured output matching no job above: medium.
 8.3. Change a level only after a bench on anchor cases: the level below and the level above, the same anchors including cases already right, uncached, one model, time per call reported. Levels tie -> keep the lower: faster, less truncation. Report the model that answered; a fallback partway through voids the comparison.
 8.4. Never raise the level for quote echoing, broken bans, output carrying content a rule forbids, content an earlier step filtered out, or answers that swing between runs at a fixed level. A higher level tidies grammar; it does not recover filtered content. Fix the prompt, narrow the question, or move the decision to code (`GRADING_PIPELINE.md` G1.1). A call below its 8.2 level is exempt: raise it to that level.
-8.5. Flash-Lite: medium is the default. High has fixed named misses at medium and has also backfired, so try it only through an 8.3 bench that includes cases already right. Still missing at high: split into two medium calls. A judgment with no text output goes to the Decisions API first (`GEMINI_DECISIONS.md`).
-8.5. Thinking tokens share the output cap. Long structured output always carries an output cap; above medium, also warn that the JSON tail may be truncated (empty replies, 500s).
+8.5. Flash-Lite: medium is the default for jobs 8.2.1 does not name. High has fixed named misses at medium and has also backfired, so try it only through an 8.3 bench that includes cases already right. Still missing at high: split into two medium calls. A judgment with no text output goes to the Decisions API first (`GEMINI_DECISIONS.md`).
+8.6. Thinking tokens share the output cap. Long structured output always carries an output cap; above medium, also warn that the JSON tail may be truncated (empty replies, 500s).
 
 ## 9. Model choice patterns
 

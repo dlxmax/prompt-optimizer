@@ -20,7 +20,7 @@ Returns calibrated probabilities over a yes/no question, a choice list, or an or
 2. A level depends on originality or AI authorship. It cannot judge either; use detectors or the teacher.
 3. The step must produce feedback text or evidence quotes. Keep a generating call; pass it the chosen level as a fixed input.
 4. The check must tell "the source says X" from "the source leads up to X" (facts said only after a stop point). Facts said just after the stop scored P(supported) 0.46-0.81; adding the later lines as a separate block, a second "first said later?" question, or a watched/later/neither choice caught at most 1 of 5 for 3 new false flags. Forbid causes and later events beyond the stop in the generation prompt, or have a person check them.
-5. A check that failed its bench here (evidence of support, vouching, "new idea better" were three) stays on lite behind a confirm step (Shape 12).
+5. A check that failed its bench here (evidence of support, vouching, "new idea better" were three) stays on lite behind a confirm step (Shape of a Decisions step 12).
 
 ## Shape of a Decisions step
 
