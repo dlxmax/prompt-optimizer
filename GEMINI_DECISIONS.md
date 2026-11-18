@@ -47,4 +47,4 @@ Returns calibrated probabilities over a yes/no question, a choice list, or an or
 | Outline/Script quality, 3 levels, n=17 | 16/17; identical on rerun | 15/17 majority of 3; 85% per call; changed level between runs on 3 scripts |
 | Draft completeness + originality, 3 levels, n=33 | 23/31 scored; caught 1/7 low drafts; 4/6 middle | 23/33; caught 4/7 low drafts (code gates); 1/6 middle |
 
-Re-test on a new rubric before switching it.
+Both missed full-length drafts the teacher marked low: originality, not completeness. Re-test on a new rubric before switching it.
