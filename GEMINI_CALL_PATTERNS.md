@@ -1,7 +1,7 @@
 # Gemini call patterns and bench harness
 
 <role>
-Reference for the `gemini-call-design` skill. Code shapes and bench layout that kept a multi-call grading pipeline right on the first run. Excerpts are shape, not a library: adapt names, keep the behavior.
+Reference for the `gemini-call-design` skill. Code shapes and bench layout. Excerpts are shape, not a library: adapt names, keep the behavior.
 </role>
 
 ## Code patterns
@@ -9,7 +9,7 @@ Reference for the `gemini-call-design` skill. Code shapes and bench layout that 
 1. Decide function injected; None keeps the lite answers; tests pass a fake.
 ```python
 Decide = Callable[[str, dict], dict]
-grade(..., decide=None)        # None: lite answers stand
+grade(..., decide=None)
 grade(..., decide=lambda text, questions: decisions.decide(key, text, questions, cfg))
 ```
 2. Sidecar answer to a lite-shaped field. Threshold lives in the sidecar (PLACEHOLDER_MIN is an uncalibrated, env-overridable constant; log it); strip `_` keys before the request (unknown keys are HTTP 400).
@@ -31,7 +31,7 @@ return reply
 ```python
 try:
     probs = {k: float(v) for k, v in decide(text, {"p": question})["p"]["probabilities"].items()}
-except Exception as exc:   # a failed check must not stop grading
+except Exception as exc:
     review.append(f"Check failed, kept ({key}): {type(exc).__name__}"); continue
 kind, p = max(((k, v) for k, v in probs.items() if k != "good"), key=lambda kv: kv[1], default=("", 0.0))
 if p >= FAIL_MIN: misses.append(f"{key} {kind} (P {p:.2f})")
@@ -45,7 +45,7 @@ return text if quote_ok(text) else UNVERIFIED
 6. Verbatim span, punctuation-tolerant.
 ```python
 words = norm(quote).split()
-if not words: return None   # an empty quote never verifies
+if not words: return None
 m = re.search(r"(?i)(?<!\w)" + r"[\W_]+".join(map(re.escape, words)) + r"(?!\w)", transcript)
 return m.span() if m else None
 ```
@@ -76,10 +76,10 @@ def call(*a, **k):
 Folder `~/.tabot/benches/<task>/`, never /tmp or the code repo:
 1. `fetch.py` builds `cases.json` once from the source of record. Cases hold real student names: keep the folder out of shared files; reports use IDs.
 2. `run.py <route> [out]`: one `one(case, route)`, 4 threads (per-model; `GEMINI_3X_API_BEST_PRACTICES.md` 10), the route is an argument (`old`: `decide=None`, `new`: Decisions), writes `<out>.json`, prints one line per case. Errors are caught per case and returned as a row. Use the full key list so a 503 rotates.
-3. Numbered outputs in pairs (`runN.json` + `runN.log`). Keep the log: it holds the 503 history and the answering model. Unbuffered log, never `| tail`; check it is not empty.
+3. Numbered outputs in pairs (`runN.json` + `runN.log`). Keep the log: it holds the 503 history and the answering model. Unbuffered log, never `| tail`.
 4. `probe_*.py <names> <runs> <model>`: one call class on chosen cases, each run wrapped in the cache bypass, one JSON row per run. Print one line per item with the label probabilities beside the item text: `0.14 unclear=0.79 | <case> | <text>`. Print every option at or above 0.01 on boundary cases.
 5. `rulings.json`: `{"_note", "owner": {case: {criterion: ruling}}, "adjudicator": {check: verdict}, "notes": [...]}`. Owner rulings and adjudicator verdicts in separate keys.
 6. Before any staging write: copy the database (`<db>.bak-<label>-<timestamp>`); after a restore, diff the cache.
 7. Versioned question or prompt files as data (`v1.json`, `v2.json`) with a runner that writes `<file>.out.json`: the diff sits beside its results. A swapped-order rerun catches position bias.
-8. Count calls first and say it. Decisions answers are cached by input and questions: a changed question is a new key, an unchanged one is served from cache, so "uncached" needs the bypass. Hydrogen-tier benches run one at a time.
+8. Decisions answers are cached by input and questions: a changed question is a new key, an unchanged one is served from cache, so "uncached" needs the bypass. Hydrogen-tier benches run one at a time.
 9. Lesson-creator benches: set the module config object or per-phase models and thinking are ignored.
