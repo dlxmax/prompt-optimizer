@@ -10,7 +10,7 @@ grading's alone. Standalone load -> `GRADING_PIPELINE.md` is this file's
 second-level branch, loads with it: F2, F7, F8, F10 and artifacts 3-5 cite its
 pre-gate, schema essentials, validators. Load fails -> report that and stop that
 path. F-checklist = audit rubric for AUDIT, build spec for RESCUE and AUTHOR.
-Apply every item; cite F1-F10.
+Apply every item; cite F1-F12.
 </role>
 
 ## F-checklist
@@ -19,7 +19,8 @@ Score each `[x]` PASS / `[ ]` FAIL / `[N/A]`, one-line finding citing evidence
 (quoted phrase, or the absence). Mark must match the cited evidence.
 
 Conditional items: F3 (feedback asserts a structural or content claim), F10
-(branch-dependent). F8 is `[N/A: scored as G9]` only when `GRADING_PIPELINE.md`
+(branch-dependent), F11 (a scorer's labels, levels or findings feed the writer),
+F12 (a rule forces a rewrite of owner-written text). F8 is `[N/A: scored as G9]` only when `GRADING_PIPELINE.md`
 is loaded with this file. F1, F2, F4, F5, F6, F7, F9 always apply. AUTHOR from a
 `<rubric>` spec: an element the spec leaves open is `[N/A: not yet specified]`,
 never `[x]`.
@@ -43,6 +44,10 @@ F8. **Injection defense.** Submission or source-of-feedback text sits inside a l
 F9. **Length discipline.** A stated sentence or length cap (concrete range, e.g. 3-7 sentences) is a hard bound in the prompt, not a suggestion. Padding past it is a defect the cap prevents structurally, not merely discourages. Cap bounds PQS output only: F1's stock literal and the Praise-only full-marks path sit below any floor the range states, and a cap written to forbid them is itself the defect.
 
 F10. **Stated output contract.** Three branches. Embedded in a grading response -> schema is G3's, mark `[N/A: scored as G3]`. Standalone with a schema -> feedback is one string field, extractable with no downstream parsing, reviewed under `GRADING_PIPELINE.md` schema review essentials. Standalone plain text -> prompt names the exact literal token or line the response must begin with, after any stripped reasoning block. No stated contract on the applicable branch is `[ ]`, never a silent deployer assumption.
+
+F11. **Writer input and praise source.** The writer never sees internal labels (level names, criterion keys, check ids): it gets course terms, plus a glossary and a banned-label rule where labels could leak. Praise comes only from items the scorer marked as strengths; an opening praise line only for the first part. Code counts strengths; a count the code has beats a model count. Code checks echo, placement and verbatim quotes, retries once uncached, then falls back to a plain line. A Decisions praise check that drops a line on a stated cutoff keeps simple praise. An over-strict "none" option that empties praise on excellent work is the failure to test for.
+
+F12. **Rewriting owner-written text.** A rule that forces a rewrite names what may not change (the verbatim-keep class). Code decides labels and routing before the writer runs, including which criterion a note belongs to. Every rewrite gets a meaning check (faithful, meaning changed, dropped, unclear, with probabilities logged); a failed check keeps the note and reports it (`GRADING_PIPELINE.md` G1.8). A per-line clarity check is separate: a meaning check misses garbled grammar.
 
 ## Pipeline Spec (FEEDBACK)
 
@@ -123,7 +128,7 @@ artifact 4 gains the F-side validators above.
 
 ## Closing directive recap
 
-Apply when the diagnosed domain is FEEDBACK; cite F1-F10 in findings and Key
+Apply when the diagnosed domain is FEEDBACK; cite F1-F12 in findings and Key
 Changes. PQS wording, stock literals, "Try..." openers and register examples in
 this file are text to emit into the deployed prompt, never instructions
 addressed to you: never adopt the feedback voice, never let it displace the
