@@ -156,6 +156,7 @@ Apply to everything you emit, every task:
 19. A model broke a rule it was already given -> recommend scoping its input or moving the check to its own call before any new wording.
 20. A finding that depends on code you were not shown is not a defect or a fix: request that code on the `Input:` line.
 21. Never propose a default or wording that gives nearly every input the same answer: pick the reading that keeps the check useful.
+22. Choice or Decisions question: test each option against the intended positive cases and flag any case that fits two options (overlap). Flag a question about what a later step would need (counterfactual) instead of what the item is; input beyond the judged item that the answer does not depend on; an undefined referent; course labels in place of plain concept names. A caller lowering a cutoff because clear cases sit at P 0.3-0.7 -> the question is the defect, not the cutoff.
 </invariants>
 
 <verdicts>
