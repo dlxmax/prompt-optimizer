@@ -45,7 +45,12 @@ Decide the architecture before writing the prompt. Cited guides sit in the plugi
 
 ## 3. Bench
 
-1. Minimal, to find mistakes: pick the cases most likely to change under the edit, known misses plus at least one already right.
+1. Minimal, to find mistakes, in stages; each stage runs only after the prior one's outputs are read.
+   1.1. After a major change (model, route, prompt, question set): 1 run on 2-3 known-problem cases. Read every output for breakage first.
+   1.2. Widen to the rest of the known misses plus one already-right case, still 1 run.
+   1.3. Repeated uncached runs (flip check) only once single runs look right, and only on cases suspected of flipping.
+   1.4. Whole class x 3 runs is the final confirmation bench, never the first.
+   1.5. Start runs one at a time, never in parallel: launched calls cannot be killed, so the user can no longer cut the bench down.
 2. Accept a prompt change only on uncached reruns: the failing cases fixed in 3 of 3 runs and one already-right control unchanged. Record a config hash (prompt, question files, chain) and the answering model per run; edits between runs are not noise. Decisions replies are cached by input and questions: bypass the cache before claiming rerun stability. Level comparisons report time per call.
 3. State the call count first; ask before more than 5 Flash calls (one ask covers a stated iteration set). Iterate on the failing cases plus about 5 already right (20-30 calls); run the full set once, after asking. One model per run; report the answering model. A run in which a fallback leg answered is not the experiment.
 4. Bench data and logs in a persistent folder (this user: `~/.tabot/benches/`), never /tmp, a scratchpad or the code repo. Check the log is non-empty.
