@@ -7,12 +7,14 @@ description: Use when adding a Gemini API call (google-genai, generateContent, I
 
 Decide the architecture before writing the prompt. Cited guides sit in the plugin root: join this skill's base directory (shown when the skill loads) with `../../<GUIDE>.md` and Read that absolute path. Read a cited guide when you set the parameter or route that line names. "Best practices" below means `GEMINI_3X_API_BEST_PRACTICES.md`.
 
-## 0. Before any run or cutoff change, write these lines first
+## 0. Gate: answer before you offer, propose or start any run or cutoff change
 
-1. Stage (section 3, 1.1-1.5) and call count.
-2. Can `probe.py` settle it? Yes -> probe; the handy end-to-end runner is not a reason to skip it.
+Answer these when you propose the run, not only before starting it. The user's "yes, check those" approves the check, not the route you named; re-answer line 2 before running.
+1. `Stage: <1.1-1.5>, <n> calls.`
+2. `Probe settles it: yes/no - <reason>.` yes -> `probe.py` only. no needs a named reason: rule interaction with the rest of the prompt, placeholder fill, or a code path. Writing line 1 does not answer line 2.
 3. More than 3 cases -> one line on why the lower stage is not enough. No line, no run.
 4. Changing a cutoff -> check 2.3.4 first.
+5. After a PASS: name the next stage, or the user says stop. Never propose a restart or ship while a known miss has not seen the change.
 
 ## 1. Route each job, first match wins
 
@@ -22,7 +24,7 @@ Decide the architecture before writing the prompt. Cited guides sit in the plugi
    2.2. Question design:
       2.2.1. Send only the item under judgment; a meaning check also gets the source or its slice, else it rejects good restatements for missing context. Source: whole for claim-support checks; for a part defined by position (opening, ending), code slices it, and each slice is benched on the cases it must answer.
       2.2.2. Ask one choice among contrasting failure kinds, never a bare yes/no; competing candidates go in one choice question. An outlier (even split, no clear answer) gets its own leave-a-note branch.
-      2.2.3. Ask what the item is, never what a later step would need. Define every referent; use the plain concept name, not the course label.
+      2.2.3. Ask what the item is, never what a later step would need. Define every referent; use the plain concept name, not the course label. Ask for the everyday concept ("is this the gist?"), not a strict sameness test: a strictness word makes the model punish any lost detail. A gist check can miss a dropped qualifier that is the point of contention (unbenched).
       2.2.4. Options are mutually exclusive, each with a test case that lands in it. Check every positive case against every option and rewrite when one fits two. Test a "none" option on the best cases too. Keep "not a match" exclusions narrow.
       2.2.5. Bench the question alone (probe, section 3, 1.1) on one hand-written item per type, near-misses included, before a pipeline bench.
    2.3. Cutoffs:
@@ -35,7 +37,7 @@ Decide the architecture before writing the prompt. Cited guides sit in the plugi
    2.5. Moving a level judgment from lite to Decisions is not a drop-in. Bench at least one top-level and one bottom-level anchor, and report branch-flag changes between the two routes. A check that fails its bench on Decisions stays on lite.
    2.6. Over-flag in the other direction: when lite's false negatives cost more than its false positives, lite "yes" stands and lite "no" is overturned only when Decisions reaches a stated cutoff.
    2.7. A generator receiving input it should not: route upstream with a Decisions question before building downstream rules or re-calls to repair its output.
-   2.8. Shortest restatement that keeps the meaning: lite writes 3-4 versions of different lengths; Decisions asks keep/lose per version, source included; code takes the shortest kept.
+   2.8. Shortest restatement that keeps the meaning: lite writes 3-4 versions of different lengths; Decisions asks keep/lose per version, source included; code takes the shortest kept. Expect lite to pad short ideas (repeated versions, frame phrases like "the belief that" from elsewhere in the prompt): code dedupes and strips frames.
    2.9. A Decisions request carries model, input and questions only: the thinking rules in section 2 apply to generating calls.
 3. Similarity across sources: copying and reuse, draft-to-final change, retrieving nearest examples or slides, duplicates across lessons, grouping by theme: **embeddings**. (`GEMINI_EMBEDDINGS.md`)
    3.1. Not for: quality level, AI detection, grounding, top-k evidence pruning, "same question?" inside one topic. Similarity finds the same topic, not whether a passage states the fact: claim support is Decisions on the whole source.
@@ -75,7 +77,8 @@ Decide the architecture before writing the prompt. Cited guides sit in the plugi
       1.1.2. Instruction carries a ban or guard ("never name X") -> make one variant without it, because a ban meant to stop invention can cause invention.
       1.1.3. A probe picks wording, never a cutoff, and cannot show how the rule interacts with the rest of the prompt: the winner still gets 1.2.
    1.2. Branch bench: put the chosen wording into the full prompt; 1 run on 2-3 known-problem cases that reach the changed text. Read every output for breakage first.
-   1.3. Widen: 1 run on the rest of the known misses that reach the changed text, plus one already-right case.
+   1.3. Widen: 1 run on the rest of the known misses that reach the changed text, plus one already-right case. Widening a sub-job's wording = `probe.py` on those cases' inputs; the full prompt only when the question is the wording's interaction with the rest of the prompt or with code.
+   1.3.1. Probe for wording, then one full-prompt run on one case for code and placeholder interactions (a bare reply filled into a template), after the probe, never instead of it.
    1.4. Flip check: 3 uncached runs, only on cases suspected of flipping: an output that differs from an earlier run of the same case, or a known flip.
    1.5. Final confirmation: the whole set x 3 runs, only after the teacher asks for it; never the first bench.
    1.6. Start runs one at a time, never in parallel: launched calls cannot be killed, so the user can no longer cut the bench down.

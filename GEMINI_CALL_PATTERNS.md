@@ -63,6 +63,8 @@ def call(*a, **k):
 9. Decisions failure falls back to lite and says so: `except Exception` -> log warning, `review.append("Decisions <name> failed; lite answers used, check")`, return None.
 10. Praise: cheap code checks first (quote verbatim, placement), then the Decisions check; non-verbatim quotes skip the call; probability at or above the drop cutoff drops the line; a failed check drops the line, keeps simple praise and reports (closed branch; the notes check keeps its line and reports).
 
+11. Case changes on model text (lowercasing a first letter, title case) keep abbreviations and names: "D&D" must not become "d&D".
+
 ## Prompt patterns, each with when to use it
 
 1. Where labels could leak into a writer: a `<course_terms>` glossary plus a banned-label rule.
