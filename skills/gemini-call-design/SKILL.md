@@ -1,19 +1,21 @@
 ---
 name: gemini-call-design
-description: Use when adding a Gemini API call (google-genai, generateContent, Interactions, gemini-* ids, gemini-decision-1, gemini-embedding-*) or changing a call's job, prompt, model, thinking level, schema or fallback chain, including grading, feedback, lesson generation and checks. Decides code vs Decisions vs embeddings vs a generating call, tier, thinking, splitting, schema and bench before code. Not for edits that change none of a call's job, prompt, model, thinking, schema or fallback chain.
+description: Use when adding a Gemini API call (google-genai, generateContent, Interactions, gemini-* ids, gemini-decision-1, gemini-embedding-*) or changing a call's job, prompt, model, thinking level, schema or fallback chain, including grading, feedback, lesson generation and checks. Decides code vs Decisions vs embeddings vs a generating call, tier, thinking, splitting, schema and bench before code. Load before the first edit to any Gemini prompt's wording, fields or length rules. Not for edits that touch no Gemini call (code paths, logging, tests).
 ---
 
 # Gemini call design
+
+Hard trigger: any edit to a Gemini prompt's wording, output fields or length rules loads this skill before the first edit; a one-word tweak counts. Probe before asking the user anything a probe can settle ("accurate or short?").
 
 Decide the architecture before writing the prompt. Cited guides sit in the plugin root: join this skill's base directory (shown when the skill loads) with `../../<GUIDE>.md` and Read that absolute path. Read a cited guide when you set the parameter or route that line names. "Best practices" below means `GEMINI_3X_API_BEST_PRACTICES.md`.
 
 ## 1. Route each job, first match wins
 
-1. Countable, arithmetic, substring, date, set, regex, dedup, empty or junk input, band or total from check answers: **code**. Skip the call on empty input; code verifies quotes (case and punctuation normalised, then substring) and drops misses. A copy field has three states: none, verified text, unverified; unverified never reads as none. Positions (earliest, first, share of words), counts and levels are code on verified spans. (`GRADING_PIPELINE.md` G1.3, G1.4, G2)
+1. Countable, arithmetic, substring, date, set, regex, dedup, empty or junk input, band or total from check answers: **code**. Skip the call on empty input; code verifies quotes (case and punctuation normalised, then substring) and drops misses. A copy field has three states: none, verified text, unverified; unverified never reads as none. Positions (earliest, first, share of words), counts, shortest or longest, and levels are code on verified spans. Never ask a model to pick "the shortest" or "the longest": it weighs meaning over length. (`GRADING_PIPELINE.md` G1.3, G1.4, G2)
 2. Output is a level or a choice with no text, or the same answer on rerun matters (regrades, appeals), or a generating call over-flags: **Decisions API** (`gemini-decision-1`). Offload every such judgment here before a generating call. First ask whether a generating call should run at all: a Decisions gate on its input often removes the error. A job comparing two texts checks route 3 first. (`GEMINI_DECISIONS.md`)
    2.1. Not for: countable parts, originality or AI authorship, feedback text or quotes, "said before the stop point vs only after it". Exempt items that assert nothing (opinion questions) in code first.
    2.2. Question design:
-      2.2.1. Send only the item under judgment. Source: whole for claim-support checks; for a part defined by position (opening, ending), code slices it, and each slice is benched on the cases it must answer.
+      2.2.1. Send only the item under judgment, except a meaning check (does this restatement keep the idea?): it also gets the source or its slice, or it rejects good restatements for missing context. Source: whole for claim-support checks; for a part defined by position (opening, ending), code slices it, and each slice is benched on the cases it must answer.
       2.2.2. Ask one choice among contrasting failure kinds, never a bare yes/no; competing candidates go in one choice question. An outlier (even split, no clear answer) gets its own leave-a-note branch.
       2.2.3. Ask what the item is, never what a later step would need. Define every referent; use the plain concept name, not the course label.
       2.2.4. Options are mutually exclusive, each with a test case that lands in it. Check every positive case against every option and rewrite when one fits two. Test a "none" option on the best cases too. Keep "not a match" exclusions narrow.
@@ -27,7 +29,8 @@ Decide the architecture before writing the prompt. Cited guides sit in the plugi
    2.5. Moving a level judgment from lite to Decisions is not a drop-in. Bench at least one top-level and one bottom-level anchor, and report branch-flag changes between the two routes. A check that fails its bench on Decisions stays on lite.
    2.6. Over-flag in the other direction: when lite's false negatives cost more than its false positives, lite "yes" stands and lite "no" is overturned only when Decisions reaches a stated cutoff.
    2.7. A generator receiving input it should not: route upstream with a Decisions question before building downstream rules or re-calls to repair its output.
-   2.8. A Decisions request carries model, input and questions only: the thinking rules in section 2 apply to generating calls.
+   2.8. Short accurate restatement (the shortest form that keeps the meaning) is two jobs: lite writes 3-4 versions of different lengths in plain words; Decisions asks one keep/lose question per version, source included; code takes the shortest that passes.
+   2.9. A Decisions request carries model, input and questions only: the thinking rules in section 2 apply to generating calls.
 3. Similarity across sources: copying and reuse, draft-to-final change, retrieving nearest examples or slides, duplicates across lessons, grouping by theme: **embeddings**. (`GEMINI_EMBEDDINGS.md`)
    3.1. Not for: quality level, AI detection, grounding, top-k evidence pruning, "same question?" inside one topic. Similarity finds the same topic, not whether a passage states the fact: claim support is Decisions on the whole source.
    3.2. Bench each model and task type separately; one that collapses (cosines near 0 for every pair) is a setup fault, not a cutoff. A flag listed in the plan ships wired into the run with its bench, or is listed under `Unbenched:` as not wired.
@@ -54,12 +57,14 @@ Decide the architecture before writing the prompt. Cited guides sit in the plugi
    6.4. Pin a call to a stronger model only after a shown failure on the weaker one; write the reason beside the pin.
 7. Failure policy: every added check states what a failed or unparseable reply does, including a bad value inside a parsed reply. A failed check keeps the line and reports it; a failed guard on a branch that unlocks content (praise, coaching) takes the closed branch. A slip code finds gets one uncached retry; keep and report the second, except on a content-unlocking branch, which takes the closed branch (an unverified praise line becomes simple praise, `FEEDBACK_GENERATION.md` F11). A level-producing call that still fails after its one retry routes to the pipeline's non-score outcome (human review), never a guessed level. Sibling checks share one policy. A Decisions sidecar that fails as a whole falls back to lite and says so in the review; one failed per-item check keeps the item and reports it.
 8. Routing: route a job by an explicit setting, not a name substring. A job that cannot grade a path refuses; it never falls back to a generic prompt.
-9. Tests before the commit: every new branch, including fallback, refusal and failure paths, with a fake decide function. (`GEMINI_CALL_PATTERNS.md`)
+9. Length: name the task ("a shortened version", "the gist", "the basic meaning", "in a few words"), never a word count or "drop words" mechanics: on Flash-Lite counts give fragments ("Person is not.") and caps cause meaning drift. "Summary" runs longer than "shortened version".
+10. Tests before the commit: every new branch, including fallback, refusal and failure paths, with a fake decide function. (`GEMINI_CALL_PATTERNS.md`)
 
 ## 3. Bench
 
 1. Bench in stages, cheapest first, to find mistakes; run a stage only after reading the prior stage's outputs.
-   1.1. Probe: send the changed instruction alone plus 2-3 case texts that reach it, as standalone uncached calls with the ask-gemini skill's `probe.py` (`generate`, `decide` or `embed` mode). Set `-m` and `--thinking` to the production model and level; if they differ, state the mismatch beside the result.
+   1.1. Probe: send the narrow sub-job alone (a 3-line prompt plus minimal input, never the full production prompt) with 2-3 case texts that reach it, as standalone uncached calls with the ask-gemini skill's `probe.py` (`generate`, `decide` or `embed` mode). Set `-m` and `--thinking` to the production model and level; if they differ, state the mismatch beside the result.
+      1.1.0. Cheapest first: 1 run on 2 cases, report in a few lines, iterate; widen only after reading. Run probe.py directly under `timeout`, never behind a pgrep or wait loop; check the process before blaming the API.
       1.1.1. Write 2-4 wording variants, run each 2-3 times with `-n`, compare the outputs side by side, and pick one.
       1.1.2. Instruction carries a ban or guard ("never name X") -> make one variant without it, because a ban meant to stop invention can cause invention.
       1.1.3. A probe picks wording, never a cutoff, and cannot show how the rule interacts with the rest of the prompt: the winner still gets 1.2.
@@ -98,5 +103,5 @@ Unbenched: <choices with no bench yet, and the minimal bench for each>
    2.4. Two FAIL rounds on the same item: stop and ask the user with the one sentence in dispute.
    2.5. Optimizer unavailable or empty report: stop and ask the user; never continue without it.
 3. Prompt examples stay general and domain-neutral; never send a case's own line as the target. A wording change is tested on the other judgments that read the same field and on other inputs.
-4. Run the tests (section 2, item 9) and the section 3 bench before the commit.
-5. Edits that change no call's job, prompt, model, thinking, schema or fallback chain skip this skill. A one-line wording fix the user dictates skips the optimizer.
+4. Run the tests (section 2, item 10) and the section 3 bench before the commit.
+5. Only edits that touch no Gemini prompt, model, thinking, schema or fallback chain skip this skill; any prompt wording change does not. A one-line wording fix the user dictates skips the optimizer.
