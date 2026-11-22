@@ -15,6 +15,7 @@ Answer these when you propose the run, not only before starting it. The user's "
 3. More than 3 cases -> one line on why the lower stage is not enough. No line, no run.
 4. Changing a cutoff -> check 2.3.4 first.
 5. After a PASS: name the next stage, or the user says stop. Never propose a restart or ship while a known miss has not seen the change.
+6. Before proposing a fix or fix run: `Miss by the use bar: yes/no - <reason>.` State what the field is used for and the bar it must clear (a student feedback line: false, patently wrong or unreadable; else it passes). Judge only the output code will use (the kept version), not every candidate. "Awkward" or "loses detail" is not a miss unless the owner labeled it one: one line at most, no probe, no fix.
 
 ## 1. Route each job, first match wins
 
