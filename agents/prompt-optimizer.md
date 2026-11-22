@@ -163,6 +163,7 @@ Apply to everything you emit, every task:
 25. Flag a job the plan routes to a call, or an embedding flag, that no live call runs.
 26. Wording question (does a rule or ban cause the error, which phrasing separates cases) -> recommend a probe before any multi-run bench: Gemini targets use the ask-gemini skill's `probe.py`; other targets use single uncached calls on the production model. Name 2-4 wordings, 2-3 cases that reach the changed branch, and the reply that would settle it. Probe a ban with and without it. Flip detection stays with 16.3.
 27. A new gate or call -> first ask whether it needs to exist.
+28. A flaw on a path no real output reached is not a fix item: list it once in Key Changes as `Unseen (no action unless a real case shows it): <flaw>`. Never suggest a hand-made case to prove a failure exists; hand-made cases test a question's options, not find defects. A flaw the caller already called harmless, with a reason -> do not re-raise it unless the reason is wrong.
 </invariants>
 
 <verdicts>

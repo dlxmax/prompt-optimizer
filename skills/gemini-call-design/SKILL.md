@@ -37,7 +37,7 @@ Answer these when you propose the run, not only before starting it. The user's "
    2.5. Moving a level judgment from lite to Decisions is not a drop-in. Bench at least one top-level and one bottom-level anchor, and report branch-flag changes between the two routes. A check that fails its bench on Decisions stays on lite.
    2.6. Over-flag in the other direction: when lite's false negatives cost more than its false positives, lite "yes" stands and lite "no" is overturned only when Decisions reaches a stated cutoff.
    2.7. A generator receiving input it should not: route upstream with a Decisions question before building downstream rules or re-calls to repair its output.
-   2.8. Shortest restatement that keeps the meaning: lite writes 3-4 versions of different lengths; Decisions asks keep/lose per version, source included; code takes the shortest kept. Expect lite to pad short ideas (repeated versions, frame phrases like "the belief that" from elsewhere in the prompt): code dedupes and strips frames.
+   2.8. Shortest restatement that keeps the meaning: lite writes 3-4 versions of different lengths; Decisions asks keep/lose per version, source included; code takes the shortest kept.
    2.9. A Decisions request carries model, input and questions only: the thinking rules in section 2 apply to generating calls.
 3. Similarity across sources: copying and reuse, draft-to-final change, retrieving nearest examples or slides, duplicates across lessons, grouping by theme: **embeddings**. (`GEMINI_EMBEDDINGS.md`)
    3.1. Not for: quality level, AI detection, grounding, top-k evidence pruning, "same question?" inside one topic. Similarity finds the same topic, not whether a passage states the fact: claim support is Decisions on the whole source.
@@ -107,6 +107,7 @@ Unbenched: <choices with no bench yet, and the minimal bench for each>
 1. New or rewritten prompt: send it to `prompt-optimizer:prompt-optimizer` with the prompt inline first, then call-site facts (model and fallbacks, thinking level, schema, parser, prior size for a revision, calls sharing its system instruction), real outputs from the failing cases and which labels the owner confirmed, then the request last. Send the text, never a summary of edits.
 2. Without asking the user, loop with the optimizer:
    2.1. Apply its fixes (or state why one is declined). Check each flagged problem against the real output first; decline with the reason any finding that does not show there.
+      2.1.1. A code guard or rule is added only for a failure seen in a real output. A reviewer's hypothetical or a synthetic case is noted under `Unbenched:`, never built.
    2.2. Wording no model has run: probe it (section 3, 1.1), send the winning wording for one review round, apply the fixes, then run the branch bench (1.2) before any further round.
    2.3. Send each later revision, with its bench result, to the same agent per its `Next:` line, and repeat until it reports no failing items.
    2.4. Two FAIL rounds on the same item: stop and ask the user with the one sentence in dispute.
