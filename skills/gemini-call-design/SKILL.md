@@ -7,6 +7,13 @@ description: Use when adding a Gemini API call (google-genai, generateContent, I
 
 Decide the architecture before writing the prompt. Cited guides sit in the plugin root: join this skill's base directory (shown when the skill loads) with `../../<GUIDE>.md` and Read that absolute path. Read a cited guide when you set the parameter or route that line names. "Best practices" below means `GEMINI_3X_API_BEST_PRACTICES.md`.
 
+## 0. Before any run or cutoff change, write these lines first
+
+1. Stage (section 3, 1.1-1.5) and call count.
+2. Can `probe.py` settle it? Yes -> probe; the handy end-to-end runner is not a reason to skip it.
+3. More than 3 cases -> one line on why the lower stage is not enough. No line, no run.
+4. Changing a cutoff -> check 2.3.4 first.
+
 ## 1. Route each job, first match wins
 
 1. Countable, arithmetic, substring, date, set, regex, dedup, empty or junk input, band or total from check answers: **code**. Skip the call on empty input; code verifies quotes (case and punctuation normalised, then substring) and drops misses. A copy field has three states: none, verified text, unverified; unverified never reads as none. Positions (earliest, first, share of words), counts, shortest or longest, and levels are code on verified spans. A model asked for "the shortest" weighs meaning over length. (`GRADING_PIPELINE.md` G1.3, G1.4, G2)
@@ -22,7 +29,8 @@ Decide the architecture before writing the prompt. Cited guides sit in the plugi
       2.3.1. Thresholds come from the teacher's graded set; read P(none) as its own signal. A cutoff stays provisional until it has two positives from two different inputs: ship it marked provisional and list it under `Unbenched:`. The default 0.5 is an uncalibrated placeholder.
       2.3.2. Record the gold-file version beside the cutoff, log the probabilities, keep the cutoff in a sidecar or env-overridable constant, and say when only the yes branch was tested.
       2.3.3. Freeze the gold version before the sweep. Pick the cutoff on one set, report it on cases not used to pick it, and leave a margin above the lowest gold positive.
-      2.3.4. P 0.3-0.7 on cases that should be clear is a design fault: redesign the options, question or context, never the cutoff.
+      2.3.4. P 0.3-0.7 on cases that should be clear is a design fault: redesign the options, question or context, never the cutoff. The user asks to lower it, or says rejected items are fine -> offer a rewording probe beside the cutoff change: "this band means the question is off; one probe call can test a rewording."
+      2.3.5. A cutoff or question check = `probe.py decide` on the 2-3 items in question plus 1-2 made-up bad controls, inputs written as text files. Never rerun the writer to get Decisions inputs; calibrating a cutoff does not need every case.
    2.4. A call that copies a quote and also judges it is two jobs: lite copies spans, Decisions judges, code verifies quotes and sets levels, positions and counts. Convert probabilities in code to the fields the existing level code reads, so that code does not change. Take the decide function as an argument; None keeps the lite answers (patterns: `GEMINI_CALL_PATTERNS.md`).
    2.5. Moving a level judgment from lite to Decisions is not a drop-in. Bench at least one top-level and one bottom-level anchor, and report branch-flag changes between the two routes. A check that fails its bench on Decisions stays on lite.
    2.6. Over-flag in the other direction: when lite's false negatives cost more than its false positives, lite "yes" stands and lite "no" is overturned only when Decisions reaches a stated cutoff.

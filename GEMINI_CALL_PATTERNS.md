@@ -75,7 +75,7 @@ def call(*a, **k):
 
 Folder `~/.tabot/benches/<task>/`, never /tmp or the code repo:
 1. `fetch.py` builds `cases.json` once from the source of record. Cases hold real student names: keep the folder out of shared files; reports use IDs.
-2. `run.py <route> [out]`: one `one(case, route)`, 4 threads (per-model; `GEMINI_3X_API_BEST_PRACTICES.md` 10), the route is an argument (`old`: `decide=None`, `new`: Decisions), writes `<out>.json`, prints one line per case. Errors are caught per case and returned as a row. Use the full key list so a 503 rotates.
+2. `run.py <route> [out]`: one `one(case, route)`, 4 threads (per-model; `GEMINI_3X_API_BEST_PRACTICES.md` 10), the route is an argument (`old`: `decide=None`, `new`: Decisions), writes `<out>.json`, prints one line per case. Errors are caught per case and returned as a row. Check a stop file (`<out>.stop`) between cases and exit cleanly when it exists, so the user can stop a bench without killing a call mid-flight. Use the full key list so a 503 rotates.
 3. Numbered outputs in pairs (`runN.json` + `runN.log`). Keep the log: it holds the 503 history and the answering model. Unbuffered log, never `| tail`.
 4. `probe_*.py <names> <runs> <model>`: one call class on chosen cases, each run wrapped in the cache bypass, one JSON row per run. Print one line per item with the label probabilities beside the item text: `0.14 unclear=0.79 | <case> | <text>`. Print every option at or above 0.01 on boundary cases.
 5. `rulings.json`: `{"_note", "owner": {case: {criterion: ruling}}, "adjudicator": {check: verdict}, "notes": [...]}`. Owner rulings and adjudicator verdicts in separate keys.
