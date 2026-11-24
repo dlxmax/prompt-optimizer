@@ -1,6 +1,6 @@
 ---
 name: gemini-call-design
-description: Use when adding a Gemini API call (google-genai, generateContent, Interactions, gemini-* ids, gemini-decision-1, gemini-embedding-*) or changing a call's job, prompt, model, thinking level, schema or fallback chain, including grading, feedback, lesson generation and checks. Load before the first edit to a Gemini prompt's wording, fields or length rules, however small. Decides code vs Decisions vs embeddings vs a generating call, tier, thinking, splitting, schema and bench before code. Not for edits that touch no Gemini call.
+description: Use for any work on a prompt that a Gemini call sends: writing, revising, rewording, shortening, reviewing or debugging a prompt, grader question, rubric criterion, Decisions question (gemini-decision-1), feedback or lesson-generation prompt, cutoff or threshold, bench, or schema, even when the user just says "the prompt", "the grader", "the question" or "fix the wording" and never says Gemini. Also when adding or changing a Gemini API call (google-genai, generateContent, Interactions, gemini-* ids, gemini-embedding-*), its model, thinking level or fallback chain, and before sending a Gemini prompt to prompt-optimizer. Load it before the first edit or run, however small, and reload it after compaction. Decides code vs Decisions vs embeddings vs a generating call, tier, thinking, splitting, schema, bench, and when to settle a question yourself instead of asking the owner. Not for edits that touch no LLM prompt or call.
 ---
 
 # Gemini call design
@@ -16,6 +16,8 @@ Answer these when you propose the run, not only before starting it. The user's "
 4. Changing a cutoff -> check 2.3.4 first.
 5. After a PASS: name the next stage, or the user says stop. Never propose a restart or ship while a known miss has not seen the change.
 6. Before proposing a fix or fix run: `Miss by the use bar: yes/no - <reason>.` State what the field is used for and the bar it must clear (a student feedback line: false, patently wrong or unreadable; else it passes). Judge only the output code will use (the kept version), not every candidate. "Awkward" or "loses detail" is not a miss unless the owner labeled it one: one line at most, no probe, no fix.
+7. Before asking the owner for a label, a cutoff or a mid-band ruling: apply line 6, then run the 2.3.5 controls probe. Ask only if both leave it open. Owner labels, once they exist, set thresholds (2.3.1) and ground truth (3.5); their absence never blocks a run or a provisional cutoff.
+8. Runs within §3.3's limits (any Lite or Decisions run, up to 5 Flash calls) need no ask: start them. A staged, unposted write after a cache snapshot is reversible: no ask.
 
 ## 1. Route each job, first match wins
 
@@ -29,10 +31,10 @@ Answer these when you propose the run, not only before starting it. The user's "
       2.2.4. Options are mutually exclusive, each with a test case that lands in it. Check every positive case against every option and rewrite when one fits two. Test a "none" option on the best cases too. Keep "not a match" exclusions narrow.
       2.2.5. Bench the question alone (probe, section 3, 1.1) on one hand-written item per type, near-misses included, before a pipeline bench.
    2.3. Cutoffs:
-      2.3.1. Thresholds come from the teacher's graded set; read P(none) as its own signal. A cutoff stays provisional until it has two positives from two different inputs: ship it marked provisional and list it under `Unbenched:`. The default 0.5 is an uncalibrated placeholder.
+      2.3.1. Without a teacher's graded set, set thresholds by 2.3.5; with one, sweep it per 2.3.3. Read P(none) as its own signal. A cutoff stays provisional until it has two positives from two different inputs: ship it marked provisional and list it under `Unbenched:`. The default 0.5 is an uncalibrated placeholder.
       2.3.2. Record the gold-file version beside the cutoff, log the probabilities, keep the cutoff in a sidecar or env-overridable constant, and say when only the yes branch was tested.
       2.3.3. Freeze the gold version before the sweep. Pick the cutoff on one set, report it on cases not used to pick it, and leave a margin above the lowest gold positive.
-      2.3.4. P 0.3-0.7 on cases that should be clear is a design fault: redesign the options, question or context, never the cutoff. The user asks to lower it, or says rejected items are fine -> offer a rewording probe beside the cutoff change: "this band means the question is off; one probe call can test a rewording."
+      2.3.4. P 0.3-0.7 on cases that should be clear (re-check your own label first, 3.5) is a design fault: redesign the options, question or context, never the cutoff. The user asks to lower it, or says rejected items are fine -> offer a rewording probe beside the cutoff change: "this band means the question is off; one probe call can test a rewording."
       2.3.5. A cutoff or question check = `probe.py decide` on the 2-3 items in question plus 1-2 made-up bad controls, inputs written as text files. Never rerun the writer to get Decisions inputs; calibrating a cutoff does not need every case.
    2.4. A call that copies a quote and also judges it is two jobs: lite copies spans, Decisions judges, code verifies quotes and sets levels, positions and counts. Convert probabilities in code to the fields the existing level code reads, so that code does not change. Take the decide function as an argument; None keeps the lite answers (patterns: `GEMINI_CALL_PATTERNS.md`).
    2.5. Moving a level judgment from lite to Decisions is not a drop-in. Bench at least one top-level and one bottom-level anchor, and report branch-flag changes between the two routes. A check that fails its bench on Decisions stays on lite.
@@ -88,7 +90,7 @@ Answer these when you propose the run, not only before starting it. The user's "
 2. Accept a prompt change only on uncached reruns: the failing cases fixed in 3 of 3 runs and one already-right control unchanged. Record a config hash (prompt, question files, chain) and the answering model per run; edits between runs are not noise. Decisions replies are cached by input and questions: bypass the cache before claiming rerun stability. Level comparisons report time per call.
 3. Ask before more than 5 Flash calls (one ask covers a stated iteration set). One model per run; report the answering model. A run in which a fallback leg answered is not the experiment.
 4. Bench data and logs in a persistent folder (this user: `~/.tabot/benches/`), never /tmp, a scratchpad or the code repo. Check the log is non-empty.
-5. Labels: a label set is ground truth only after its owner confirms it. Re-check your own label before calling a model miss. With no owner key, a bench shows differences, not regressions. Adjudicator-model verdicts are input; the owner's ruling overrides; keep them in separate keys.
+5. Labels: an owner-confirmed label set is ground truth; until one exists, gate line 7 settles labels. Re-check your own label before calling a model miss. Before reading a made-up control's score, state what it should get and why, from its text. With no owner key, a bench shows differences, not regressions. Adjudicator-model verdicts are input; the owner's ruling overrides; keep them in separate keys.
 6. Bench input text equals production text, or cache keys and grades differ. A bench on real work writes the production cache on purpose; variance runs go to a throwaway cache.
 7. Folder layout, probes and accounting: `GEMINI_CALL_PATTERNS.md`.
 
@@ -105,7 +107,7 @@ Unbenched: <choices with no bench yet, and the minimal bench for each>
 
 ## 5. After writing the prompt
 
-1. New or rewritten prompt: send it to `prompt-optimizer:prompt-optimizer` with the prompt inline first, then call-site facts (model and fallbacks, thinking level, schema, parser, prior size for a revision, calls sharing its system instruction), real outputs from the failing cases and which labels the owner confirmed, then the request last. Send the text, never a summary of edits.
+1. New or rewritten prompt: send it to `prompt-optimizer:prompt-optimizer` with the prompt inline first, then call-site facts (model and fallbacks, thinking level, schema, parser, prior size for a revision, calls sharing its system instruction), real outputs from the failing cases and which labels the owner confirmed, then the request last. Send the text, never a summary of edits. Before sending, fill every slot you were meant to fill; keep runtime template slots that code fills, and name what fills each.
 2. Without asking the user, loop with the optimizer:
    2.1. Apply its fixes (or state why one is declined). Check each flagged problem against the real output first; decline with the reason any finding that does not show there.
       2.1.1. A code guard or rule is added only for a failure seen in a real output. A reviewer's hypothetical or a synthetic case is noted under `Unbenched:`, never built.
