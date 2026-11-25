@@ -41,6 +41,14 @@ In Claude Code:
 To update later: `/plugin marketplace update prompt-optimizer` (it reloads
 plugins itself).
 
+For Gemini prompt work, also install ask-gemini (>= 0.4.6). The
+gemini-call-design skill's wording probes run its `probe.py`:
+
+```
+/plugin marketplace add dlxmax/ask-gemini
+/plugin install ask-gemini
+```
+
 ## Use
 
 You don't call it yourself. Tell Claude Code which prompt, what's going wrong,
