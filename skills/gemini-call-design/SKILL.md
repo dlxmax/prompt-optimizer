@@ -90,6 +90,7 @@ Answer these when you propose the run, not only before starting it. The user's "
    1.6. Start runs one at a time, never in parallel: launched calls cannot be killed, so the user can no longer cut the bench down.
    1.7. Scope: stages 1.2-1.4 use only cases that read the changed text. An edit to a shared system instruction or an unbranched rule reaches every case, so pick from all cases. Add one case off the changed branch to catch leaks.
    1.8. Before any bench, state its stage (1.1-1.5) and call count.
+   1.9. Probe and bench inputs = the production fill function's output, never retyped. Score only rows the pinned model answered; fallback rows (`ran on X`) are rerun or reported apart.
 2. Accept a prompt change only on uncached reruns: the failing cases fixed in 3 of 3 runs and one already-right control unchanged. Record a config hash (prompt, question files, chain) and the answering model per run; edits between runs are not noise. Decisions replies are cached by input and questions: bypass the cache before claiming rerun stability. Level comparisons report time per call.
 3. Ask before more than 5 Flash calls (one ask covers a stated iteration set). One model per run; report the answering model. A run in which a fallback leg answered is not the experiment.
 4. Bench data and logs in a persistent folder (this user: `~/.tabot/benches/`), never /tmp, a scratchpad or the code repo. Check the log is non-empty.
