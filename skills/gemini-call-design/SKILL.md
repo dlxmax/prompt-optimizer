@@ -7,7 +7,7 @@ description: Use for any work on a prompt that a Gemini call sends: writing, rev
 
 Decide the architecture before writing the prompt. Cited guides sit in the plugin root: join this skill's base directory (shown when the skill loads) with `../../<GUIDE>.md` and Read that absolute path. Read a cited guide when you set the parameter or route that line names. "Best practices" below means `GEMINI_3X_API_BEST_PRACTICES.md`.
 
-Requires the ask-gemini plugin (dlxmax/ask-gemini) >= 0.4.6 for `probe.py` (`generate`/`decide`/`embed`, `-m`, `--thinking`, `--fallback-class`). Missing or older: tell the user to install or update it; until then skip the probe, say it was skipped, and never substitute a bench.
+Requires the ask-gemini plugin (dlxmax/ask-gemini) >= 0.4.7 for `probe.py` (`generate`/`decide`/`embed`, `-m`, `--thinking`, `--fallback-class`). Missing or older: tell the user to install or update it; until then skip the probe, say it was skipped, and never substitute a bench.
 
 ## 0. Gate: answer before you offer, propose or start any run or cutoff change
 
