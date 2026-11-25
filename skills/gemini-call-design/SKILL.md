@@ -20,6 +20,7 @@ Answer these when you propose the run, not only before starting it. The user's "
 6. Before proposing a fix or fix run: `Miss by the use bar: yes/no - <reason>.` State what the field is used for and the bar it must clear (a student feedback line: false, patently wrong or unreadable; else it passes). Judge only the output code will use (the kept version), not every candidate. "Awkward" or "loses detail" is not a miss unless the owner labeled it one: one line at most, no probe, no fix.
 7. Before asking the owner for a label, a cutoff or a mid-band ruling: apply line 6, then run the 2.3.5 controls probe. Ask only if both leave it open. Owner labels, once they exist, set thresholds (2.3.1) and ground truth (3.5); their absence never blocks a run or a provisional cutoff.
 8. Runs within §3.3's limits (any Lite or Decisions run, up to 5 Flash calls) need no ask: start them. A staged, unposted write after a cache snapshot is reversible: no ask.
+9. PASS = the optimizer's own `PASS` label; "provisional" or fixes pending is not one. No bench or commit before it. A declined fix goes back to the optimizer with the reason.
 
 ## 1. Route each job, first match wins
 
