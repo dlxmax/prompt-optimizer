@@ -74,7 +74,7 @@ Answer these when you propose the run, not only before starting it. The user's "
 ## 3. Bench
 
 1. Bench in stages, cheapest first, to find mistakes; run a stage only after reading the prior stage's outputs.
-   1.1. Probe: send the narrow sub-job alone (a few-line prompt, not the full production prompt) with 2-3 case texts that reach it, as standalone uncached calls with the ask-gemini skill's `probe.py` (`generate`, `decide` or `embed` mode). Set `-m` and `--thinking` to the production model and level; if they differ, state the mismatch beside the result.
+   1.1. Probe: send the narrow sub-job alone (a few-line prompt, not the full production prompt) with 2-3 case texts that reach it, as standalone uncached calls with the ask-gemini skill's `probe.py` (`generate`, `decide` or `embed` mode). Set `-m` and `--thinking` to the production model and level; if they differ, state the mismatch beside the result. Gemini overloaded: add `--fallback-class` (generate only); it reruns a failing case on a same-class model, so a case the summary marks as moved compares its variants on that model, not production's.
       1.1.0. Cheapest first: 1 run on 2 cases, report in a few lines, iterate. Probe before asking the user anything a probe can settle.
       1.1.1. Write 2-4 wording variants, run each 2-3 times with `-n`, compare the outputs side by side, and pick one.
       1.1.2. Instruction carries a ban or guard ("never name X") -> make one variant without it, because a ban meant to stop invention can cause invention.
